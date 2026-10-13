@@ -173,7 +173,7 @@ Source: `isaacbot_amr_arch/SAFETY_CHAIN.md` §5, `isaacbot_amr_twist_mux/config/
 !!! note
     With no hardware interface running there is no safety state, so the motion lock stays closed and the isaacbot accepts no velocity commands. This is intended.
 
-The driving modes (MANUAL, ASSISTED, AUTOMATIC) and the lidar collision monitors live in `rover_orchestrator`, not in this repository. They are not safety functions.
+The driving modes (MANUAL, ASSISTED, AUTOMATIC) and the lidar collision monitors live in `isaacbot_amr_orchestrator`, not in this repository. They are not safety functions.
 
 ## Timing budget
 

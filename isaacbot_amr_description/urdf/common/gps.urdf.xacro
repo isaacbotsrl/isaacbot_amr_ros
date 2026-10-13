@@ -9,7 +9,7 @@
 
     <xacro:property name="ns" value='${namespace + "/" if namespace else ""}' />
 
-    <!-- Gazebo GNSS: stands in for the RUTX11 NMEA stream (rover_gps in rover_sensors).
+    <!-- Gazebo GNSS: stands in for the RUTX11 NMEA stream (isaacbot_amr_gps in isaacbot_amr_sensors).
          Needs the NavSat system and <spherical_coordinates> in the world. The bridge maps
          <ns>gps/fix to sensor_msgs/NavSatFix, the topic the real driver publishes. On
          hardware gps_link is only a frame: the driver runs in the sensors container. -->

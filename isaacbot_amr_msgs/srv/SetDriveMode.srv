@@ -1,4 +1,4 @@
-# Request a driving mode from rover_drive_mode (rover_orchestrator).
+# Request a driving mode from isaacbot_amr_drive_mode (isaacbot_amr_orchestrator).
 # Refused, with the reason in message, when the mode's prerequisites are missing
 # (e.g. AUTOMATIC without the mission manager).
 

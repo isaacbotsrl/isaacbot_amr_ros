@@ -87,7 +87,7 @@ def generate_launch_description():
     # start.sh)
     # selects the localization: false = wheels + IMU; true = wheels + IMU + GPS (dual EKF).
     # The GPS and lidar drivers are not started here: they are the sensor payload
-    # (rover_sensors repo, rover-a1-sensors container) and only publish gps/fix, scan, ...
+    # (isaacbot_amr_sensors repo, rover-a1-sensors container) and only publish gps/fix, scan, ...
     use_gps = LaunchConfiguration("use_gps")
     declare_use_gps_arg = DeclareLaunchArgument(
         "use_gps",

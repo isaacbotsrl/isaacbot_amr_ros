@@ -32,7 +32,7 @@ namespace isaacbot_amr_gps_heading
 /**
  * @brief Composition root: the odom->ENU heading alignment from GNSS course.
  * @details Localization logic, not a sensor driver: it consumes gps/fix from the sensor payload
- *          (rover_sensors/rover_gps) and odom from isaacbot_amr_ekf_node, and publishes gps/heading_imu
+ *          (isaacbot_amr_sensors/isaacbot_amr_gps) and odom from isaacbot_amr_ekf_node, and publishes gps/heading_imu
  *          for isaacbot_amr_navsat_transform_node. GPS fix health is reported by isaacbot_amr_gps_node.
  */
 class IsaacbotGpsHeadingNode : public rclcpp::Node

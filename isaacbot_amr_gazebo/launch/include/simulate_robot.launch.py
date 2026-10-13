@@ -196,7 +196,7 @@ def generate_launch_description():
         emulate_tty=True,
     )
 
-    # scan from the simulated RS16 cloud, like rover_rs16_lidar's scan: the same +/-0.25 m
+    # scan from the simulated RS16 cloud, like isaacbot_amr_rs16_lidar's scan: the same +/-0.25 m
     # height slice, 360 deg at 0.5 deg, 0.2-20 m, stamped in the lidar frame.
     pointcloud_to_laserscan = Node(
         package="pointcloud_to_laserscan",

@@ -16,7 +16,7 @@
   gz_type_name: gz.msgs.Twist
   direction: GZ_TO_ROS
 
-# Lidar (RS16 stand-in): the point cloud the rover_rs16_lidar driver publishes.
+# Lidar (RS16 stand-in): the point cloud the isaacbot_amr_rs16_lidar driver publishes.
 # <namespace>/scan is sliced out of it by pointcloud_to_laserscan.
 - ros_topic_name: /<namespace>/rslidar_points
   gz_topic_name: /<namespace>/lidar/points
@@ -24,15 +24,15 @@
   gz_type_name: gz.msgs.PointCloudPacked
   direction: GZ_TO_ROS
 
-# Depth camera (RealSense D435i stand-in, ISAACBOT_AMR_SYSTEM_USE_CAMERA): the cloud rover_sensors'
-# rover_realsense (depth_image_proc) publishes. Without the camera nothing is published on the gz side.
+# Depth camera (RealSense D435i stand-in, ISAACBOT_AMR_SYSTEM_USE_CAMERA): the cloud isaacbot_amr_sensors'
+# isaacbot_amr_realsense (depth_image_proc) publishes. Without the camera nothing is published on the gz side.
 - ros_topic_name: /<namespace>/camera/depth/points
   gz_topic_name: /<namespace>/camera/depth/points
   ros_type_name: sensor_msgs/msg/PointCloud2
   gz_type_name: gz.msgs.PointCloudPacked
   direction: GZ_TO_ROS
 
-# GNSS (RUTX11 stand-in): the fix the rover_gps driver publishes.
+# GNSS (RUTX11 stand-in): the fix the isaacbot_amr_gps driver publishes.
 - ros_topic_name: /<namespace>/gps/fix
   gz_topic_name: /<namespace>/gps/fix
   ros_type_name: sensor_msgs/msg/NavSatFix

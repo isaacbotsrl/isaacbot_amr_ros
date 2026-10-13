@@ -24,12 +24,12 @@
 # Usage:
 #   isaacbot_amr_sim.sh [--build] [launch args...]   start the simulation (Ctrl+C stops everything)
 #   source isaacbot_amr_sim.sh                       only set up this shell, e.g. a second terminal
-#                                             for rover_navigation or ros2 CLI tools
+#                                             for isaacbot_amr_navigation or ros2 CLI tools
 #
 # Examples:
 #   isaacbot_amr_sim.sh --build
 #   ISAACBOT_AMR_SYSTEM_USE_GPS=true isaacbot_amr_sim.sh use_rviz:=False gz_headless_mode:=True
-#   source isaacbot_amr_sim.sh && ros2 launch rover_navigation bringup.launch.py \
+#   source isaacbot_amr_sim.sh && ros2 launch isaacbot_amr_navigation bringup.launch.py \
 #     use_sim_time:=True localization_source:=slam
 #
 # Environment (all optional):
@@ -131,7 +131,7 @@ fi
 if [ "$BUILD" = true ]; then
     (
         cd "$ISAACBOT_AMR_WS"
-        colcon build --symlink-install --packages-up-to isaacbot_amr_metapackage rover_autonomy \
+        colcon build --symlink-install --packages-up-to isaacbot_amr_metapackage isaacbot_amr_autonomy \
             --cmake-args -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
     )
     # shellcheck disable=SC1091

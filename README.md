@@ -237,7 +237,7 @@ A complete isaacbot is three repositories, one per container:
 
 - [`isaacbot_amr_ros`](https://github.com/isaacbotsrl/isaacbot_amr_ros) - this one, the platform
   (`rover-a1-platform`).
-- [`rover_sensors`](https://github.com/RaduPotlog/rover_sensors) - the sensor payload,
+- [`isaacbot_amr_sensors`](https://github.com/isaacbotsrl/isaacbot_amr_sensors) - the sensor payload,
   GNSS and lidar drivers (`rover-a1-sensors`).
-- [`rover_orchestrator`](https://github.com/RaduPotlog/rover_orchestrator) - the autonomy
+- [`isaacbot_amr_orchestrator`](https://github.com/isaacbotsrl/isaacbot_amr_orchestrator) - the autonomy
   stack, Nav 2 and mission supervision (`rover-a1-orchestrator`).

@@ -1,4 +1,4 @@
-# Indoor localization mode managed by rover_indoor_nav_manager (latched: transient-local, depth 1)
+# Indoor localization mode managed by isaacbot_amr_indoor_nav_manager (latched: transient-local, depth 1)
 
 uint8 UNAVAILABLE = 0       # No localization running
 uint8 MAPPING = 1           # slam_toolbox is building a new map

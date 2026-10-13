@@ -32,8 +32,8 @@ The platform container runs two launch files: `isaacbot_amr_bringup.launch.py` (
     | Repository | Container | Role |
     |------------|-----------|------|
     | [`isaacbot_amr_ros`](https://github.com/isaacbotsrl/isaacbot_amr_ros) | `rover-a1-platform` | This platform: drive, safety IO, localization, power, LEDs, teleop, diagnostics. |
-    | [`rover_sensors`](https://github.com/RaduPotlog/rover_sensors) | `rover-a1-sensors` | Sensor payload: GNSS and lidar drivers. Publishes `gps/fix`, `scan` and `rslidar_points`. |
-    | [`rover_orchestrator`](https://github.com/RaduPotlog/rover_orchestrator) | `rover-a1-orchestrator` | Autonomy: Nav 2 and mission supervision. Publishes `nav_cmd_vel_stamped`. |
+    | [`isaacbot_amr_sensors`](https://github.com/isaacbotsrl/isaacbot_amr_sensors) | `rover-a1-sensors` | Sensor payload: GNSS and lidar drivers. Publishes `gps/fix`, `scan` and `rslidar_points`. |
+    | [`isaacbot_amr_orchestrator`](https://github.com/isaacbotsrl/isaacbot_amr_orchestrator) | `rover-a1-orchestrator` | Autonomy: Nav 2 and mission supervision. Publishes `nav_cmd_vel_stamped`. |
 
     Source: `README.md`, `isaacbot_amr_bringup/README.md`.
 
@@ -282,4 +282,4 @@ Source: `README.md`.
 Source: `isaacbot_amr_bringup/launch/isaacbot_amr_bringup.launch.py`.
 
 The GPS and lidar drivers are not started by `isaacbot_amr_bringup`. They belong to the sensor payload
-(`rover_sensors`).
+(`isaacbot_amr_sensors`).

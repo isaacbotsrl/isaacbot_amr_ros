@@ -38,4 +38,4 @@ colcon build --symlink-install
 ```
 
 `rover_docker/rovera1_app/Dockerfile` runs the same `vcs import` with `hardware_deps.repos`.
-`rover_orchestrator` (Nav 2) is not listed, so clone it separately on the navigation computer.
+`isaacbot_amr_orchestrator` (Nav 2) is not listed, so clone it separately on the navigation computer.

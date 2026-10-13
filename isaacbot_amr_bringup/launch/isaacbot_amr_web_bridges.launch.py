@@ -41,7 +41,7 @@ FOXGLOVE_ASSET_URI_ALLOWLIST = (
     r"['^package://(?:[-\w%]+/)*[-\w%.]+\." + f"(?:{_ANY_CASE})" + r"$']"
 )
 
-# Topics the web UIs actually use (rover_drive_interface through nginx's /ws, Foxglove
+# Topics the web UIs actually use (isaacbot_amr_drive_interface through nginx's /ws, Foxglove
 # Studio and other UI clients). Every other topic stays off the bridge: upstream's
 # default ['.*'] advertises the whole graph, and anything a browser (or a stray Foxglove Studio)
 # subscribes to crosses the Zenoh router into this process at its full rate - the UIs throttle
@@ -54,12 +54,12 @@ FOXGLOVE_ASSET_URI_ALLOWLIST = (
 # debugging.
 _ABSOLUTE_UI_TOPICS = ("/tf", "/tf_static")
 _NAMESPACED_UI_TOPICS = (
-    # rover_drive_interface: map view
+    # isaacbot_amr_drive_interface: map view
     "map",
     "global_costmap/costmap",
     "scan",
     "plan",
-    # rover_drive_interface: status, safety, localization and missions
+    # isaacbot_amr_drive_interface: status, safety, localization and missions
     "hardware_interface/aux_io_state",
     "hardware_interface/safety_status",
     "hardware_interface/safety_command_echo",
@@ -72,8 +72,8 @@ _NAMESPACED_UI_TOPICS = (
     "amcl_pose",
     "mission_state",
     "drive_mode",
-    # rover_drive_interface: published by the UI (see above for why they must be listed).
-    # The joystick goes to rover_drive_mode (rover_orchestrator), which routes it by driving mode
+    # isaacbot_amr_drive_interface: published by the UI (see above for why they must be listed).
+    # The joystick goes to isaacbot_amr_drive_mode (isaacbot_amr_orchestrator), which routes it by driving mode
     # onto teleop_driver_interface_cmd_vel_stamped. That topic stays off the bridge so a browser
     # cannot bypass the mode (and the ASSISTED obstacle guard) by publishing on it directly.
     "teleop_web_cmd_vel_stamped",
@@ -89,7 +89,7 @@ _NAMESPACED_UI_TOPICS = (
     "rc/channels",
     "rc/link",
     "rc/calibration/state",
-    # Follow-me card (rover_follow_me)
+    # Follow-me card (isaacbot_amr_follow_me)
     "follow_me/status",
 )
 FOXGLOVE_TOPIC_WHITELIST = (
@@ -112,28 +112,28 @@ FOXGLOVE_TOPIC_WHITELIST = (
 # ISAACBOT_AMR_PLATFORM_FOXGLOVE_SERVICE_WHITELIST="['.*']" on the platform service opens it up for
 # debugging.
 _ABSOLUTE_UI_SERVICES = (
-    # rover_drive_interface: link latency probe
+    # isaacbot_amr_drive_interface: link latency probe
     "/rosapi/get_time",
 )
 _NAMESPACED_UI_SERVICES = (
-    # rover_drive_interface: E-Stop and aux outputs
+    # isaacbot_amr_drive_interface: E-Stop and aux outputs
     "hardware_interface/sw_user_e_stop_set",
     "hardware_interface/sw_user_e_stop_reset",
     "hardware_interface/sw_e_stop_latch_reset",
     r"hardware_interface/aux_output_\d+/set",
-    # rover_drive_interface: driving mode (rover_drive_mode)
+    # isaacbot_amr_drive_interface: driving mode (isaacbot_amr_drive_mode)
     "set_drive_mode",
-    # rover_drive_interface: missions (rover_mission_manager)
+    # isaacbot_amr_drive_interface: missions (isaacbot_amr_mission_manager)
     "set_mission",
     "run_mission",
-    # rover_drive_interface: indoor maps and places (rover_indoor_nav_manager)
+    # isaacbot_amr_drive_interface: indoor maps and places (isaacbot_amr_indoor_nav_manager)
     "start_mapping",
     "save_map",
     "load_map",
     "delete_map",
     "save_place",
     "delete_place",
-    # rover_drive_interface: relocalize (AMCL)
+    # isaacbot_amr_drive_interface: relocalize (AMCL)
     "reinitialize_global_localization",
     "request_nomotion_update",
     # RC page (calibration, and taking teleop off the command path during a sweep)
@@ -148,7 +148,7 @@ _NAMESPACED_UI_SERVICES = (
     "led/set_animation",
     "led/stop_animation",
     "led/set_brightness",
-    # Follow-me card (rover_follow_me)
+    # Follow-me card (isaacbot_amr_follow_me)
     "follow_me/start",
     "follow_me/stop",
 )

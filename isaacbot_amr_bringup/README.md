@@ -37,7 +37,7 @@ It prints the isaacbot banner (`isaacbot_amr_utils.messages.welcome_msg`) and th
    the whole launch down, so the timeout only covers a spawner that hangs.
 
 The GPS and lidar drivers are not started here. They are the sensor payload: the
-`rover_sensors` repo, run by the `rover-a1-sensors` container, which only publishes `gps/fix`,
+`isaacbot_amr_sensors` repo, run by the `rover-a1-sensors` container, which only publishes `gps/fix`,
 `scan`, `rslidar_points` and their diagnostics. In GPS mode `isaacbot_amr_localization` also starts
 `isaacbot_amr_gps_heading_node`, which turns `gps/fix` + `odom` into the ENU heading.
 

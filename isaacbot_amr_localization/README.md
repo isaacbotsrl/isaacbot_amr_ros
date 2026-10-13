@@ -11,12 +11,12 @@ selects between two modes:
 
 With GPS, `odom` stays continuous for local control, and GPS corrections show up only in
 `map → odom`. The GPS driver and its fix diagnostics (`gps/fix`) are the sensor payload
-(`rover_sensors/rover_gps`, container `rover-a1-sensors`). The ENU heading (`gps/heading_imu`)
+(`isaacbot_amr_sensors/isaacbot_amr_gps`, container `rover-a1-sensors`). The ENU heading (`gps/heading_imu`)
 comes from `isaacbot_amr_gps_heading_node` (package `isaacbot_amr_gps_heading`), started here in GPS mode.
 
 > By default (`ISAACBOT_AMR_SYSTEM_GPS_MAP_TF=false`, `publish_global_tf:=false`) the global EKF
 > publishes `odometry/global` but does not broadcast `map → odom`, which is left to AMCL
-> (`rover_orchestrator/rover_navigation/launch/localization.launch.py`) or SLAM. With
+> (`isaacbot_amr_orchestrator/isaacbot_amr_navigation/launch/localization.launch.py`) or SLAM. With
 > `ISAACBOT_AMR_SYSTEM_GPS_MAP_TF=true` it broadcasts `map → odom` itself; do not run AMCL or SLAM
 > alongside it then.
 

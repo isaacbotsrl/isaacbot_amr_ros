@@ -17,8 +17,8 @@ highest priority wins, and each input times out:
 |---------:|-------|-------|--------:|--------|
 | 110 | `cmd_elrs` | `teleop_elrs_cmd_vel_stamped` | 0.5 s | ELRS RC teleop |
 | 100 | `joystick` | `teleop_foxglove_cmd_vel_stamped` | 0.5 s | Foxglove |
-| 8 | `driver_interface` | `teleop_driver_interface_cmd_vel_fresh_stamped` | 0.3 s | Driver UI (rover_drive_interface) joystick, routed by `rover_drive_mode` (MANUAL direct, ASSISTED through its lidar guard), via `isaacbot_amr_command_freshness_node` |
-| 5 | `nav` | `nav_cmd_vel_stamped` | 0.5 s | Nav 2, on the separate orchestrator computer; forwarded by `rover_drive_mode` only in AUTOMATIC |
+| 8 | `driver_interface` | `teleop_driver_interface_cmd_vel_fresh_stamped` | 0.3 s | Driver UI (isaacbot_amr_drive_interface) joystick, routed by `isaacbot_amr_drive_mode` (MANUAL direct, ASSISTED through its lidar guard), via `isaacbot_amr_command_freshness_node` |
+| 5 | `nav` | `nav_cmd_vel_stamped` | 0.5 s | Nav 2, on the separate orchestrator computer; forwarded by `isaacbot_amr_drive_mode` only in AUTOMATIC |
 
 The RC transmitter sits highest, so the operator with line of sight always has the last word;
 an idle transmitter publishes a short zero burst and then nothing, so it does not hold the mux.
@@ -88,7 +88,7 @@ only and leave all teleop sources free, lower it to 7; see the comment in
 twist_mux judges an input by when a message *arrives*. The Driver UI's commands cross a websocket
 (TCP), which holds them through a Wi-Fi stall and then delivers them in a burst, so the mux would
 replay seconds-old motion. `isaacbot_amr_command_freshness_node` sits between the UI's commands
-(`teleop_driver_interface_cmd_vel_stamped`, published by `rover_drive_mode` with the UI's header
+(`teleop_driver_interface_cmd_vel_stamped`, published by `isaacbot_amr_drive_mode` with the UI's header
 passed through) and the mux input
 (`teleop_driver_interface_cmd_vel_fresh_stamped`) and drops commands that arrive late.
 

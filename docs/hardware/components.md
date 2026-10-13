@@ -25,7 +25,7 @@ This page lists the main hardware blocks of the Ardennes platform, how they conn
 
 Sources: `isaacbot_amr_arch/ardennes_arch.drawio`, `isaacbot_amr_safety/README.md`, `isaacbot_amr_msgs/msg/AuxIoState.msg`, `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro`, `isaacbot_amr_arch/SAFETY_CHAIN.md`, `isaacbot_amr_hardware_interface/src/isaacbot_amr_driver/ardennes_driver.cpp`, `isaacbot_amr_hardware_interface/README.md`, `isaacbot_amr_description/urdf/common/imu.urdf.xacro`, `isaacbot_amr_battery/README.md`, `isaacbot_amr_led/config/ardennes_udp_led_channel_2.yaml`, `isaacbot_amr_battery/config/isaacbot_amr_battery.yaml`, `isaacbot_amr_led/README.md`, `isaacbot_amr_led/config/ardennes_driver.yaml`, `isaacbot_amr_led/config/ardennes_udp_led_channel_1.yaml`, `isaacbot_amr_crsf_teleop/config/isaacbot_amr_crsf_teleop.yaml`.
 
-The lidar and GNSS receiver are part of the sensor payload. They are documented in the `rover_sensors` repository, not here.
+The lidar and GNSS receiver are part of the sensor payload. They are documented in the `isaacbot_amr_sensors` repository, not here.
 
 !!! note "Motor contactor drawing"
     `SAFETY_CHAIN.md` describes one contactor with an auxiliary contact. The electrical schematic in `ardennes_arch.drawio` draws four relays (K1–K4), one in series with each motor, with their coils in parallel on PLC output `QX 0.0`, and does not show the auxiliary contact.

@@ -1,4 +1,4 @@
-# Progress of the mission run by rover_mission_manager (latched: transient-local, depth 1)
+# Progress of the mission run by isaacbot_amr_mission_manager (latched: transient-local, depth 1)
 
 uint8 IDLE = 0
 uint8 RUNNING = 1

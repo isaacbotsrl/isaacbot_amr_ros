@@ -75,7 +75,7 @@ The full tables are in [Specification](hardware/specification.md).
 
 This manual describes the platform only. Navigation, missions, the fleet interface (VDA 5050)
 and the payload sensors (lidar, GNSS, cameras) live in other repositories:
-`rover_orchestrator`, `rover_vda5050` and `rover_sensors`.
+`isaacbot_amr_orchestrator`, `isaacbot_amr_vda5050` and `isaacbot_amr_sensors`.
 
 ## Gallery
 

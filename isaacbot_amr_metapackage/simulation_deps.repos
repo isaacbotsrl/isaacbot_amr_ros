@@ -1,5 +1,5 @@
 repositories:
-  rover_orchestrator:
+  isaacbot_amr_orchestrator:
     type: git
-    url: https://github.com/RaduPotlog/rover_orchestrator.git
+    url: https://github.com/isaacbotsrl/isaacbot_amr_orchestrator.git
     version: master

@@ -159,8 +159,8 @@ Source: `isaacbot_amr_gazebo/scripts/sim_safety_plc.py`, `isaacbot_amr_gazebo/sc
 | Drive `wheel_radius` | `0.1651` m (tuned rolling radius) | `0.1699` m (CAD tyre radius of the simulated wheel cylinders) |
 | Body collision | Visual mesh only | Two boxes over the body and front arch, so the body hits obstacles |
 | IMU mount | `ISAACBOT_AMR_SYSTEM_MOUNT_IMU_*` variables, default `-0.09 0.0 0.2` m, roll `3.14159` rad | Fixed at `-0.09 0.0 0.2` m, rpy `0 0 0` |
-| Lidar mount | `ISAACBOT_AMR_SYSTEM_MOUNT_LIDAR_*` variables (lidar driver in `rover_sensors`) | `ISAACBOT_AMR_SYSTEM_MOUNT_LIDAR_*` if set, else `0.68` m above `body_link` |
-| GNSS and lidar drivers | Sensor payload container (`rover_sensors`) | Gazebo sensors through the bridge |
+| Lidar mount | `ISAACBOT_AMR_SYSTEM_MOUNT_LIDAR_*` variables (lidar driver in `isaacbot_amr_sensors`) | `ISAACBOT_AMR_SYSTEM_MOUNT_LIDAR_*` if set, else `0.68` m above `body_link` |
+| GNSS and lidar drivers | Sensor payload container (`isaacbot_amr_sensors`) | Gazebo sensors through the bridge |
 | Time | System clock | `use_sim_time`, `/clock` from Gazebo |
 | Middleware | Zenoh router in the isaacbot's router container | Local Zenoh router on `127.0.0.1:7447` |
 
@@ -187,7 +187,7 @@ Source: `isaacbot_amr_description/config/battery.yaml`, `isaacbot_amr_descriptio
 
 ## Running autonomy against the simulation
 
-The orchestrator (Nav 2, mission manager) lives in `rover_orchestrator` and runs unchanged
+The orchestrator (Nav 2, mission manager) lives in `isaacbot_amr_orchestrator` and runs unchanged
 against the simulation with `use_sim_time:=True`. Its documentation covers how to start it.
 
 More: [isaacbot_amr_gazebo README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_gazebo/README.md),

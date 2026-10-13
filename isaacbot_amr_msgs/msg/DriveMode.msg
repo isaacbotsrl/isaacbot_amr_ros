@@ -1,4 +1,4 @@
-# Driving mode owned by rover_drive_mode (rover_orchestrator) (latched: transient-local, depth 1)
+# Driving mode owned by isaacbot_amr_drive_mode (isaacbot_amr_orchestrator) (latched: transient-local, depth 1)
 
 uint8 MANUAL = 1            # Web joystick straight to the platform, no obstacle check
 uint8 ASSISTED = 2          # Web joystick through the lidar collision monitor (slow down, stop)

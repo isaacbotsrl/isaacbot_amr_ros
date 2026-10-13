@@ -47,7 +47,7 @@ All inputs are `geometry_msgs/TwistStamped` (`use_stamped: true`). The launch fi
 
 An input is masked when its priority is below the lock's, so at 200 an active lock stops every source. A stale lock counts as locked. The RC transmitter has the highest input priority, so the operator with line of sight always has the last word. Nav 2 has the lowest, so any teleop source pre-empts autonomy.
 
-The Driver UI, the drive modes and Nav 2 live in other repositories (`rover_drive_interface`, `rover_orchestrator`).
+The Driver UI, the drive modes and Nav 2 live in other repositories (`isaacbot_amr_drive_interface`, `isaacbot_amr_orchestrator`).
 
 Source: `isaacbot_amr_twist_mux/config/isaacbot_amr_twist_mux.yaml`, `isaacbot_amr_twist_mux/README.md`.
 

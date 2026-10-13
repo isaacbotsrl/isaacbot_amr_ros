@@ -1,5 +1,5 @@
 # Groups the raw /diagnostics statuses into the /diagnostics_agg tree consumed by the
-# drive UI diagnostics page (rover_drive_interface).
+# drive UI diagnostics page (isaacbot_amr_drive_interface).
 #
 # Status names are "<node name>: <task name>" (diagnostic_updater, namespace not included).
 # find_and_remove_prefix claims every status starting with the node name and strips it,

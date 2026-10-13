@@ -204,12 +204,12 @@ Five independent gates, in order from the wire inwards:
    motor_contactor_engaged` sustained past the drop-out tolerance is a latched,
    fatal fault: the stop was commanded and the contacts did not open. This is the
    software half of an EDM loop, and it is the reason the aux contact matters.
-5. **`IsMotionLocked`** (`rover_navigation`) — a BT condition, fail-safe on
+5. **`IsMotionLocked`** (`isaacbot_amr_navigation`) — a BT condition, fail-safe on
    staleness, so a navigation tree aborts rather than navigating into a closed
    mux.
 
 Outside this chain, and **not** safety functions, the driving modes of
-`rover_drive_mode` (`rover_orchestrator`) decide which *operator* commands reach
+`isaacbot_amr_drive_mode` (`isaacbot_amr_orchestrator`) decide which *operator* commands reach
 the platform at all. They sit in front of the mux inputs, so nothing above changes:
 
 - **Mode gate.** `drive_mode_manager` is the only writer of the web-teleop input

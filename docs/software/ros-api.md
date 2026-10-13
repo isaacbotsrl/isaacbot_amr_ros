@@ -243,7 +243,7 @@ arrived, when either is older than `gpio_timeout`, or when `link_healthy` is fal
 
 | Direction | Name | Type | Description |
 |-----------|------|------|-------------|
-| sub | `teleop_driver_interface_cmd_vel_stamped` | `geometry_msgs/TwistStamped` | Driver UI commands (published by `rover_drive_mode` in the orchestrator). |
+| sub | `teleop_driver_interface_cmd_vel_stamped` | `geometry_msgs/TwistStamped` | Driver UI commands (published by `isaacbot_amr_drive_mode` in the orchestrator). |
 | pub | `teleop_driver_interface_cmd_vel_fresh_stamped` | `geometry_msgs/TwistStamped` | Commands that arrived on time; the mux input. |
 | pub | `diagnostics` | `diagnostic_msgs/DiagnosticArray` | Task `Command freshness`: WARN while dropping. |
 

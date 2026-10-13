@@ -144,4 +144,4 @@ The ROS controller addresses `192.168.88.10` and `192.168.77.203`, and the route
 !!! warning "ELRS adapter on the router"
     Teltonika does not publish which USB-UART chips RutOS supports. Check `ls /dev/ttyUSB*` on the router after plugging the adapter in; FTDI and CP210x adapters are the safest choice. The receiver stays at 460800 baud.
 
-USB vendor/product ids and udev rules are **TBD**: the repository has none. The lidar and GNSS receiver are part of the sensor payload, documented in the `rover_sensors` repository.
+USB vendor/product ids and udev rules are **TBD**: the repository has none. The lidar and GNSS receiver are part of the sensor payload, documented in the `isaacbot_amr_sensors` repository.

@@ -5,7 +5,7 @@ same controllers, EKFs and twist_mux as the real isaacbot, simulated stand-ins f
 payload (RS16 lidar, RUTX11 GNSS), a ROS–Gazebo bridge and RViz.
 
 The ROS side mirrors what the platform and the sensor containers publish on the isaacbot, so the
-orchestrator (`rover_navigation`, `rover_mission_manager`) runs against the simulation unchanged
+orchestrator (`isaacbot_amr_navigation`, `isaacbot_amr_mission_manager`) runs against the simulation unchanged
 apart from `use_sim_time`.
 
 ## Building
@@ -13,7 +13,7 @@ apart from `use_sim_time`.
 ```bash
 export ISAACBOT_AMR_ROS_BUILD_TYPE=simulation
 sudo apt install ros-$ROS_DISTRO-gz-ros2-control ros-$ROS_DISTRO-ros-gz-bridge   # or rosdep
-colcon build --symlink-install --packages-up-to isaacbot_amr_metapackage rover_autonomy \
+colcon build --symlink-install --packages-up-to isaacbot_amr_metapackage isaacbot_amr_autonomy \
   --cmake-args -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
 ```
 
@@ -79,8 +79,8 @@ Frames carry the namespace prefix, like `robot_state_publisher`'s TF.
 
 | Sensor | Stand-in for | ROS topic | Frame |
 |--------|--------------|-----------|-------|
-| `gpu_lidar`, 16 rings ±15°, 360° at 0.5°, 0.2–20 m, 10 Hz | `rover_rs16_lidar` | `<ns>/rslidar_points` (`PointCloud2`), `<ns>/scan` (`LaserScan`) | `<ns>/lidar_link` |
-| `navsat`, 5 Hz, σ 5 cm | `rover_gps` (RUTX11) | `<ns>/gps/fix` (`NavSatFix`) | `<ns>/gps_link` |
+| `gpu_lidar`, 16 rings ±15°, 360° at 0.5°, 0.2–20 m, 10 Hz | `isaacbot_amr_rs16_lidar` | `<ns>/rslidar_points` (`PointCloud2`), `<ns>/scan` (`LaserScan`) | `<ns>/lidar_link` |
+| `navsat`, 5 Hz, σ 5 cm | `isaacbot_amr_gps` (RUTX11) | `<ns>/gps/fix` (`NavSatFix`) | `<ns>/gps_link` |
 | `imu`, 50 Hz | Phidget IMU | `<ns>/imu/data` (via `isaacbot_amr_imu_broadcaster`) | `<ns>/imu_link` |
 
 In simulation only, `body_link` gets a box collision over the `base.stl` bounds, so the body
@@ -121,7 +121,7 @@ ISAACBOT_AMR_SYSTEM_USE_GPS=true ~/ros2_ws/rover_a1/src/isaacbot_amr_ros/isaacbo
 
 # terminal 2: orchestrator / ros2 CLI on the same local middleware
 source ~/ros2_ws/rover_a1/src/isaacbot_amr_ros/isaacbot_amr_gazebo/scripts/isaacbot_amr_sim.sh
-ros2 launch rover_navigation bringup.launch.py use_sim_time:=True localization_source:=slam
+ros2 launch isaacbot_amr_navigation bringup.launch.py use_sim_time:=True localization_source:=slam
 ```
 
 It uses rmw_zenoh because FastDDS inter-process discovery does not work on the WSL host.
@@ -133,7 +133,7 @@ ros2 launch isaacbot_amr_gazebo simulation.launch.py
 ISAACBOT_AMR_SYSTEM_NAMESPACE=isaacbot ISAACBOT_AMR_SYSTEM_USE_GPS=true ros2 launch isaacbot_amr_gazebo simulation.launch.py use_rviz:=False
 
 # then the orchestrator, e.g.
-ros2 launch rover_navigation bringup.launch.py use_sim_time:=True localization_source:=slam
+ros2 launch isaacbot_amr_navigation bringup.launch.py use_sim_time:=True localization_source:=slam
 ```
 
 With `ISAACBOT_AMR_SYSTEM_USE_GPS=true`, `gps/heading_imu` (and so `odometry/gps` / `odometry/global`) only

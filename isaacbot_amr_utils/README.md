@@ -19,7 +19,7 @@ Standard library, POSIX and yaml-cpp only, so a domain or application layer may 
 | `networking_utils.hpp` | `isPortAvailable(port)` | `true` if a TCP socket can bind `port` on all interfaces. |
 
 Used by `isaacbot_amr_led` (`yaml_utils`, including its domain layer), `isaacbot_amr_safety` (`yaml_utils`, and
-`networking_utils` to pick a free Groot2 port) and, outside this repo, `rover_mission_manager`
+`networking_utils` to pick a free Groot2 port) and, outside this repo, `isaacbot_amr_mission_manager`
 (`networking_utils`).
 
 ### ROS-coupled: `namespace isaacbot_amr_utils::ros`

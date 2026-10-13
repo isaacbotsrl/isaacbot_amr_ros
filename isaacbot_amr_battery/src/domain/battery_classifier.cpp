@@ -234,7 +234,7 @@ BatteryReport staleBatteryReport(
     BatteryReport report;
     report.reading.charge = std::numeric_limits<float>::quiet_NaN();
     report.reading.capacity = std::numeric_limits<float>::quiet_NaN();
-    // NaN, not the 0.0 default: consumers read 0.0 as a flat pack, and rover_mission_manager
+    // NaN, not the 0.0 default: consumers read 0.0 as a flat pack, and isaacbot_amr_mission_manager
     // aborted any running mission on it the moment the BMS watchdog expired.
     report.reading.percentage = std::numeric_limits<float>::quiet_NaN();
     report.reading.design_capacity = identity.design_capacity;

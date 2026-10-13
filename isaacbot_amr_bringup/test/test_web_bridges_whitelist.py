@@ -46,7 +46,7 @@ def _allowed(patterns, topic):
     return any(re.fullmatch(p, topic) for p in patterns)
 
 
-# Published by rover_drive_interface. The UI's foxglove client takes a publisher's message
+# Published by isaacbot_amr_drive_interface. The UI's foxglove client takes a publisher's message
 # definition from the server channel with the same name, so a publish-only topic missing here
 # makes it wait forever and send nothing: manual driving was silently dead on 2026-09-26.
 @pytest.mark.parametrize('topic', [
@@ -78,7 +78,7 @@ def test_namespace_is_not_hard_coded(patterns):
     # Full-rate or internal topics a browser must not pull through the router.
     '/isaacbot/led/channel_1_frame', '/isaacbot/rslidar_points', '/isaacbot/diagnostics', '/rosout',
     '/isaacbot/cmd_vel', '/isaacbot/teleop_driver_interface_cmd_vel_fresh_stamped',
-    # rover_drive_mode's output: a browser publishing here would bypass the driving mode.
+    # isaacbot_amr_drive_mode's output: a browser publishing here would bypass the driving mode.
     '/isaacbot/teleop_driver_interface_cmd_vel_stamped', '/isaacbot/nav_cmd_vel_stamped',
     '/isaacbot/odometry/wheels', '/isaacbot/joint_states',
 ])

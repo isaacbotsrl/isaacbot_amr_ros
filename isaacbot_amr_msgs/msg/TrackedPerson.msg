@@ -1,8 +1,8 @@
-# The person a perception tracker follows from frame to frame (rover_perception, e.g.
-# rover_perception_fmoc on the RealSense depth cloud). Consumers: rover_follow_me (orchestrator),
+# The person a perception tracker follows from frame to frame (isaacbot_amr_perception, e.g.
+# isaacbot_amr_perception_fmoc on the RealSense depth cloud). Consumers: isaacbot_amr_follow_me (orchestrator),
 # which hands it to Nav 2's Following server.
 #
-# header.frame_id is the frame the position is in (rover_perception_fmoc: <ns>/odom);
+# header.frame_id is the frame the position is in (isaacbot_amr_perception_fmoc: <ns>/odom);
 # header.stamp is the time of the sensor data it was measured from.
 
 uint8 NONE=0       # nobody tracked: nothing acquired yet, or reset

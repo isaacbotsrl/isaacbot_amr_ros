@@ -111,7 +111,7 @@ Sources: `isaacbot_amr_controller/config/wheel_01_controller.yaml`,
 | Wheel encoders | MT6835 magnetic encoders on the motors (5 V, 1024 lines per revolution as configured) | 10 Hz encoder updates (100 ms, the DCC1000's minimum), 20 Hz driver state, 25 Hz control loop | The sensor's propagation delay is under 10 µs; the 100 ms is the DCC1000's reporting interval. See [Components](components.md) |
 | Battery telemetry | Daly BMS | **TBD** | |
 
-The lidar, GNSS and cameras are payload: they belong to the `rover_sensors` repository and are
+The lidar, GNSS and cameras are payload: they belong to the `isaacbot_amr_sensors` repository and are
 not part of this manual.
 
 Sources: `isaacbot_amr_description/urdf/common/imu.urdf.xacro`,
