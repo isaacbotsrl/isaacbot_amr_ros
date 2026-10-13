@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>isaacbot_gazebo</name>
+  <version>1.0.1</version>
+  <description>The packages simulating behaviour of the isaacbot</description>
+  <maintainer email="potlogradu@gmail.com">radupotlog</maintainer>
+  <license>Apache License 2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend condition="$ISAACBOT_AMR_ROS_BUILD_TYPE == simulation">controller_manager</exec_depend>
+  <exec_depend condition="$ISAACBOT_AMR_ROS_BUILD_TYPE == simulation">geometry_msgs</exec_depend>
+  <exec_depend condition="$ISAACBOT_AMR_ROS_BUILD_TYPE == simulation">gz_ros2_control</exec_depend>
+  <exec_depend condition="$ISAACBOT_AMR_ROS_BUILD_TYPE == simulation">launch</exec_depend>
+  <exec_depend condition="$ISAACBOT_AMR_ROS_BUILD_TYPE == simulation">launch_ros</exec_depend>
+  <exec_depend condition="$ISAACBOT_AMR_ROS_BUILD_TYPE == simulation">nav2_common</exec_depend>
+  <exec_depend condition="$ISAACBOT_AMR_ROS_BUILD_TYPE == simulation">pointcloud_to_laserscan</exec_depend>
+  <exec_depend condition="$ISAACBOT_AMR_ROS_BUILD_TYPE == simulation">rclpy</exec_depend>
+  <exec_depend condition="$ISAACBOT_AMR_ROS_BUILD_TYPE == simulation">robot_state_publisher</exec_depend>
+  <exec_depend condition="$ISAACBOT_AMR_ROS_BUILD_TYPE == simulation">ros_gz_bridge</exec_depend>
+  <exec_depend condition="$ISAACBOT_AMR_ROS_BUILD_TYPE == simulation">ros_gz_sim</exec_depend>
+  <exec_depend condition="$ISAACBOT_AMR_ROS_BUILD_TYPE == simulation">rviz2</exec_depend>
+  <exec_depend condition="$ISAACBOT_AMR_ROS_BUILD_TYPE == simulation">sensor_msgs</exec_depend>
+  <exec_depend condition="$ISAACBOT_AMR_ROS_BUILD_TYPE == simulation">std_msgs</exec_depend>
+  <exec_depend condition="$ISAACBOT_AMR_ROS_BUILD_TYPE == simulation">std_srvs</exec_depend>
+  <exec_depend condition="$ISAACBOT_AMR_ROS_BUILD_TYPE == simulation">tf2_ros</exec_depend>
+
+  <!-- Isaacbot gazebo world dependency -->
+  <exec_depend condition="$ISAACBOT_AMR_ROS_BUILD_TYPE == simulation">isaacbot_world</exec_depend>
+
+  <!-- Isaacbot dependency -->
+  <exec_depend condition="$ISAACBOT_AMR_ROS_BUILD_TYPE == simulation">isaacbot_controller</exec_depend>
+  <exec_depend condition="$ISAACBOT_AMR_ROS_BUILD_TYPE == simulation">isaacbot_description</exec_depend>
+  <exec_depend condition="$ISAACBOT_AMR_ROS_BUILD_TYPE == simulation">isaacbot_gazebo_plugins</exec_depend>
+  <exec_depend condition="$ISAACBOT_AMR_ROS_BUILD_TYPE == simulation">isaacbot_localization</exec_depend>
+  <exec_depend condition="$ISAACBOT_AMR_ROS_BUILD_TYPE == simulation">isaacbot_msgs</exec_depend>
+  <exec_depend condition="$ISAACBOT_AMR_ROS_BUILD_TYPE == simulation">isaacbot_twist_mux</exec_depend>
+  <exec_depend condition="$ISAACBOT_AMR_ROS_BUILD_TYPE == simulation">isaacbot_utils</exec_depend>
+
+  <test_depend>ament_cmake_pytest</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

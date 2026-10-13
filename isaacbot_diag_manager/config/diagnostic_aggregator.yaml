@@ -1,0 +1,51 @@
+# Groups the raw /diagnostics statuses into the /diagnostics_agg tree consumed by the
+# drive UI diagnostics page (rover_drive_interface).
+#
+# Status names are "<node name>: <task name>" (diagnostic_updater, namespace not included).
+# find_and_remove_prefix claims every status starting with the node name and strips it,
+# so the tree reads "Battery/Battery status" rather than repeating the node name.
+# Statuses no analyzer claims still appear under the aggregator's automatic "Other"
+# group - add the node here when that happens.
+#
+# The GPS and Lidar groups are in diagnostic_aggregator_gps.yaml / _lidar.yaml and are loaded
+# only when that sensor is enabled (ISAACBOT_SYSTEM_USE_GPS / ISAACBOT_SYSTEM_USE_LIDAR, see
+# system_diag.launch.py): a disabled sensor would otherwise leave its group STALE forever.
+#
+# `/**:` rather than the node name: aggregator_node's parameters must reach it whatever
+# name the launch file gives it.
+/**:
+  ros__parameters:
+    path: Isaacbot
+    pub_rate: 1.0
+    computer:
+      type: diagnostic_aggregator/GenericAnalyzer
+      path: Computer
+      find_and_remove_prefix: [ 'isaacbot_diag_manager_node: ' ]
+    drive:
+      type: diagnostic_aggregator/GenericAnalyzer
+      path: Drive
+      find_and_remove_prefix: [ 'isaacbot_hardware_controller: ', 'controller_manager: ' ]
+    battery:
+      type: diagnostic_aggregator/GenericAnalyzer
+      path: Battery
+      find_and_remove_prefix: [ 'isaacbot_battery_node: ' ]
+    localization:
+      type: diagnostic_aggregator/GenericAnalyzer
+      path: Localization
+      find_and_remove_prefix: [ 'isaacbot_ekf_node: ', 'isaacbot_ekf_global_node: ', 'isaacbot_navsat_transform_node: ' ]
+    lighting:
+      type: diagnostic_aggregator/GenericAnalyzer
+      path: Lighting
+      find_and_remove_prefix: [ 'isaacbot_led_driver: ', 'isaacbot_led_controller: ' ]
+    teleop:
+      type: diagnostic_aggregator/GenericAnalyzer
+      path: Teleop
+      find_and_remove_prefix: [ 'isaacbot_crsf_teleop_node: ' ]
+    motion:
+      type: diagnostic_aggregator/GenericAnalyzer
+      path: Motion
+      find_and_remove_prefix: [ 'isaacbot_motion_lock_node: ', 'isaacbot_twist_mux_node: ' ]
+    safety:
+      type: diagnostic_aggregator/GenericAnalyzer
+      path: Safety
+      find_and_remove_prefix: [ 'isaacbot_safety_node: ', 'isaacbot_led_safety_node: ' ]

@@ -1,0 +1,218 @@
+#!/usr/bin/env python3
+
+# Copyright 2025 Mechatronics Academy
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""
+RC teleop bring-up: the UDP receiver that owns the socket, and the teleop node that decodes CRSF
+from it.
+
+The ELRS receiver hangs off the RUTX11 router's USB port; the router forwards its raw CRSF bytes
+over UDP (Serial Utilities -> Over IP, see scripts/rutx11_elrs_udp_forwarding.sh). The socket is
+deliberately not opened by the teleop node: isaacbot_udp_driver's receiver node already does it, is
+lifecycle-managed, and filters on the sender (`source_ip`), which the published UdpPacket cannot
+tell the teleop node. That also keeps asio out of this package entirely.
+
+Both run as components of one single-threaded container, isaacbot_crsf_container, with intra-process
+communication: the receiver publishes one rc/raw_udp message per datagram (~250/s), and as
+separate processes each of them would cross the Zenoh router. The single thread is also what the
+teleop node was written for (see IsaacbotCrsfTeleopNode).
+
+One trade-off: on Ctrl-C a component container exits without running the lifecycle shutdown
+transition, so the teleop node's on_shutdown() doesn't publish its final stop command. The isaacbot
+still stops - twist_mux drops the RC input after its timeout and diff_drive's cmd_vel_timeout
+zeroes the wheels - just as it would if the process crashed. The standalone executables
+(isaacbot_crsf_teleop_node, isaacbot_udp_receiver_node) still run the transition.
+"""
+
+import launch.logging
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.conditions import UnlessCondition
+from launch.substitutions import (
+    EnvironmentVariable,
+    LaunchConfiguration,
+    PathJoinSubstitution,
+    PythonExpression,
+)
+from launch_ros.actions import ComposableNodeContainer
+from launch_ros.descriptions import ComposableNode
+from launch_ros.substitutions import FindPackageShare
+
+import yaml
+
+
+def _udp_settings(context, config_path):
+    """
+    Read the UDP bind address, port and accepted source out of the teleop config.
+
+    They live there, not inline here, so there is a single source of truth: the teleop node
+    declares the same three parameters and reports them in its "RC UDP link" diagnostic, and an
+    operator editing the config does not have to know that a second node also needs the value.
+    """
+    resolved = config_path.perform(context)
+    bind_ip, port, source_ip = '192.168.1.201', 10111, '192.168.1.1'
+
+    try:
+        with open(resolved, 'r') as handle:
+            params = yaml.safe_load(handle) or {}
+
+        for entry in params.values():
+            settings = (entry or {}).get('ros__parameters', {})
+            bind_ip = settings.get('udp_bind_ip', bind_ip)
+            port = settings.get('udp_port', port)
+            # A blank 'udp_source_ip:' loads as None. Treat it as unset - keep the router - rather
+            # than as "any sender": only an explicit "" opens the RC port to everyone.
+            if settings.get('udp_source_ip') is not None:
+                source_ip = settings['udp_source_ip']
+    except (OSError, yaml.YAMLError) as error:
+        # Fall back to the defaults rather than failing the whole bring-up: the teleop node still
+        # comes up and reports the problem through diagnostics.
+        launch.logging.get_logger('isaacbot_crsf_teleop.launch').warning(
+            f'Could not read {resolved} ({error}); using the default UDP settings.')
+
+    if not source_ip:
+        launch.logging.get_logger('isaacbot_crsf_teleop.launch').warning(
+            'udp_source_ip is empty: the RC UDP port accepts datagrams from ANY sender.')
+
+    return str(bind_ip), int(port), str(source_ip)
+
+
+def _launch_setup(context, *args, **kwargs):
+    namespace = LaunchConfiguration('namespace')
+    log_level = LaunchConfiguration('log_level')
+    use_sim = LaunchConfiguration('use_sim')
+    config_path = LaunchConfiguration('isaacbot_crsf_config_path')
+
+    bind_ip, port, source_ip = _udp_settings(context, config_path)
+
+    # The socket owner: binds udp_bind_ip:udp_port and publishes each datagram on `udp_read`.
+    # `source_ip` makes it drop every datagram not sent by the router, inside the socket - the
+    # published UdpPacket carries the bound address, not the sender, so the teleop node could not
+    # filter on it.
+    #
+    # `udp_read` is remapped to rc/raw_udp because the default name is generic and this isaacbot has
+    # other UDP receivers; the teleop node's `udp_topic` parameter must match.
+    #
+    # Both nodes are lifecycle nodes brought to active by their own `autostart` parameter:
+    # launch_ros' ComposableLifecycleNode autostart misses the namespace and never reaches them.
+    udp_receiver_node = ComposableNode(
+        package='isaacbot_udp_driver',
+        plugin='isaacbot::transport::udp::UdpReceiverNode',
+        name='isaacbot_crsf_udp_receiver',
+        namespace=namespace,
+        parameters=[{
+            'ip': bind_ip,
+            'port': port,
+            'source_ip': source_ip,
+            'autostart': True,
+        }],
+        # Topic names carry no isaacbot_ prefix, so the lifecycle transition_event topic is remapped
+        # off the node name (the node keeps it).
+        remappings=[
+            ('udp_read', 'rc/raw_udp'),
+            ('~/transition_event', 'crsf_udp_receiver/transition_event'),
+        ],
+        extra_arguments=[{'use_intra_process_comms': True}],
+        # No receiver exists in simulation, and the sim machine does not own 192.168.1.201, so
+        # starting a node that can only fail to bind is pure noise.
+        condition=UnlessCondition(use_sim),
+    )
+
+    # Lifecycle node, brought straight to active. A supervisor can later deactivate it to take RC
+    # teleop off the command path without killing the process.
+    isaacbot_crsf_node = ComposableNode(
+        package='isaacbot_crsf_teleop',
+        plugin='isaacbot_crsf_teleop::IsaacbotCrsfTeleopNode',
+        name='isaacbot_crsf_teleop_node',
+        namespace=namespace,
+        parameters=[config_path, {'autostart': True}],
+        remappings=[
+            ('/diagnostics', 'diagnostics'),
+            ('~/transition_event', 'crsf_teleop_node/transition_event'),
+        ],
+        extra_arguments=[{'use_intra_process_comms': True}],
+    )
+
+    # component_container, not _mt: one thread, as the teleop node requires.
+    isaacbot_crsf_container = ComposableNodeContainer(
+        package='rclcpp_components',
+        executable='component_container',
+        name='isaacbot_crsf_container',
+        namespace=namespace,
+        composable_node_descriptions=[udp_receiver_node, isaacbot_crsf_node],
+        arguments=[
+            '--ros-args',
+            '--log-level',
+            log_level,
+        ],
+        emulate_tty=True,
+    )
+
+    return [isaacbot_crsf_container]
+
+
+def generate_launch_description():
+
+    declare_log_level_arg = DeclareLaunchArgument(
+        'log_level',
+        default_value='INFO',
+        choices=['DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL'],
+        description='Logging level',
+    )
+
+    declare_namespace_arg = DeclareLaunchArgument(
+        'namespace',
+        default_value=EnvironmentVariable('ISAACBOT_SYSTEM_NAMESPACE', default_value=''),
+        description='Add namespace to all launched nodes',
+    )
+
+    # isaacbot_bringup has always passed use_sim and common_dir_path; until now this file declared
+    # neither, so both were silently discarded.
+    declare_use_sim_arg = DeclareLaunchArgument(
+        'use_sim',
+        default_value='False',
+        description='Simulation mode: do not start the UDP receiver, there is no RC receiver.',
+    )
+
+    common_dir_path = LaunchConfiguration('common_dir_path')
+    declare_common_dir_path_arg = DeclareLaunchArgument(
+        'common_dir_path',
+        default_value='',
+        description='Path to the common configuration directory.',
+    )
+
+    isaacbot_crsf_common_dir = PythonExpression(
+        ["'", common_dir_path, "/isaacbot_crsf_teleop' if '", common_dir_path,
+         "' else '", FindPackageShare('isaacbot_crsf_teleop'), "'"]
+    )
+
+    declare_isaacbot_crsf_config_path_arg = DeclareLaunchArgument(
+        'isaacbot_crsf_config_path',
+        default_value=PathJoinSubstitution(
+            [isaacbot_crsf_common_dir, 'config', 'isaacbot_crsf_teleop.yaml']
+        ),
+        description='Specify the path to the isaacbot CRSF teleop configuration file.',
+    )
+
+    actions = [
+        declare_log_level_arg,
+        declare_namespace_arg,
+        declare_use_sim_arg,
+        declare_common_dir_path_arg,
+        declare_isaacbot_crsf_config_path_arg,
+        OpaqueFunction(function=_launch_setup),
+    ]
+
+    return LaunchDescription(actions)

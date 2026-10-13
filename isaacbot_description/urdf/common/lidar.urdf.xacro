@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+  
+  <xacro:macro
+    name="lidar"
+    params="use_sim:=false
+            reference_frame:=''
+            namespace:=''">
+
+    <xacro:property name="ns" value='${namespace + "/" if namespace else ""}' />
+   
+    <!-- Gazebo LIDAR: stands in for the RoboSense RS16 (rover_rs16_lidar in rover_sensors).
+         16 rings over +/-15 deg, 360 deg at 0.5 deg, 0.2-20 m, 10 Hz. Gazebo publishes the
+         cloud on <ns>lidar/points; the bridge maps it to <ns>rslidar_points and
+         pointcloud_to_laserscan slices <ns>scan out of it, as the real driver does. -->
+    <xacro:if value="${use_sim}">
+      <gazebo reference="${reference_frame}">
+        <sensor name="${ns}lidar" type="gpu_lidar">
+          <topic>${ns}lidar</topic>
+          <update_rate>10</update_rate>
+          <!-- Frames carry the namespace prefix (robot_state_publisher frame_prefix). -->
+          <frame_id>${ns}${reference_frame}</frame_id>
+          <lidar>
+            <scan>
+              <horizontal>
+                <samples>720</samples>
+                <resolution>1</resolution>
+                <min_angle>-3.141593</min_angle>
+                <max_angle>3.141593</max_angle>
+              </horizontal>
+              <vertical>
+                <samples>16</samples>
+                <resolution>1</resolution>
+                <min_angle>-0.261799</min_angle>
+                <max_angle>0.261799</max_angle>
+              </vertical>
+            </scan>
+            <range>
+              <min>0.2</min>
+              <max>20.0</max>
+              <resolution>0.01</resolution>
+            </range>
+            <noise>
+              <type>gaussian</type>
+              <mean>0.0</mean>
+              <stddev>0.01</stddev>
+            </noise>
+          </lidar>
+          <always_on>1</always_on>
+          <visualize>false</visualize>
+        </sensor>
+      </gazebo>
+    </xacro:if>
+  </xacro:macro>
+
+</robot>

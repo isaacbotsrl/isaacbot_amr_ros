@@ -1,0 +1,5 @@
+repositories:
+  rover_cppuprofile:
+    type: git
+    url: https://github.com/RaduPotlog/rover_cppuprofile
+    version: master

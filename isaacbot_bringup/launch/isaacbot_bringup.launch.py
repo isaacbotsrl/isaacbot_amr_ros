@@ -1,0 +1,308 @@
+#!/usr/bin/env python3
+
+# Copyright 2025 Mechatronics Academy
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import os
+from isaacbot_utils.messages import (
+    ErrorMessages,
+    error_msg,
+    warning_msg,
+    welcome_msg,
+)
+from isaacbot_utils.events import ControllersActive, start_once_on
+from isaacbot_utils.version_check import check_version_compatibility
+from launch import LaunchDescription
+from launch.actions import (
+    DeclareLaunchArgument,
+    ExecuteProcess,
+    GroupAction,
+    IncludeLaunchDescription,
+)
+from launch.conditions import IfCondition, UnlessCondition
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import (
+    EnvironmentVariable,
+    LaunchConfiguration,
+    PathJoinSubstitution,
+    PythonExpression,
+)
+from launch_ros.substitutions import FindPackageShare
+from launch_ros.actions import Node
+
+MIN_REQUIRED_OS_VERSION = "v1.0.0"
+
+def generate_launch_description():
+    
+    exit_on_wrong_hw = LaunchConfiguration("exit_on_wrong_hw")
+    declare_exit_on_wrong_hw_arg = DeclareLaunchArgument(
+        "exit_on_wrong_hw",
+        default_value="false",
+        description="Exit if hardware configuration is incorrect.",
+        choices=["True", "true", "False", "false"],
+    )
+
+    common_dir_path = LaunchConfiguration("common_dir_path")
+    declare_common_dir_path_arg = DeclareLaunchArgument(
+        "common_dir_path",
+        default_value="",
+        description="Path to the common configuration directory.",
+    )
+
+    disable_manager = LaunchConfiguration("disable_manager")
+    declare_disable_manager_arg = DeclareLaunchArgument(
+        "disable_manager",
+        default_value="False",
+        description="Enable or disable manager_bt_node.",
+        choices=["True", "true", "False", "false"],
+    )
+
+    log_level = LaunchConfiguration("log_level")
+    declare_log_level_arg = DeclareLaunchArgument(
+        "log_level",
+        default_value="INFO",
+        choices=["DEBUG", "INFO", "WARN", "ERROR", "FATAL"],
+        description="Logging level",
+    )
+
+    namespace = LaunchConfiguration("namespace")
+    declare_namespace_arg = DeclareLaunchArgument(
+        "namespace",
+        default_value=EnvironmentVariable("ISAACBOT_SYSTEM_NAMESPACE", default_value=""),
+        description="Add namespace to all launched nodes.",
+    )
+
+    # ISAACBOT_SYSTEM_USE_GPS (balenaCloud variable, normalized to true/false by the platform
+    # start.sh)
+    # selects the localization: false = wheels + IMU; true = wheels + IMU + GPS (dual EKF).
+    # The GPS and lidar drivers are not started here: they are the sensor payload
+    # (rover_sensors repo, rover-a1-sensors container) and only publish gps/fix, scan, ...
+    use_gps = LaunchConfiguration("use_gps")
+    declare_use_gps_arg = DeclareLaunchArgument(
+        "use_gps",
+        default_value=EnvironmentVariable("ISAACBOT_SYSTEM_USE_GPS", default_value="false"),
+        description="Fuse the RUTX11 GPS into localization (true/false).",
+    )
+
+    controllers_ready_timeout = LaunchConfiguration("controllers_ready_timeout")
+    declare_controllers_ready_timeout_arg = DeclareLaunchArgument(
+        "controllers_ready_timeout",
+        default_value="20.0",
+        description=(
+            "Seconds to wait for isaacbot_controller to activate its controllers before starting "
+            "the rest of the stack anyway."
+        ),
+    )
+
+    isaacbot_model_name = EnvironmentVariable(name="ROBOT_MODEL_NAME", default_value="ardennes")
+    isaacbot_serial_no = EnvironmentVariable(name="ROBOT_SERIAL_NO", default_value="A1-2026-01")
+    isaacbot_version = EnvironmentVariable(name="ROBOT_VERSION", default_value="1.0")
+    welcome_info = welcome_msg(isaacbot_model_name, isaacbot_serial_no, isaacbot_version)
+
+    isaacbot_controller_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [
+                    FindPackageShare("isaacbot_controller"),
+                    "launch", 
+                    "isaacbot_controller.launch.py"]
+            )
+        ),
+        launch_arguments={
+            "log_level": log_level,
+            "namespace": namespace,
+            "use_sim": "False",
+            "common_dir_path": common_dir_path,
+        }.items(),
+    )
+
+    isaacbot_system_diag_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [
+                    FindPackageShare("isaacbot_diag_manager"),
+                    "launch",
+                    "system_diag.launch.py",
+                ]
+            ),
+        ),
+        launch_arguments={
+            "log_level": log_level, 
+            "namespace": namespace,
+            "use_sim": "False",
+            "common_dir_path": common_dir_path,
+            # Drops the GPS analyzer group when GPS is off (the Lidar one follows
+            # ISAACBOT_SYSTEM_USE_LIDAR in that launch file).
+            "use_gps": use_gps,
+        }.items(),
+    )
+
+    isaacbot_ekf_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [FindPackageShare("isaacbot_localization"), "launch", "isaacbot_localization.launch.py"]
+            )
+        ),
+        launch_arguments={
+            "log_level": log_level,
+            "namespace": namespace,
+            "use_sim": "False",
+            "use_ekf": "True",
+            "fuse_gps": use_gps,
+            "common_dir_path": common_dir_path,
+        }.items(),
+    )
+
+    isaacbot_safety_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [FindPackageShare("isaacbot_safety"), "launch", "isaacbot_safety.launch.py"]
+            )
+        ),
+        condition=UnlessCondition(disable_manager),
+        launch_arguments={
+            "log_level": log_level,
+            "namespace": namespace,
+            "common_dir_path": common_dir_path,
+        }.items(),
+    )
+
+    isaacbot_crsf_teleop_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [FindPackageShare("isaacbot_crsf_teleop"), "launch", "isaacbot_crsf_teleop.launch.py"]
+            )
+        ),
+        launch_arguments={
+            "log_level": log_level,
+            "namespace": namespace,
+            "use_sim": "False",
+            "common_dir_path": common_dir_path,
+        }.items(),
+    )
+
+    isaacbot_led_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [FindPackageShare("isaacbot_led"), "launch", "isaacbot_led.launch.py"]
+            )
+        ),
+        launch_arguments={
+            "log_level": log_level,
+            "namespace": namespace,
+            "common_dir_path": common_dir_path,
+        }.items(),
+    )
+
+    isaacbot_battery_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [FindPackageShare("isaacbot_battery"), "launch", "isaacbot_battery.launch.py"]
+            )
+        ),
+        launch_arguments={
+            "log_level": log_level,
+            "namespace": namespace,
+            "use_sim": "False",
+            "common_dir_path": common_dir_path,
+        }.items(),
+    )
+
+    isaacbot_twist_mux_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [FindPackageShare("isaacbot_twist_mux"), "launch", "isaacbot_twist_mux.launch.py"]
+            )
+        ),
+        launch_arguments={
+            "log_level": log_level,
+            "namespace": namespace,
+            "use_sim": "False",
+            "common_dir_path": common_dir_path,
+        }.items(),
+    )
+
+    hw_config_correct = EnvironmentVariable(name="ROBOT_HW_CONFIG_CORRECT", default_value="true")
+
+    prevent_exit_action = ExecuteProcess(
+        cmd=["sleep", "infinity"],
+        condition=UnlessCondition(exit_on_wrong_hw),
+    )
+
+    incorrect_hw_config_action = GroupAction(
+        actions=[
+            error_msg(ErrorMessages.INCORRECT_HW_CONFIG),
+            prevent_exit_action,
+        ],
+        condition=UnlessCondition(hw_config_correct),
+    )
+
+    os_version = os.environ.get("SYSTEM_BUILD_VERSION", "v1.0.0")
+    os_version_correct = PythonExpression(
+        f"{check_version_compatibility(os_version, MIN_REQUIRED_OS_VERSION)}"
+    )
+    
+    incorrect_os_version_action = GroupAction(
+        [
+            warning_msg(
+                ErrorMessages.INCORRECT_OS_VERSION
+                + f"Current version: {os_version},"
+                + f" required: {MIN_REQUIRED_OS_VERSION}\n"
+            )
+        ],
+        condition=UnlessCondition(os_version_correct),
+    )
+
+    # Started once isaacbot_controller reports its controllers active (the last spawner
+    # succeeded). A failed spawner shuts the whole launch down, so the timeout only covers a
+    # spawner that hangs.
+    isaacbot_delayed_actions = start_once_on(
+        ControllersActive,
+        controllers_ready_timeout,
+        [
+            isaacbot_battery_launch,
+            isaacbot_led_launch,
+            isaacbot_safety_launch,
+            isaacbot_ekf_launch,
+            isaacbot_crsf_teleop_launch,
+            isaacbot_twist_mux_launch,
+        ],
+        "isaacbot_controller did not report its controllers active within "
+        "controllers_ready_timeout; starting the rest of the stack anyway.",
+    )
+
+    isaacbot_driver_actions = GroupAction(
+        [
+            isaacbot_controller_launch,
+            isaacbot_system_diag_launch,
+            *isaacbot_delayed_actions,
+        ],
+        condition=IfCondition(hw_config_correct),
+    )
+
+    actions = [
+        declare_exit_on_wrong_hw_arg,
+        declare_common_dir_path_arg,
+        declare_disable_manager_arg,
+        declare_log_level_arg,
+        declare_namespace_arg,
+        declare_use_gps_arg,
+        declare_controllers_ready_timeout_arg,
+        welcome_info,
+        incorrect_hw_config_action,
+        incorrect_os_version_action,
+        isaacbot_driver_actions,
+    ]
+
+    return LaunchDescription(actions)

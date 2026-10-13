@@ -1,0 +1,333 @@
+// Copyright 2025 Mechatronics Academy
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include "isaacbot_hardware_interface/isaacbot_system/ardennes_system.hpp"
+
+#include <array>
+#include <chrono>
+#include <functional>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
+#include "rclcpp/logging.hpp"
+
+#include "diagnostic_updater/diagnostic_status_wrapper.hpp"
+
+#include "isaacbot_hardware_interface/isaacbot_driver/ardennes_driver.hpp"
+#include "isaacbot_hardware_interface/isaacbot_safety_controller/isaacbot_safety_controller_e_stop_io.hpp"
+#include "isaacbot_hardware_interface/isaacbot_safety_controller/isaacbot_safety_controller_gpio_adapter.hpp"
+
+namespace isaacbot_hardware_interface
+{
+
+ArdennesSystem::ArdennesSystem()
+: IsaacbotSystem(joints_)
+{
+
+}
+
+void ArdennesSystem::defineIsaacbotDriver()
+{
+    isaacbot_driver_ = std::make_shared<ArdennesDriver>(drivetrain_settings_);
+}
+
+namespace
+{
+
+// .at() on a missing key throws std::out_of_range with a generic message that doesn't name the
+// key; this wraps it so a missing URDF hardware_parameter is reported by name.
+const std::string & getRequiredParam(
+    const std::unordered_map<std::string, std::string> & params, const std::string & key)
+{
+    const auto it = params.find(key);
+
+    if (it == params.end()) {
+        throw std::invalid_argument("Missing required '" + key + "' hardware parameter.");
+    }
+
+    return it->second;
+}
+
+// Optional counterpart to getRequiredParam: hardware parameters that may be omitted, in which
+// case the caller's compiled-in default stands.
+unsigned readOptionalUnsignedParam(
+    const std::unordered_map<std::string, std::string> & params, const std::string & key,
+    const unsigned default_value)
+{
+    const auto it = params.find(key);
+
+    if (it == params.end()) {
+        return default_value;
+    }
+
+    const int value = std::stoi(it->second);
+
+    if (value < 0) {
+        throw std::invalid_argument("'" + key + "' must be >= 0, got " + it->second + ".");
+    }
+
+    return static_cast<unsigned>(value);
+}
+
+}  // namespace
+
+void ArdennesSystem::readIsaacbotControllerSettings()
+{
+    modbus_settings_.host = getRequiredParam(info_.hardware_parameters, "modbus_host");
+
+    if (modbus_settings_.host.empty()) {
+        throw std::invalid_argument("Missing or empty 'modbus_host' hardware parameter.");
+    }
+
+    modbus_settings_.port = std::stoi(getRequiredParam(info_.hardware_parameters, "modbus_port"));
+
+    modbus_settings_.connection_retry_count = static_cast<unsigned>(
+        std::stoi(getRequiredParam(info_.hardware_parameters, "modbus_connection_retry_count")));
+    modbus_settings_.connection_retry_delay_ms = static_cast<unsigned>(std::stoi(
+        getRequiredParam(info_.hardware_parameters, "modbus_connection_retry_delay_ms")));
+
+    // Optional; the compiled-in defaults are the documented values, so an older URDF keeps
+    // working. All three bound how long the safety link can stall the heartbeat, so they are
+    // validated rather than trusted - a zero period would spin, and a response timeout longer
+    // than the kick period lets one stalled transaction eat a whole tick.
+    modbus_settings_.response_timeout_ms = readOptionalUnsignedParam(
+        info_.hardware_parameters, "modbus_response_timeout_ms",
+        isaacbot::transport::modbus::kDefaultResponseTimeoutMs);
+
+    safety_controller_settings_.wdg_kick_period_ms = readOptionalUnsignedParam(
+        info_.hardware_parameters, "safety_wdg_kick_period_ms", kDefaultWdgKickPeriodMs);
+
+    safety_controller_settings_.io_poll_period_ms = readOptionalUnsignedParam(
+        info_.hardware_parameters, "safety_io_poll_period_ms", kDefaultIoPollPeriodMs);
+
+    safety_controller_settings_.latch_reset_pulse_ms = readOptionalUnsignedParam(
+        info_.hardware_parameters, "safety_latch_reset_pulse_ms", kDefaultLatchResetPulseMs);
+
+    if (safety_controller_settings_.wdg_kick_period_ms == 0) {
+        throw std::invalid_argument("'safety_wdg_kick_period_ms' must be > 0.");
+    }
+
+    if (safety_controller_settings_.io_poll_period_ms == 0) {
+        throw std::invalid_argument("'safety_io_poll_period_ms' must be > 0.");
+    }
+}
+
+void ArdennesSystem::defineIsaacbotController()
+{
+    // Scoped local: only needed long enough to construct the two port adapters below; never
+    // stored as a member so nothing on the RT read()/write() path can reach the concrete
+    // Modbus-backed type directly (see isaacbot_system.hpp's IsaacbotGpioPort/EmergencyStopInterface
+    // member comments).
+    auto isaacbot_safety_controller_impl =
+        std::make_shared<IsaacbotSafetyController>(modbus_settings_, safety_controller_settings_);
+
+    isaacbot_controller_ = std::make_shared<IsaacbotSafetyControllerGpioAdapter>(isaacbot_safety_controller_impl);
+
+    auto e_stop_io = std::make_shared<IsaacbotSafetyControllerEStopIo>(isaacbot_safety_controller_impl);
+    // Forming a pointer to a protected base-class member requires naming it through the derived
+    // class (this translation unit's own class), not the base - see [class.protected].
+    e_stop_ = std::make_shared<EmergencyStop>(
+        e_stop_io, std::bind(&ArdennesSystem::areVelocityCommandsNearZero, this));
+}
+
+void ArdennesSystem::updateHwStates(const rclcpp::Time & time)
+{
+    (void)time;
+
+    const auto rear_left_data = isaacbot_driver_->getData(DriverNames::REAR_LEFT);
+    const auto rear_right_data = isaacbot_driver_->getData(DriverNames::REAR_RIGHT);
+
+    const auto front_left_data = isaacbot_driver_->getData(DriverNames::FRONT_LEFT);
+    const auto front_right_data = isaacbot_driver_->getData(DriverNames::FRONT_RIGHT);
+
+    const auto rear_left = rear_left_data.getMotorState(MotorNames::DEFAULT);
+    const auto rear_right = rear_right_data.getMotorState(MotorNames::DEFAULT);
+    const auto front_left = front_left_data.getMotorState(MotorNames::DEFAULT);
+    const auto front_right = front_right_data.getMotorState(MotorNames::DEFAULT);
+
+    // joint_order_ (ardennes_system.hpp) is {"fl", "fr", "rl", "rr"}, so index 0=front_left,
+    // 1=front_right, 2=rear_left, 3=rear_right.
+    hw_states_positions_[0] = front_left.getPosition();
+    hw_states_positions_[1] = front_right.getPosition();
+    hw_states_positions_[2] = rear_left.getPosition();
+    hw_states_positions_[3] = rear_right.getPosition();
+
+    hw_states_velocities_[0] = front_left.getVelocity();
+    hw_states_velocities_[1] = front_right.getVelocity();
+    hw_states_velocities_[2] = rear_left.getVelocity();
+    hw_states_velocities_[3] = rear_right.getVelocity();
+
+    hw_states_efforts_[0] = front_left.getTorque();
+    hw_states_efforts_[1] = front_right.getTorque();
+    hw_states_efforts_[2] = rear_left.getTorque();
+    hw_states_efforts_[3] = rear_right.getTorque();
+}
+
+void ArdennesSystem::updateDriverStateMsg()
+{
+    const auto driver_front_left_data = isaacbot_driver_->getData(DriverNames::FRONT_LEFT);
+    const auto driver_front_right_data = isaacbot_driver_->getData(DriverNames::FRONT_RIGHT);
+
+    const auto driver_rear_left_data = isaacbot_driver_->getData(DriverNames::REAR_LEFT);
+    const auto driver_rear_right_data = isaacbot_driver_->getData(DriverNames::REAR_RIGHT);
+
+    system_ros_interface_->updateMsgDriversStates(DriverNames::REAR_LEFT,
+        driver_rear_left_data.getDriverState());
+    system_ros_interface_->updateMsgErrorFlags(DriverNames::REAR_LEFT,
+        driver_rear_left_data);
+
+    system_ros_interface_->updateMsgDriversStates(DriverNames::REAR_RIGHT,
+        driver_rear_right_data.getDriverState());
+    system_ros_interface_->updateMsgErrorFlags(DriverNames::REAR_RIGHT,
+        driver_rear_right_data);
+
+    system_ros_interface_->updateMsgDriversStates(DriverNames::FRONT_LEFT,
+        driver_front_left_data.getDriverState());
+    system_ros_interface_->updateMsgErrorFlags(DriverNames::FRONT_LEFT,
+        driver_front_left_data);
+
+    system_ros_interface_->updateMsgDriversStates(DriverNames::FRONT_RIGHT,
+        driver_front_right_data.getDriverState());
+    system_ros_interface_->updateMsgErrorFlags(DriverNames::FRONT_RIGHT,
+        driver_front_right_data);
+
+    system_ros_interface_->updateMsgError(isaacbot_error_filter_->isError());
+}
+
+void ArdennesSystem::diagnoseErrors(diagnostic_updater::DiagnosticStatusWrapper & status)
+{
+    unsigned char level{diagnostic_updater::DiagnosticStatusWrapper::OK};
+    std::string message{"No error detected."};
+
+    const auto front_left_driver_data = isaacbot_driver_->getData(DriverNames::FRONT_LEFT);
+
+    if (front_left_driver_data.isError()) {
+        level = diagnostic_updater::DiagnosticStatusWrapper::ERROR;
+        message = "Error detected.";
+
+        ArdennesSystem::addKeyValueIfTrue(
+            status, front_left_driver_data.getErrorMap(), "Front left driver error: ");
+    }
+
+    const auto front_right_driver_data = isaacbot_driver_->getData(DriverNames::FRONT_RIGHT);
+
+    if (front_right_driver_data.isError()) {
+        level = diagnostic_updater::DiagnosticStatusWrapper::ERROR;
+        message = "Error detected.";
+
+        ArdennesSystem::addKeyValueIfTrue(
+            status, front_right_driver_data.getErrorMap(), "Front right driver error: ");
+    }
+
+    const auto rear_left_driver_data = isaacbot_driver_->getData(DriverNames::REAR_LEFT);
+
+    if (rear_left_driver_data.isError()) {
+        level = diagnostic_updater::DiagnosticStatusWrapper::ERROR;
+        message = "Error detected.";
+
+        ArdennesSystem::addKeyValueIfTrue(
+            status, rear_left_driver_data.getErrorMap(), "Rear left driver error: ");
+    }
+
+    const auto rear_right_driver_data = isaacbot_driver_->getData(DriverNames::REAR_RIGHT);
+
+    if (rear_right_driver_data.isError()) {
+        level = diagnostic_updater::DiagnosticStatusWrapper::ERROR;
+        message = "Error detected.";
+
+        ArdennesSystem::addKeyValueIfTrue(
+            status, rear_right_driver_data.getErrorMap(), "Rear right driver error: ");
+    }
+
+    if (isaacbot_error_filter_->isError()) {
+        level = diagnostic_updater::DiagnosticStatusWrapper::ERROR;
+        message = "Error detected.";
+
+        ArdennesSystem::addKeyValueIfTrue(
+            status, isaacbot_error_filter_->getErrorMap(), "Error filter - ");
+    }
+
+    // The flags above only say a driver "timed out"; the driver's own return code says why (for
+    // example 0x34, the board is no longer attached). Shown whenever one has been seen.
+    const std::array<std::pair<DriverNames, const char *>, 4> wheels{{
+        {DriverNames::FRONT_LEFT, "Front left"},
+        {DriverNames::FRONT_RIGHT, "Front right"},
+        {DriverNames::REAR_LEFT, "Rear left"},
+        {DriverNames::REAR_RIGHT, "Rear right"}}};
+
+    for (const auto & [name, label] : wheels) {
+        const auto stats = isaacbot_driver_->getCommandStats(name);
+
+        if (stats.last_error_code != 0) {
+            status.add(
+                std::string(label) + " driver last return code",
+                isaacbot_driver_->describeReturnCode(stats.last_error_code));
+        }
+    }
+
+    status.summary(level, message);
+}
+
+void ArdennesSystem::diagnoseStatus(diagnostic_updater::DiagnosticStatusWrapper & status)
+{
+    unsigned char level{diagnostic_updater::DiagnosticStatusWrapper::OK};
+    std::string message{"Ardennes system status monitoring."};
+
+    // This task used to keep its level at OK whatever it reported, so a wheel that had stopped
+    // answering (all four drivers timed out) still read as healthy next to the ERROR in "system
+    // errors". The flag is the whole point of this line, so it now sets the level.
+    const bool communication_error = isaacbot_driver_->isCommunicationError();
+    status.add("Communication error", communication_error);
+
+    if (communication_error) {
+        level = diagnostic_updater::DiagnosticStatusWrapper::ERROR;
+        message = "Communication error: a wheel driver stopped reporting.";
+    }
+
+    const auto front_left_driver_state = isaacbot_driver_->getData(DriverNames::FRONT_LEFT).getDriverState();
+    const auto front_right_driver_state = isaacbot_driver_->getData(DriverNames::FRONT_RIGHT).getDriverState();
+    const auto rear_left_driver_state = isaacbot_driver_->getData(DriverNames::REAR_LEFT).getDriverState();
+    const auto rear_right_driver_state = isaacbot_driver_->getData(DriverNames::REAR_RIGHT).getDriverState();
+
+    auto driver_states_with_names = {
+        std::make_pair(std::string("Front Left"), front_left_driver_state),
+        std::make_pair(std::string("Front Right"), front_right_driver_state),
+        std::make_pair(std::string("Rear Left"), rear_left_driver_state),
+        std::make_pair(std::string("Rear Right"), rear_right_driver_state)};
+
+    for (const auto & [driver_name, driver_state] : driver_states_with_names) {
+        status.addf(driver_name + " driver current (A)", "%.2f", driver_state.getDriverCurrent());
+        status.add(driver_name + " driver temperature (\u00B0C)", driver_state.getTemperature());
+    }
+
+    status.summary(level, message);
+}
+
+void ArdennesSystem::getSpeedCmd(std::vector<float> & speed_cmd) const
+{
+    speed_cmd[0] = static_cast<float>(hw_commands_velocities_[0]);
+    speed_cmd[1] = static_cast<float>(hw_commands_velocities_[1]);
+    speed_cmd[2] = static_cast<float>(hw_commands_velocities_[2]);
+    speed_cmd[3] = static_cast<float>(hw_commands_velocities_[3]);
+}
+
+}  // namespace isaacbot_hardware_interface
+
+#include "pluginlib/class_list_macros.hpp"
+PLUGINLIB_EXPORT_CLASS(
+    isaacbot_hardware_interface::ArdennesSystem, hardware_interface::SystemInterface)

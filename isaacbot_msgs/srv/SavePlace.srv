@@ -1,0 +1,7 @@
+# Create (empty id) or update a place on the active map
+
+isaacbot_msgs/Place place
+---
+bool success
+string message
+isaacbot_msgs/Place place      # As stored, with its id

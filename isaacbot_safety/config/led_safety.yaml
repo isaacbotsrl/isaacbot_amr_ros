@@ -1,0 +1,24 @@
+/**:
+  isaacbot_led_safety_node:
+    ros__parameters:
+      timer_frequency: 10.0
+      bt_server_port: 5555
+      input_timeout: 5.0
+      autostart_node: true
+      configure_retry_period: 5.0
+      battery:
+        percent:
+          window_len: 6
+          threshold:
+            low: 0.4
+            critical: 0.1
+        anim_period:
+          low: 30.0
+        charging_anim_step: 0.05
+      ros_communication_timeout:
+        availability: 3.0
+        response: 5.0
+      plugin_libs:
+        - tick_after_timeout_bt_node
+      ros_plugin_libs:
+        - call_set_led_animation_service_bt_node

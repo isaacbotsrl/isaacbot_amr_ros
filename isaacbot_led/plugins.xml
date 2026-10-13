@@ -1,0 +1,10 @@
+<library path="animation_plugins">
+  <!-- name is the lookup name catalogs use (API, never changes); type is the class pluginlib
+       builds: a subclass of the domain animation that passes it the PNG file reader. -->
+  <class name="isaacbot_led::ImageAnimation" type="isaacbot_led::ImageAnimationPlugin" base_class_type="isaacbot_led::Animation">
+    <description>Animation processed from an image</description>
+  </class>
+  <class name="isaacbot_led::MovingImageAnimation" type="isaacbot_led::MovingImageAnimationPlugin" base_class_type="isaacbot_led::Animation">
+    <description>Animation processed from an image with ability to change animation plcement</description>
+  </class>
+</library>

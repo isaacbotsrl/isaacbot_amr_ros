@@ -1,0 +1,436 @@
+cmake_minimum_required(VERSION 3.10)
+project(isaacbot_safety)
+
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+set(PACKAGE_DEPENDENCIES
+    ament_cmake
+    ament_index_cpp
+    behaviortree_cpp
+    diagnostic_msgs
+    diagnostic_updater
+    generate_parameter_library
+    geometry_msgs
+    isaacbot_msgs
+    isaacbot_utils
+    OpenSSL
+    rclcpp
+    rclcpp_action
+    sensor_msgs
+    std_msgs
+    std_srvs
+    tf2_geometry_msgs
+    yaml-cpp
+    nav2_behavior_tree
+    nav2_ros_common
+)
+
+foreach(PACKAGE IN ITEMS ${PACKAGE_DEPENDENCIES})
+    find_package(${PACKAGE} REQUIRED)
+endforeach()
+
+include_directories(include)
+
+# Domain: plain C++, no ROS dependencies.
+add_library(${PROJECT_NAME}_core STATIC
+    src/domain/battery_safety_policy.cpp
+    src/domain/led_animation_policy.cpp
+    src/domain/safety_health.cpp
+    src/domain/shutdown_sequence.cpp
+)
+target_include_directories(${PROJECT_NAME}_core PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
+
+# Infrastructure: diagnostics formatting shared by both safety nodes.
+add_library(${PROJECT_NAME}_diagnostics STATIC
+    src/infrastructure/safety_diagnostics.cpp
+)
+target_link_libraries(${PROJECT_NAME}_diagnostics PUBLIC
+    ${PROJECT_NAME}_core
+    ${behaviortree_cpp_TARGETS}
+    ${diagnostic_msgs_TARGETS}
+    ${diagnostic_updater_TARGETS}
+)
+
+# Infrastructure: retries a failed autostart configure of either safety node.
+add_library(${PROJECT_NAME}_configure_retry STATIC
+    src/infrastructure/configure_retry.cpp
+)
+target_link_libraries(${PROJECT_NAME}_configure_retry PUBLIC
+    nav2_ros_common::nav2_ros_common
+    ${rclcpp_TARGETS}
+)
+
+# Infrastructure: bash command the shutdown tree runs to power off the ROS controller.
+add_library(${PROJECT_NAME}_shutdown_command STATIC
+    src/infrastructure/shutdown_command.cpp
+)
+target_include_directories(${PROJECT_NAME}_shutdown_command PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
+
+# Infrastructure: runs a bash command in its own process group, watched from a thread.
+add_library(${PROJECT_NAME}_command_handler STATIC
+    src/infrastructure/command_handler.cpp
+)
+target_include_directories(${PROJECT_NAME}_command_handler PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
+# Linked into the BT plugin shared libraries.
+set_target_properties(${PROJECT_NAME}_command_handler PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(${PROJECT_NAME}_command_handler PRIVATE
+    ${behaviortree_cpp_TARGETS}  # behavior_tree_utils.hpp (timeoutExceeded()) includes BT.CPP
+)
+
+# Infrastructure: asks a remote host to shut down (HMAC-signed GET) and pings until it is down.
+add_library(${PROJECT_NAME}_shutdown_host STATIC
+    src/infrastructure/shutdown_host.cpp
+)
+set_target_properties(${PROJECT_NAME}_shutdown_host PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(${PROJECT_NAME}_shutdown_host
+    PUBLIC ${PROJECT_NAME}_command_handler
+    PRIVATE OpenSSL::Crypto ${behaviortree_cpp_TARGETS}
+)
+
+# ------------------------------------- Plugins -------------------------------------- #
+add_library(call_set_bool_service_bt_node SHARED
+    src/plugins/action/call_set_bool_service_node.cpp)
+list(APPEND plugin_libs call_set_bool_service_bt_node)
+
+add_library(call_trigger_service_bt_node SHARED
+    src/plugins/action/call_trigger_service_node.cpp)
+list(APPEND plugin_libs call_trigger_service_bt_node)
+
+add_library(call_set_led_animation_service_bt_node SHARED
+            src/plugins/action/call_set_led_animation_service_node.cpp)
+list(APPEND plugin_libs call_set_led_animation_service_bt_node)
+
+add_library(execute_command_bt_node SHARED
+    src/plugins/action/execute_command_node.cpp)
+list(APPEND plugin_libs execute_command_bt_node)
+
+add_library(shutdown_hosts_from_file_bt_node SHARED
+    src/plugins/action/shutdown_hosts_from_file_node.cpp)
+list(APPEND plugin_libs shutdown_hosts_from_file_bt_node)
+
+add_library(signal_shutdown_bt_node SHARED
+    src/plugins/action/signal_shutdown_node.cpp)
+list(APPEND plugin_libs signal_shutdown_bt_node)
+
+add_library(tick_after_timeout_bt_node SHARED
+    src/plugins/decorator/tick_after_timeout_node.cpp)
+list(APPEND plugin_libs tick_after_timeout_bt_node)
+# ------------------------------------- End plugins =--------------------------------- #
+
+foreach(bt_plugin ${plugin_libs})
+    target_compile_definitions(${bt_plugin} PRIVATE BT_PLUGIN_EXPORT)
+    target_link_libraries(${bt_plugin}
+        ${ament_index_cpp_TARGETS}
+        ${behaviortree_cpp_TARGETS}
+        ${geometry_msgs_TARGETS}
+        ${isaacbot_msgs_TARGETS}
+        OpenSSL::SSL
+        OpenSSL::Crypto
+        ${rclcpp_TARGETS}
+        ${rclcpp_action_TARGETS}
+        ${sensor_msgs_TARGETS}
+        ${std_msgs_TARGETS}
+        ${std_srvs_TARGETS}
+        ${tf2_geometry_msgs_TARGETS}
+        yaml-cpp
+        ${nav2_behavior_tree_TARGETS}
+    )
+    target_include_directories(${bt_plugin} PUBLIC ${isaacbot_utils_INCLUDE_DIRS})
+endforeach()
+
+target_link_libraries(execute_command_bt_node ${PROJECT_NAME}_command_handler)
+target_link_libraries(shutdown_hosts_from_file_bt_node ${PROJECT_NAME}_shutdown_host)
+
+add_executable(${PROJECT_NAME}_node src/safety_main.cpp
+    src/safety_node.cpp
+)
+
+target_link_libraries(${PROJECT_NAME}_node
+    nav2_ros_common::nav2_ros_common
+    ${ament_index_cpp_TARGETS}
+    ${std_srvs_TARGETS}
+    ${behaviortree_cpp_TARGETS}
+    ${geometry_msgs_TARGETS}
+    ${isaacbot_msgs_TARGETS}
+    ${rclcpp_TARGETS}
+    ${sensor_msgs_TARGETS}
+    ${std_msgs_TARGETS}
+    ${tf2_geometry_msgs_TARGETS}
+    ${nav2_behavior_tree_TARGETS}
+)
+target_include_directories(${PROJECT_NAME}_node PUBLIC ${isaacbot_utils_INCLUDE_DIRS})
+
+generate_parameter_library(safety_parameters
+    src/safety_parameters.yaml
+)
+
+target_link_libraries(${PROJECT_NAME}_node
+    ${plugin_libs}
+    safety_parameters
+    ${PROJECT_NAME}_core
+    ${PROJECT_NAME}_diagnostics
+    ${PROJECT_NAME}_configure_retry
+    ${PROJECT_NAME}_shutdown_command
+)
+
+add_executable(led_safety_node src/led_safety_main.cpp
+                                   src/led_safety_node.cpp)
+
+target_link_libraries(led_safety_node
+    nav2_ros_common::nav2_ros_common
+    ${behaviortree_cpp_TARGETS}
+    ${geometry_msgs_TARGETS}
+    ${isaacbot_msgs_TARGETS}
+    ${rclcpp_TARGETS}
+    ${sensor_msgs_TARGETS}
+    ${std_msgs_TARGETS}
+    ${tf2_geometry_msgs_TARGETS}
+    ${nav2_behavior_tree_TARGETS}
+)
+target_include_directories(led_safety_node PUBLIC ${isaacbot_utils_INCLUDE_DIRS})
+
+generate_parameter_library(led_safety_parameters
+                           src/led_safety_parameters.yaml
+)
+
+target_link_libraries(led_safety_node ${plugin_libs}
+                      led_safety_parameters
+                      ${PROJECT_NAME}_core
+                      ${PROJECT_NAME}_diagnostics
+                      ${PROJECT_NAME}_configure_retry
+)
+
+install(TARGETS ${plugin_libs} 
+    DESTINATION lib)
+
+install(TARGETS ${PROJECT_NAME}_node led_safety_node
+    DESTINATION lib/${PROJECT_NAME}
+)
+
+install(DIRECTORY behavior_trees config launch
+    DESTINATION share/${PROJECT_NAME}
+)
+
+install(PROGRAMS scripts/shutdown_ros_controller.sh
+    DESTINATION lib/${PROJECT_NAME}
+)
+
+install(DIRECTORY include/ 
+    DESTINATION include/${PROJECT_NAME}
+)
+
+if(BUILD_TESTING)
+    find_package(ament_cmake_gmock REQUIRED)
+    find_package(ament_cmake_gtest REQUIRED)
+
+    # ---------------------------------- Unit ---------------------------------- #
+    ament_add_gtest(test_battery_safety_policy test/unit/test_battery_safety_policy.cpp)
+    target_link_libraries(test_battery_safety_policy ${PROJECT_NAME}_core)
+
+    ament_add_gtest(test_led_animation_policy test/unit/test_led_animation_policy.cpp)
+    target_link_libraries(test_led_animation_policy ${PROJECT_NAME}_core)
+
+    ament_add_gtest(test_battery_state_conversion test/unit/test_battery_state_conversion.cpp)
+    target_link_libraries(test_battery_state_conversion ${PROJECT_NAME}_core ${sensor_msgs_TARGETS})
+
+    ament_add_gtest(test_safety_health test/unit/test_safety_health.cpp)
+    target_link_libraries(test_safety_health ${PROJECT_NAME}_core)
+
+    ament_add_gtest(test_shutdown_sequence test/unit/test_shutdown_sequence.cpp)
+    target_link_libraries(test_shutdown_sequence ${PROJECT_NAME}_core)
+
+    ament_add_gtest(test_shutdown_command test/unit/test_shutdown_command.cpp)
+    target_link_libraries(test_shutdown_command ${PROJECT_NAME}_shutdown_command)
+
+    ament_add_gtest(test_safety_diagnostics test/unit/test_safety_diagnostics.cpp)
+    target_link_libraries(test_safety_diagnostics ${PROJECT_NAME}_diagnostics)
+
+    # BT plugins that need no ROS graph.
+    set(PLUGIN_TEST_LIBRARIES
+        ${behaviortree_cpp_TARGETS}
+        ${rclcpp_TARGETS}
+        OpenSSL::SSL
+        OpenSSL::Crypto
+        yaml-cpp
+    )
+
+    ament_add_gtest(test_execute_command_node test/unit/plugins/test_execute_command_node.cpp
+                    TIMEOUT 60)
+    target_link_libraries(test_execute_command_node execute_command_bt_node ${PLUGIN_TEST_LIBRARIES})
+
+    ament_add_gtest(test_signal_shutdown_node test/unit/plugins/test_signal_shutdown_node.cpp)
+    target_link_libraries(test_signal_shutdown_node signal_shutdown_bt_node ${PLUGIN_TEST_LIBRARIES})
+
+    ament_add_gtest(test_shutdown_host test/unit/plugins/test_shutdown_host.cpp
+                    TIMEOUT 60)
+    target_link_libraries(test_shutdown_host ${PLUGIN_TEST_LIBRARIES} ${PROJECT_NAME}_shutdown_host)
+
+    ament_add_gmock(test_shutdown_hosts_node test/unit/plugins/test_shutdown_hosts_node.cpp)
+    target_link_libraries(test_shutdown_hosts_node ${PLUGIN_TEST_LIBRARIES} ${PROJECT_NAME}_shutdown_host)
+
+    ament_add_gtest(test_shutdown_hosts_from_file_node
+                    test/unit/plugins/test_shutdown_hosts_from_file_node.cpp
+                    TIMEOUT 60)
+    target_link_libraries(test_shutdown_hosts_from_file_node
+        shutdown_hosts_from_file_bt_node ${PLUGIN_TEST_LIBRARIES})
+    target_include_directories(test_shutdown_hosts_from_file_node PRIVATE ${isaacbot_utils_INCLUDE_DIRS})
+
+    # Ticks the shipped LED tree against a recording stand-in for CallSetLedAnimationService.
+    ament_add_gtest(test_led_safety_tree test/unit/test_led_safety_tree.cpp
+                    TIMEOUT 60)
+    target_compile_definitions(test_led_safety_tree PRIVATE
+        ISAACBOT_SAFETY_LED_BT_PROJECT="${CMAKE_CURRENT_SOURCE_DIR}/behavior_trees/IsaacbotLedSafetyBT.btproj")
+    target_link_libraries(test_led_safety_tree
+        tick_after_timeout_bt_node
+        ${PROJECT_NAME}_core
+        ${behaviortree_cpp_TARGETS}
+        ${isaacbot_msgs_TARGETS}
+        ${sensor_msgs_TARGETS}
+    )
+
+    # ------------------------------- Integration ------------------------------ #
+    ament_add_gtest(test_call_trigger_service test/integration/test_call_trigger_service.cpp
+                    TIMEOUT 60)
+    target_link_libraries(test_call_trigger_service call_trigger_service_bt_node)
+    target_link_libraries(test_call_trigger_service
+        ${behaviortree_cpp_TARGETS}
+        ${nav2_behavior_tree_TARGETS}
+        ${rclcpp_TARGETS}
+        ${std_srvs_TARGETS}
+    )
+
+    ament_add_gtest(test_call_set_bool_service test/integration/test_call_set_bool_service.cpp
+                    TIMEOUT 60)
+    target_link_libraries(test_call_set_bool_service call_set_bool_service_bt_node)
+    target_link_libraries(test_call_set_bool_service
+        ${behaviortree_cpp_TARGETS}
+        ${nav2_behavior_tree_TARGETS}
+        ${rclcpp_TARGETS}
+        ${std_srvs_TARGETS}
+    )
+
+    ament_add_gtest(test_call_set_led_animation_service
+                    test/integration/test_call_set_led_animation_service.cpp
+                    TIMEOUT 60)
+    target_link_libraries(test_call_set_led_animation_service call_set_led_animation_service_bt_node)
+    target_link_libraries(test_call_set_led_animation_service
+        ${behaviortree_cpp_TARGETS}
+        ${nav2_behavior_tree_TARGETS}
+        ${rclcpp_TARGETS}
+        ${isaacbot_msgs_TARGETS}
+    )
+
+    # Loads the plugins by name like the node does, so their build directory must be on the
+    # library path; the btproj comes straight from the source tree.
+    ament_add_gtest(test_shutdown_tree test/integration/test_shutdown_tree.cpp
+                    TIMEOUT 60
+                    APPEND_LIBRARY_DIRS ${CMAKE_CURRENT_BINARY_DIR})
+    add_dependencies(test_shutdown_tree ${plugin_libs})
+    target_compile_definitions(test_shutdown_tree PRIVATE
+        ISAACBOT_SAFETY_BT_PROJECT="${CMAKE_CURRENT_SOURCE_DIR}/behavior_trees/IsaacbotSafetyBT.btproj"
+        ISAACBOT_SAFETY_CONFIG="${CMAKE_CURRENT_SOURCE_DIR}/config/isaacbot_safety.yaml"
+        ISAACBOT_SAFETY_SHUTDOWN_HOSTS="${CMAKE_CURRENT_SOURCE_DIR}/config/shutdown_hosts.yaml")
+    target_link_libraries(test_shutdown_tree
+        ${behaviortree_cpp_TARGETS}
+        ${nav2_behavior_tree_TARGETS}
+        nav2_ros_common::nav2_ros_common
+        ${rclcpp_TARGETS}
+        ${std_srvs_TARGETS}
+        ${PROJECT_NAME}_shutdown_command
+        yaml-cpp
+    )
+
+    # The real isaacbot_safety_node, in-process, against a fake hardware interface.
+    ament_add_gtest(test_safety_node_shutdown
+                    test/integration/test_safety_node_shutdown.cpp
+                    src/safety_node.cpp
+                    TIMEOUT 120
+                    APPEND_LIBRARY_DIRS ${CMAKE_CURRENT_BINARY_DIR})
+    add_dependencies(test_safety_node_shutdown ${plugin_libs})
+    target_compile_definitions(test_safety_node_shutdown PRIVATE
+        ISAACBOT_SAFETY_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+    target_include_directories(test_safety_node_shutdown PRIVATE ${isaacbot_utils_INCLUDE_DIRS})
+    target_link_libraries(test_safety_node_shutdown
+        nav2_ros_common::nav2_ros_common
+        ${ament_index_cpp_TARGETS}
+        ${behaviortree_cpp_TARGETS}
+        ${diagnostic_updater_TARGETS}
+        ${isaacbot_msgs_TARGETS}
+        ${rclcpp_TARGETS}
+        ${sensor_msgs_TARGETS}
+        ${std_srvs_TARGETS}
+        safety_parameters
+        ${PROJECT_NAME}_core
+        ${PROJECT_NAME}_diagnostics
+        ${PROJECT_NAME}_configure_retry
+        ${PROJECT_NAME}_shutdown_command
+    )
+
+    # The real isaacbot_led_safety_node, in-process, started before its led/set_animation server.
+    ament_add_gtest(test_led_safety_configure_retry
+                    test/integration/test_led_safety_configure_retry.cpp
+                    src/led_safety_node.cpp
+                    TIMEOUT 120
+                    APPEND_LIBRARY_DIRS ${CMAKE_CURRENT_BINARY_DIR})
+    add_dependencies(test_led_safety_configure_retry ${plugin_libs})
+    target_compile_definitions(test_led_safety_configure_retry PRIVATE
+        ISAACBOT_SAFETY_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+    target_include_directories(test_led_safety_configure_retry PRIVATE ${isaacbot_utils_INCLUDE_DIRS})
+    target_link_libraries(test_led_safety_configure_retry
+        nav2_ros_common::nav2_ros_common
+        ${behaviortree_cpp_TARGETS}
+        ${diagnostic_msgs_TARGETS}
+        ${diagnostic_updater_TARGETS}
+        ${isaacbot_msgs_TARGETS}
+        ${rclcpp_TARGETS}
+        ${sensor_msgs_TARGETS}
+        led_safety_parameters
+        ${PROJECT_NAME}_core
+        ${PROJECT_NAME}_diagnostics
+        ${PROJECT_NAME}_configure_retry
+    )
+
+    # The real isaacbot_led_safety_node, in-process, against a fake LED controller.
+    ament_add_gtest(test_led_safety_node_animations
+                    test/integration/test_led_safety_node_animations.cpp
+                    src/led_safety_node.cpp
+                    TIMEOUT 120
+                    APPEND_LIBRARY_DIRS ${CMAKE_CURRENT_BINARY_DIR})
+    add_dependencies(test_led_safety_node_animations ${plugin_libs})
+    target_compile_definitions(test_led_safety_node_animations PRIVATE
+        ISAACBOT_SAFETY_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+    target_include_directories(test_led_safety_node_animations PRIVATE ${isaacbot_utils_INCLUDE_DIRS})
+    target_link_libraries(test_led_safety_node_animations
+        nav2_ros_common::nav2_ros_common
+        ${behaviortree_cpp_TARGETS}
+        ${diagnostic_msgs_TARGETS}
+        ${diagnostic_updater_TARGETS}
+        ${isaacbot_msgs_TARGETS}
+        ${rclcpp_TARGETS}
+        ${sensor_msgs_TARGETS}
+        led_safety_parameters
+        ${PROJECT_NAME}_core
+        ${PROJECT_NAME}_diagnostics
+        ${PROJECT_NAME}_configure_retry
+    )
+
+    ament_add_test(test_shutdown_script
+        GENERATE_RESULT_FOR_RETURN_CODE_ZERO
+        COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/test/integration/test_shutdown_script.sh
+                ${CMAKE_CURRENT_SOURCE_DIR}/scripts/shutdown_ros_controller.sh
+        TIMEOUT 60
+    )
+endif()
+
+ament_export_dependencies(${PACKAGE_DEPENDENCIES})
+ament_export_include_directories(include/${PROJECT_NAME})
+
+ament_package()

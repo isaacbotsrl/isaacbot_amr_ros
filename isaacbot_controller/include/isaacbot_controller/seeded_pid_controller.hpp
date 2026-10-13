@@ -1,0 +1,133 @@
+// Copyright 2026 Mechatronics Academy
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#ifndef ISAACBOT_CONTROLLER__SEEDED_PID_CONTROLLER_HPP_
+#define ISAACBOT_CONTROLLER__SEEDED_PID_CONTROLLER_HPP_
+
+#include <atomic>
+#include <vector>
+
+#include <geometry_msgs/msg/twist_stamped.hpp>
+#include <pid_controller/pid_controller.hpp>
+#include <rclcpp/node_interfaces/node_parameters_interface.hpp>
+#include <rclcpp/subscription.hpp>
+#include <realtime_tools/realtime_thread_safe_box.hpp>
+
+#include "isaacbot_controller/wheel_speed_loop.hpp"
+
+namespace isaacbot_controller
+{
+
+/**
+ * @brief pid_controller::PidController whose exported state is valid from the first cycle, and
+ * whose wheel loop stops cleanly at zero and doesn't wind up through the plant's dead time.
+ *
+ * The isaacbot's drive chain is diff_drive_controller -> one PID per wheel -> hardware, with
+ * diff_drive reading wheel feedback from each PID's exported velocity state
+ * (config/wheel_01_controller.yaml, open_loop: false).
+ *
+ * Seeding: upstream PidController::on_activate() resets that exported state to NaN and only
+ * fills it in its own update(). A PID can switch into chained mode only while inactive, so every
+ * time diff_drive joins the chain the PIDs are (re)activated, and on real hardware diff_drive
+ * updates first in that very cycle: it reads NaN, fails with "Either the left or right wheel
+ * velocity is invalid", and controller_manager deactivates the whole chain. (In Gazebo the
+ * first diff_drive update happened to come later, which is why only the isaacbot failed.)
+ * This subclass runs the upstream activation, then seeds the exported state - and the
+ * measured state backing it - from the hardware state interfaces it has just claimed.
+ *
+ * Wheel loop: for the isaacbot's configuration (one velocity interface per wheel, measured from the
+ * state interfaces) each wheel's command comes from a WheelSpeedLoop instead of the upstream
+ * control_toolbox::Pid, using the same gains.<dof>.* parameters. With its extra parameters at
+ * their defaults it computes exactly what upstream does. The extra parameters (runtime-settable):
+ *   stop_at_zero_reference            output exactly 0 and clear the integral at a zero reference
+ *   zero_reference_tolerance          rad/s under which the reference counts as zero
+ *   integral_reference_delay          s, dead time of the reference the integral compares against
+ *   integral_reference_time_constant  s, first-order lag of that reference
+ *   scale_integral_with_reference     fade the integral with |reference| as it ramps down
+ *   turn_feedforward                  rad/s of extra command in a spin in place (0 = off)
+ *   turn_side                         -1 left wheel, +1 right wheel, 0 = off
+ *   turn_feedforward_full_rate        rad/s of yaw rate from which the full term applies
+ *   turn_track_width                  m, effective track (wheel_separation * multiplier)
+ *   turn_command_timeout              s, an older body command gives no turn feed-forward
+ * The turn feed-forward needs the body command, which only diff_drive knows: each PID subscribes
+ * to its limited command (turn_command_topic, read at configure; diff_drive's
+ * publish_limited_velocity must be on). See WheelLoopOptions::turn_feedforward.
+ * Any other configuration (external measured states, position + velocity references, angle
+ * wraparound) keeps the upstream update unchanged.
+ */
+class SeededPidController : public pid_controller::PidController
+{
+public:
+  /** Longest integral_reference_delay accepted; sizes the reference history. */
+  static constexpr double kMaxIntegralReferenceDelay = 1.0;
+
+  controller_interface::CallbackReturn on_init() override;
+
+  controller_interface::CallbackReturn on_configure(
+    const rclcpp_lifecycle::State & previous_state) override;
+
+  controller_interface::CallbackReturn on_activate(
+    const rclcpp_lifecycle::State & previous_state) override;
+
+  controller_interface::return_type update_and_write_commands(
+    const rclcpp::Time & time, const rclcpp::Duration & period) override;
+
+protected:
+  /** @brief Copy finite hardware state values into the measured and exported state. */
+  void seed_exported_state_from_hardware();
+
+  /** @brief True when the wheel loops can replace the upstream update for this configuration. */
+  bool uses_wheel_loops() const;
+
+  WheelLoopGains wheel_gains(size_t dof_index) const;
+  WheelLoopOptions wheel_options() const;
+
+  /** @brief Store a body command from diff_drive (subscription callback, not real-time). */
+  void on_turn_command(const geometry_msgs::msg::TwistStamped & message);
+
+  /** @brief The latest body command, valid if it arrived within turn_command_timeout of `time`. */
+  BodyCommand body_command(const rclcpp::Time & time);
+
+  std::vector<WheelSpeedLoop> wheel_loops_;
+
+  std::atomic<bool> stop_at_zero_reference_{false};
+  std::atomic<double> zero_reference_tolerance_{1e-3};
+  std::atomic<double> integral_reference_delay_{0.0};
+  std::atomic<double> integral_reference_time_constant_{0.0};
+  std::atomic<bool> scale_integral_with_reference_{false};
+  std::atomic<double> turn_feedforward_{0.0};
+  std::atomic<double> turn_side_{0.0};
+  std::atomic<double> turn_feedforward_full_rate_{0.3};
+  std::atomic<double> turn_track_width_{1.0};
+  std::atomic<double> turn_command_timeout_{0.2};
+
+  /** @brief A body command and when it arrived (node clock). */
+  struct ReceivedBodyCommand
+  {
+    double linear = 0.0;
+    double angular = 0.0;
+    rcl_time_point_value_t received_ns = 0;
+    bool received = false;
+  };
+  realtime_tools::RealtimeThreadSafeBox<ReceivedBodyCommand> received_body_command_;
+  ReceivedBodyCommand last_body_command_;  // kept when the box is busy (real-time side only)
+  rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr turn_command_subscriber_;
+
+private:
+  rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr on_set_parameters_handle_;
+};
+
+}  // namespace isaacbot_controller
+
+#endif  // ISAACBOT_CONTROLLER__SEEDED_PID_CONTROLLER_HPP_

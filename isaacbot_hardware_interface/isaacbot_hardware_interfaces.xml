@@ -1,0 +1,14 @@
+<library path="isaacbot_hardware_interface">
+  
+  <class name="isaacbot_hardware_interface/ArdennesSystem"
+    type="isaacbot_hardware_interface::ArdennesSystem"
+    base_class_type="hardware_interface::SystemInterface">
+    <description>Hardware system controller for Ardennes's Phidget motor controller</description>
+  </class>
+
+  <class name="isaacbot_hardware_interface/PhidgetImuSensor"
+    type="isaacbot_hardware_interface::PhidgetImuSensor"
+    base_class_type="hardware_interface::SensorInterface">
+    <description>Hardware IMU sensor for Phidget Spatial IMU</description>
+  </class>
+</library>

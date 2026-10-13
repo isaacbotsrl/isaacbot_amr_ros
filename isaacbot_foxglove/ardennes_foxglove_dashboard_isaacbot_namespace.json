@@ -1,0 +1,632 @@
+{
+  "configById": {
+    "Image!2zxrowa": {
+      "cameraState": {
+        "distance": 20,
+        "perspective": true,
+        "phi": 60,
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOffset": [
+          0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "thetaOffset": 60,
+        "fovy": 45,
+        "near": 0.5,
+        "far": 5000
+      },
+      "followMode": "follow-pose",
+      "scene": {},
+      "transforms": {},
+      "topics": {},
+      "layers": {},
+      "publish": {
+        "type": "point",
+        "poseTopic": "/isaacbot/move_base_simple/goal",
+        "pointTopic": "/isaacbot/clicked_point",
+        "poseEstimateTopic": "/isaacbot/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26179939
+      },
+      "synchronize": false,
+      "imageMode": {
+        "imageTopic": "/isaacbot/led/channel_1_frame"
+      }
+    },
+    "Image!27i71en": {
+      "cameraState": {
+        "distance": 20,
+        "perspective": true,
+        "phi": 60,
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOffset": [
+          0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "thetaOffset": 60,
+        "fovy": 45,
+        "near": 0.5,
+        "far": 5000
+      },
+      "followMode": "follow-pose",
+      "scene": {},
+      "transforms": {},
+      "topics": {},
+      "layers": {},
+      "publish": {
+        "type": "point",
+        "poseTopic": "/isaacbot/move_base_simple/goal",
+        "pointTopic": "/isaacbot/clicked_point",
+        "poseEstimateTopic": "/isaacbot/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26179939
+      },
+      "synchronize": false,
+      "imageMode": {
+        "imageTopic": "/isaacbot/led/channel_2_frame"
+      }
+    },
+    "map!1db5dg0": {
+      "zoomLevel": 17,
+      "customTileUrl": "",
+      "disabledTopics": [],
+      "followTopic": "",
+      "followFrame": "",
+      "layer": "map",
+      "topicColors": {},
+      "maxNativeZoom": 18,
+      "topicConfig": {
+        "/isaacbot/gps/filtered": {
+          "historyMode": "none",
+          "pointSize": 6
+        },
+        "/isaacbot/gps/fix": {
+          "historyMode": "none",
+          "pointSize": 6
+        }
+      },
+      "layers": []
+    },
+    "Stack!1s3ez02": {
+      "panels": [
+        {
+          "panelId": "Image!2zxrowa",
+          "size": 0.17985972158367883
+        },
+        {
+          "panelId": "Image!27i71en",
+          "size": 0.25
+        }
+      ]
+    },
+    "RosOut!c5eeu": {
+      "minLogLevel": 1,
+      "preload": true,
+      "searchTerms": [],
+      "nameFilter": {},
+      "fontSize": 12,
+      "showLevel": true,
+      "showDate": true,
+      "showTime": true,
+      "showTimezone": true,
+      "showName": true,
+      "showSourceLocation": true
+    },
+    "Plot!2i966dm": {
+      "yAxisLabel": "",
+      "paths": [
+        {
+          "value": "/isaacbot/joint_states.velocity[1]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "color": "#4e98e2",
+          "id": "5d277697-7a20-4d76-8f4e-e51a9d8d0b5f",
+          "dynamicLabelField": "",
+          "label": "FR"
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/isaacbot/joint_states.velocity[0]",
+          "enabled": true,
+          "color": "#f5774d",
+          "id": "ffafcee0-7f0f-49bb-8d00-8de98f989ae9",
+          "label": "FL"
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/isaacbot/joint_states.velocity[3]",
+          "enabled": true,
+          "color": "#f7df71",
+          "id": "aed83021-561c-4b69-b348-54b8a17876f9",
+          "label": "RR"
+        },
+        {
+          "timestampMethod": "receiveTime",
+          "value": "/isaacbot/joint_states.velocity[2]",
+          "enabled": true,
+          "color": "#5cd6a9",
+          "id": "3d8c2555-1e70-4e7e-80d8-6b14d3cd93c4",
+          "label": "RL"
+        }
+      ],
+      "foxglovePanelTitle": "Feedback speed",
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "showLegend": true
+    },
+    "Plot!3l2jzfi": {
+      "paths": [
+        {
+          "value": "/isaacbot/system_status.avg_load_percent",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "showLine": true,
+          "color": "#4e98e2",
+          "id": "9b302063-8277-49fd-8e8d-34af3a65a5f5"
+        }
+      ]
+    },
+    "3D!4l65y0a": {
+      "cameraState": {
+        "distance": 6.4706708994679705,
+        "perspective": true,
+        "phi": 58.68913754468374,
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOffset": [
+          0.2825693287543072,
+          0.06057068017463302,
+          -1.7296057580901586e-16
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "thetaOffset": -47.69749745967911,
+        "fovy": 45,
+        "near": 0.5,
+        "far": 5000
+      },
+      "followMode": "follow-heading",
+      "followTf": "isaacbot/odom",
+      "enuFrameId": "isaacbot/odom",
+      "scene": {
+        "transforms": {
+          "visible": true,
+          "showLabel": false
+        },
+        "syncCamera": false
+      },
+      "transforms": {},
+      "topics": {},
+      "layers": {
+        "grid": {
+          "visible": true,
+          "drawBehind": false,
+          "instanceId": "82087910-c3ff-4be5-bfe9-31dbc2e5edd1",
+          "layerId": "foxglove.Grid",
+          "size": 10,
+          "divisions": 10,
+          "lineWidth": 1,
+          "color": "#248eff",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ]
+        },
+        "c2adc0d4-9f48-488c-83de-4977e198b654": {
+          "controlMode": "transforms",
+          "jointStatesTopic": "/isaacbot/joint_states",
+          "displayMode": "auto",
+          "fallbackColor": "#ffffff",
+          "showAxis": true,
+          "axisScale": 1,
+          "showOutlines": true,
+          "opacity": 1,
+          "visible": false,
+          "instanceId": "c2adc0d4-9f48-488c-83de-4977e198b654",
+          "layerId": "foxglove.Urdf",
+          "label": "URDF",
+          "sourceType": "topic",
+          "url": "",
+          "filePath": "",
+          "parameter": "",
+          "topic": "/isaacbot/robot_description",
+          "framePrefix": "",
+          "order": 1,
+          "links": {
+            "base_link": {
+              "visible": true
+            },
+            "body_link": {
+              "visible": true
+            }
+          }
+        },
+        "170f757e-424a-48be-8506-130851335665": {
+          "visible": false,
+          "serverConfig": "map",
+          "instanceId": "170f757e-424a-48be-8506-130851335665",
+          "layerId": "foxglove.TiledMap",
+          "opacity": 1,
+          "zPosition": 0.01,
+          "drawBehind": true,
+          "order": 2
+        }
+      },
+      "publish": {
+        "type": "point",
+        "poseTopic": "/move_base_simple/goal",
+        "pointTopic": "/clicked_point",
+        "poseEstimateTopic": "/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26179939
+      },
+      "synchronize": false,
+      "imageMode": {}
+    },
+    "RawMessages!ql9qq3": {
+      "defaultExpanded": false,
+      "topicPath": "/isaacbot/joint_states",
+      "diffEnabled": false
+    },
+    "RawMessages!16msonw": {
+      "defaultExpanded": false,
+      "topicPath": "/isaacbot/hardware_interface/driver_state.driver_states[0].state",
+      "diffEnabled": false
+    },
+    "Indicator!1ja73dx": {
+      "path": "/isaacbot/hardware_interface/safety_command_echo.sw_e_stop_user_button",
+      "style": "bulb",
+      "fontSize": 24,
+      "fallbackColor": "#ff0000",
+      "fallbackLabel": "PRESSED",
+      "rules": [
+        {
+          "operator": "=",
+          "rawValue": "false",
+          "color": "#33ff00",
+          "label": "RELEASED"
+        }
+      ],
+      "foxglovePanelTitle": "SW-E-STOP Button"
+    },
+    "CallService!dze8fj": {
+      "requestPayload": "{}",
+      "layout": "vertical",
+      "timeoutSeconds": 10,
+      "serviceName": "/isaacbot/hardware_interface/sw_user_e_stop_reset",
+      "editingMode": false,
+      "buttonText": "SW_USER_E_STOP",
+      "buttonColor": "#33f247",
+      "foxglovePanelTitle": "SW-E-STOP Button"
+    },
+    "CallService!4ayccr2": {
+      "requestPayload": "{}",
+      "layout": "vertical",
+      "timeoutSeconds": 10,
+      "serviceName": "/isaacbot/hardware_interface/sw_user_e_stop_set",
+      "editingMode": false,
+      "buttonText": "SW_USER_E_STOP",
+      "buttonColor": "#ff0000",
+      "foxglovePanelTitle": "SW-E-STOP Button"
+    },
+    "Indicator!3nvxjn7": {
+      "path": "/isaacbot/hardware_interface/safety_status.latch_active",
+      "style": "bulb",
+      "fontSize": 24,
+      "fallbackColor": "#e34b4b",
+      "fallbackLabel": "OFF",
+      "rules": [
+        {
+          "operator": "=",
+          "rawValue": "true",
+          "color": "#00ff1a",
+          "label": "ON"
+        }
+      ],
+      "foxglovePanelTitle": "SW-E-STOP-LATCH STATUS"
+    },
+    "CallService!r2rx5z": {
+      "requestPayload": "{}",
+      "layout": "vertical",
+      "timeoutSeconds": 10,
+      "editingMode": false,
+      "serviceName": "/isaacbot/hardware_interface/sw_e_stop_latch_reset",
+      "foxglovePanelTitle": "SW-E-STOP-LATCH RESET",
+      "buttonText": "SW-E-STOP-LATCH RESET",
+      "buttonColor": "#33f24d"
+    },
+    "Indicator!25x422y": {
+      "path": "/isaacbot/hardware_interface/safety_status.hw_e_stop_user_button",
+      "style": "bulb",
+      "fontSize": 24,
+      "fallbackColor": "#ff0000",
+      "fallbackLabel": "PRESSED",
+      "rules": [
+        {
+          "operator": "=",
+          "rawValue": "false",
+          "color": "#33ff00",
+          "label": "RELEASED"
+        }
+      ],
+      "foxglovePanelTitle": "HW-E-STOP Button"
+    },
+    "Indicator!2lcrs0u": {
+      "path": "/isaacbot/hardware_interface/safety_command_echo.cpu_wdg_heartbeat",
+      "style": "bulb",
+      "fontSize": 24,
+      "fallbackColor": "#ff0000",
+      "fallbackLabel": "FALSE",
+      "rules": [
+        {
+          "operator": "=",
+          "rawValue": "true",
+          "color": "#68e24a",
+          "label": "TRUE"
+        }
+      ],
+      "foxglovePanelTitle": "Watchdog"
+    },
+    "Indicator!mid9o6": {
+      "path": "/isaacbot/hardware_interface/safety_command_echo.sw_e_stop_motor_driver_fault",
+      "style": "bulb",
+      "fontSize": 24,
+      "fallbackColor": "#00ff32",
+      "fallbackLabel": "NO FAULT",
+      "rules": [
+        {
+          "operator": "=",
+          "rawValue": "true",
+          "color": "#e34b4b",
+          "label": "FAULT"
+        }
+      ],
+      "foxglovePanelTitle": "MOTOR DRIVER FAULT"
+    },
+    "Indicator!6s1jl": {
+      "path": "/isaacbot/hardware_interface/safety_status.motor_contactor_engaged",
+      "style": "bulb",
+      "fontSize": 24,
+      "fallbackColor": "#ff0000",
+      "fallbackLabel": "NOT READY",
+      "rules": [
+        {
+          "operator": "=",
+          "rawValue": "true",
+          "color": "#00ff1a",
+          "label": "READY"
+        }
+      ],
+      "foxglovePanelTitle": "Motor Contactor Engaged Status"
+    },
+    "Indicator!4j5axg9": {
+      "path": "/isaacbot/motion_lock.data",
+      "style": "bulb",
+      "fontSize": 24,
+      "fallbackColor": "#ff0000",
+      "fallbackLabel": "NO",
+      "rules": [
+        {
+          "operator": "=",
+          "rawValue": "false",
+          "color": "#00ff48",
+          "label": "READY"
+        }
+      ],
+      "foxglovePanelTitle": "MOTION_ALLOWED"
+    },
+    "Gauge!2x8cm1e": {
+      "path": "/isaacbot/battery/battery_status.temperature",
+      "style": "dial",
+      "minValue": 0,
+      "maxValue": 60,
+      "tickInterval": 10,
+      "showTicks": true,
+      "colorMap": "red-yellow-green",
+      "colorMode": "gradient",
+      "gradient": [
+        "#00ff05ff",
+        "#ff0000ff"
+      ],
+      "reverse": false,
+      "reverseDirection": false,
+      "foxglovePanelTitle": "Battery Temp"
+    },
+    "Gauge!410rqfx": {
+      "path": "/isaacbot/battery/battery_status.current",
+      "style": "dial",
+      "minValue": -20,
+      "maxValue": 10,
+      "tickInterval": 1,
+      "showTicks": true,
+      "colorMap": "red-yellow-green",
+      "colorMode": "colormap",
+      "gradient": [
+        "#0000ff",
+        "#ff00ff"
+      ],
+      "reverse": true,
+      "reverseDirection": true
+    },
+    "Gauge!2p2ph1m": {
+      "path": "/isaacbot/battery/battery_status.percentage",
+      "style": "bar",
+      "minValue": 0,
+      "maxValue": 1,
+      "tickInterval": 0.2,
+      "showTicks": true,
+      "colorMap": "rainbow",
+      "colorMode": "colormap",
+      "gradient": [
+        "#0000ff",
+        "#ff00ff"
+      ],
+      "reverse": true,
+      "reverseDirection": false
+    },
+    "virtual-joystick.Virtual Joystick!1g1w7co": {
+      "publishRate": 10,
+      "maxLinearSpeed": 2,
+      "maxAngularSpeed": 2,
+      "topic": "/isaacbot/teleop_foxglove_cmd_vel_stamped",
+      "messageSchema": "geometry_msgs/msg/TwistStamped"
+    },
+    "DiagnosticStatusPanel!41058qk": {
+      "topicToRender": "/isaacbot/diagnostics",
+      "selectedHardwareId": "ros2_control"
+    }
+  },
+  "globalVariables": {
+    "ns": "isaacbot"
+  },
+  "userNodes": {},
+  "playbackConfig": {
+    "speed": 1
+  },
+  "layout": {
+    "direction": "row",
+    "first": "map!1db5dg0",
+    "second": {
+      "first": {
+        "first": {
+          "first": {
+            "first": {
+              "first": "Stack!1s3ez02",
+              "second": "RosOut!c5eeu",
+              "direction": "column",
+              "splitPercentage": 49.232585672436954
+            },
+            "second": {
+              "first": "Plot!2i966dm",
+              "second": "Plot!3l2jzfi",
+              "direction": "column"
+            },
+            "direction": "row",
+            "splitPercentage": 62.47173943761483
+          },
+          "second": "3D!4l65y0a",
+          "direction": "row",
+          "splitPercentage": 67.38025038688863
+        },
+        "second": {
+          "first": "RawMessages!ql9qq3",
+          "second": "RawMessages!16msonw",
+          "direction": "column"
+        },
+        "direction": "row",
+        "splitPercentage": 79.65853658536585
+      },
+      "second": {
+        "first": {
+          "first": {
+            "first": {
+              "first": {
+                "first": "Indicator!1ja73dx",
+                "second": "CallService!dze8fj",
+                "direction": "column",
+                "splitPercentage": 50.00000000000002
+              },
+              "second": "CallService!4ayccr2",
+              "direction": "column",
+              "splitPercentage": 66.67956954759002
+            },
+            "second": {
+              "first": {
+                "first": {
+                  "first": "Indicator!3nvxjn7",
+                  "second": "CallService!r2rx5z",
+                  "direction": "column"
+                },
+                "second": "Indicator!25x422y",
+                "direction": "row",
+                "splitPercentage": 54.33673469387753
+              },
+              "second": {
+                "first": "Indicator!2lcrs0u",
+                "second": {
+                  "first": "Indicator!mid9o6",
+                  "second": {
+                    "first": "Indicator!6s1jl",
+                    "second": "Indicator!4j5axg9",
+                    "direction": "row",
+                    "splitPercentage": 42.461386846672426
+                  },
+                  "direction": "row",
+                  "splitPercentage": 26.58067366520355
+                },
+                "direction": "row",
+                "splitPercentage": 18.57133360358823
+              },
+              "direction": "row",
+              "splitPercentage": 34.65992368084424
+            },
+            "direction": "row",
+            "splitPercentage": 17.261055634807416
+          },
+          "second": {
+            "first": {
+              "first": {
+                "first": "Gauge!2x8cm1e",
+                "second": "Gauge!410rqfx",
+                "direction": "row",
+                "splitPercentage": 46.9951923076923
+              },
+              "second": "Gauge!2p2ph1m",
+              "direction": "row",
+              "splitPercentage": 66.7535853976532
+            },
+            "second": "virtual-joystick.Virtual Joystick!1g1w7co",
+            "direction": "row",
+            "splitPercentage": 72.32088181261481
+          },
+          "direction": "column",
+          "splitPercentage": 47.62921587679531
+        },
+        "second": "DiagnosticStatusPanel!41058qk",
+        "direction": "row",
+        "splitPercentage": 79.65853658536585
+      },
+      "direction": "column",
+      "splitPercentage": 49.692747709025085
+    },
+    "splitPercentage": 15.21951219512195
+  }
+}

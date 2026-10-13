@@ -1,0 +1,100 @@
+cmake_minimum_required(VERSION 3.10)
+project(isaacbot_battery)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED YES)
+set(CMAKE_CXX_EXTENSIONS NO)
+
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+set(PACKAGE_DEPENDENCIES
+    rclcpp
+    rclcpp_components
+    diagnostic_updater
+    sensor_msgs
+    udp_msgs
+    isaacbot_msgs
+    isaacbot_utils
+)
+
+find_package(ament_cmake REQUIRED)
+foreach(PACKAGE IN ITEMS ${PACKAGE_DEPENDENCIES})
+  find_package(${PACKAGE} REQUIRED)
+endforeach()
+
+# Domain + application: plain C++, no ROS dependencies.
+add_library(${PROJECT_NAME}_core STATIC
+            src/domain/battery_classifier.cpp
+            src/application/monitor_battery_use_case.cpp
+)
+target_include_directories(${PROJECT_NAME}_core PUBLIC
+                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
+set_target_properties(${PROJECT_NAME}_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+# Infrastructure: ROS 2 adapters.
+add_library(${PROJECT_NAME}_ros STATIC
+            src/infrastructure/battery_msg_conversions.cpp
+            src/infrastructure/ros2_battery_state_publisher.cpp
+            src/infrastructure/isaacbot_battery_node.cpp
+)
+target_link_libraries(${PROJECT_NAME}_ros ${PROJECT_NAME}_core)
+target_include_directories(${PROJECT_NAME}_ros PUBLIC ${isaacbot_utils_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME}_ros
+    ${rclcpp_TARGETS}
+    ${diagnostic_updater_TARGETS}
+    ${sensor_msgs_TARGETS}
+    ${udp_msgs_TARGETS}
+    ${isaacbot_msgs_TARGETS}
+)
+
+# Linked into the SHARED component library below.
+set_target_properties(${PROJECT_NAME}_ros PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+# The same node as an rclcpp_components plugin (isaacbot_battery::IsaacbotBatteryNode), which the
+# launch file loads into one container with the BMS UDP receiver. The registration source must be
+# compiled into this SHARED library itself - see the file. Plural macro: it registers without
+# generating an executable, which would clash with isaacbot_battery_node below.
+add_library(${PROJECT_NAME}_component SHARED src/infrastructure/isaacbot_battery_component.cpp)
+target_link_libraries(${PROJECT_NAME}_component ${PROJECT_NAME}_ros ${rclcpp_components_TARGETS})
+rclcpp_components_register_nodes(${PROJECT_NAME}_component "isaacbot_battery::IsaacbotBatteryNode")
+
+add_executable(${PROJECT_NAME}_node src/isaacbot_battery.cpp)
+target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME}_ros)
+
+install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
+
+install(TARGETS ${PROJECT_NAME}_node DESTINATION lib/${PROJECT_NAME})
+install(TARGETS ${PROJECT_NAME}_component
+        ARCHIVE DESTINATION lib
+        LIBRARY DESTINATION lib
+        RUNTIME DESTINATION bin)
+
+install(DIRECTORY config launch DESTINATION share/${PROJECT_NAME})
+
+if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
+
+  ament_add_gtest(test_battery_classifier test/unit/test_battery_classifier.cpp)
+  target_link_libraries(test_battery_classifier ${PROJECT_NAME}_core)
+
+  ament_add_gtest(test_monitor_battery_use_case test/unit/test_monitor_battery_use_case.cpp)
+  target_link_libraries(test_monitor_battery_use_case ${PROJECT_NAME}_core)
+
+  ament_add_gtest(test_battery_msg_conversions test/unit/test_battery_msg_conversions.cpp)
+  target_link_libraries(test_battery_msg_conversions ${PROJECT_NAME}_ros)
+
+  ament_add_gtest(test_isaacbot_battery_node test/integration/test_isaacbot_battery_node.cpp
+                  TIMEOUT 60)
+  target_link_libraries(test_isaacbot_battery_node ${PROJECT_NAME}_ros)
+
+  # The launch file's composition: one container, receiver + battery node intra-process.
+  find_package(ament_cmake_pytest REQUIRED)
+  ament_add_pytest_test(test_launch_structure test/test_launch_structure.py)
+endif()
+
+ament_export_dependencies(${PACKAGE_DEPENDENCIES})
+
+ament_package()

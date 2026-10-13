@@ -1,0 +1,109 @@
+// Copyright 2025 Mechatronics Academy
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#ifndef ISAACBOT_TWIST_MUX_INFRASTRUCTURE_MOTION_LOCK_NODE_HPP_
+#define ISAACBOT_TWIST_MUX_INFRASTRUCTURE_MOTION_LOCK_NODE_HPP_
+
+#include <memory>
+#include <optional>
+#include <string>
+
+#include "diagnostic_updater/diagnostic_updater.hpp"
+#include "rclcpp/rclcpp.hpp"
+#include "std_msgs/msg/bool.hpp"
+
+#include "isaacbot_msgs/msg/safety_command_echo.hpp"
+#include "isaacbot_msgs/msg/safety_status.hpp"
+
+#include "isaacbot_twist_mux/domain/motion_lock_health.hpp"
+#include "isaacbot_twist_mux/domain/safety_io_flags.hpp"
+#include "isaacbot_twist_mux/motion_lock_params.hpp"
+#include "isaacbot_utils/shutdown_gate.hpp"
+
+namespace isaacbot_twist_mux
+{
+
+/**
+ * @brief Translates the safety topics into the std_msgs/Bool lock topic twist_mux consumes.
+ * @details twist_mux locks are typed std_msgs/Bool and nothing in the stack published one, so
+ *          the safety IO could not gate the mux. This node is that adapter and nothing more:
+ *          the decision itself lives in domain::isMotionInhibited().
+ *
+ *          Plain (non-lifecycle) node on purpose - it owns no hardware resource, only a
+ *          subscription and a timer.
+ *
+ *          Two failure modes are handled explicitly, both by asserting the lock:
+ *            - either safety topic not received yet (startup),
+ *            - either gone stale beyond `gpio_timeout` (hardware interface died), and
+ *            - SafetyStatus.link_healthy false (the hardware interface is alive but its
+ *              link to the safety PLC is not, so the flags are last-known-good).
+ *          Both are reported on the "Motion lock" diagnostic as ERROR; a lock held by a stop
+ *          condition is WARN with its reasons.
+ *          The lock is republished on a timer rather than on message arrival, because twist_mux
+ *          also treats a stale lock *topic* as locked; a silent node must never be mistaken for
+ *          a permissive one.
+ */
+class MotionLockNode : public rclcpp::Node
+{
+public:
+    /** @throws rclcpp::exceptions::InvalidParameterValueException on an invalid override. */
+    explicit MotionLockNode(
+        const std::string & node_name,
+        const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
+
+private:
+    void safetyStatusCallback(const isaacbot_msgs::msg::SafetyStatus::SharedPtr msg);
+
+    void safetyCommandEchoCallback(const isaacbot_msgs::msg::SafetyCommandEcho::SharedPtr msg);
+
+    void timerCallback();
+
+    /** @brief Current lock decision and its reasons, accounting for missing and stale gpio_state. */
+    domain::MotionLockHealth evaluateLock();
+
+    /** @brief "Motion lock" task: formats the decision last published, never re-evaluates. */
+    void diagnoseMotionLock(diagnostic_updater::DiagnosticStatusWrapper & status);
+
+    std::shared_ptr<motion_lock::ParamListener> param_listener_;
+
+    // Both halves are required before a decision can be made; see evaluateLock().
+    std::optional<isaacbot_msgs::msg::SafetyStatus> last_status_;
+    std::optional<isaacbot_msgs::msg::SafetyCommandEcho> last_echo_;
+
+    rclcpp::Time last_status_stamp_;
+    rclcpp::Time last_echo_stamp_;
+
+    // What the timer last published; the diagnostic reports exactly this.
+    std::optional<domain::MotionLockHealth> last_health_;
+
+    // Latches the transition so a held lock does not spam the log at publish_frequency.
+    std::optional<bool> last_logged_lock_;
+
+    rclcpp::Subscription<isaacbot_msgs::msg::SafetyStatus>::SharedPtr safety_status_sub_;
+    rclcpp::Subscription<isaacbot_msgs::msg::SafetyCommandEcho>::SharedPtr safety_command_echo_sub_;
+
+    rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr motion_lock_pub_;
+
+    rclcpp::TimerBase::SharedPtr timer_;
+
+    // Cancels timer_ once shutdown starts, before rmw_zenoh closes its session.
+    isaacbot_utils::ros::ShutdownGate shutdown_gate_;
+
+    // Last member: its timer must not fire into a partially destroyed node.
+    diagnostic_updater::Updater diagnostic_updater_;
+};
+
+}  // namespace isaacbot_twist_mux
+
+#endif  // ISAACBOT_TWIST_MUX_INFRASTRUCTURE_MOTION_LOCK_NODE_HPP_

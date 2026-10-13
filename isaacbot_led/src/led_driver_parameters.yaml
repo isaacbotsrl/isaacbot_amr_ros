@@ -1,0 +1,36 @@
+led_driver:
+  frame_timeout:
+    type: double
+    default_value: 0.1
+    description: Time in seconds after which an incoming frame will be considered too old.
+    validation: { gt<>: 0.0 }
+
+  global_brightness:
+    type: double
+    default_value: 1.0
+    description: LED global brightness. The range should be between [0.0, 1.0].
+    validation: { bounds<>: [0.0, 1.0] }
+
+  channel_1_num_led:
+    type: int
+    default_value: 24
+    description: Number of LEDs in the front bumper.
+    validation: { gt<>: 0 }
+  
+  channel_2_num_led:
+    type: int
+    default_value: 24
+    description: Number of LEDs in the rear bumper.
+    validation: { gt<>: 0 }
+
+  led_control_handshake:
+    type: bool
+    default_value: false
+    read_only: true
+    description: Request LED control from the hardware/led_control_enable service on activation (and release it on deactivation). When false, LED control is assumed to be granted.
+
+  autostart:
+    type: bool
+    default_value: true
+    read_only: true
+    description: Configure and activate the lifecycle node on startup. Set to false when a lifecycle manager drives the transitions.

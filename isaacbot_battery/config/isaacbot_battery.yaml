@@ -1,0 +1,13 @@
+# Shared by both nodes in launch/isaacbot_battery.launch.py.
+
+# isaacbot_udp_battery_receiver_node (isaacbot_udp_driver): BMS bridge endpoint.
+/**/isaacbot_udp_battery_receiver_node:
+  ros__parameters:
+    ip: "192.168.1.201"
+    port: 4444
+
+/**/isaacbot_battery_node:
+  ros__parameters:
+    design_capacity: 40.0          # [Ah]
+    serial_number: "224KA141600043"
+    watchdog_timeout_ms: 10000     # publish a watchdog-expired state after this long without BMS data

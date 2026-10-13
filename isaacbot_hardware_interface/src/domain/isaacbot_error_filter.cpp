@@ -1,0 +1,115 @@
+// Copyright 2025 Mechatronics Academy
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include "isaacbot_hardware_interface/domain/isaacbot_error_filter.hpp"
+
+#include <algorithm>
+
+namespace isaacbot_hardware_interface
+{
+
+void ErrorFilter::updateError(const bool current_error)
+{
+    if (current_error) {
+        ++current_error_count_;
+
+        if (current_error_count_ >= max_error_count_) {
+            error_ = true;
+        }
+    } else {
+        current_error_count_ = 0;
+    }
+}
+
+void ErrorFilter::clearError()
+{
+    error_ = false;
+    current_error_count_ = 0;
+}
+
+IsaacbotErrorFilter::IsaacbotErrorFilter(
+    const unsigned max_write_cmds_errors_count,
+    const unsigned max_read_motor_states_errors_count,
+    const unsigned max_read_driver_state_errors_count,
+    const unsigned max_fault_flag_errors_count,
+    const unsigned max_motor_failsafe_tripped_errors_count)
+{
+    error_filters_.emplace(ErrorsFilterIds::WRITE_CMDS, ErrorFilter(max_write_cmds_errors_count));
+    error_filters_.emplace(
+        ErrorsFilterIds::READ_MOTOR_STATES, ErrorFilter(max_read_motor_states_errors_count));
+    error_filters_.emplace(
+        ErrorsFilterIds::READ_DRIVER_STATE, ErrorFilter(max_read_driver_state_errors_count));
+    error_filters_.emplace(ErrorsFilterIds::FAULT_FLAG, ErrorFilter(max_fault_flag_errors_count));
+    error_filters_.emplace(
+        ErrorsFilterIds::MOTOR_FAILSAFE_TRIPPED,
+        ErrorFilter(max_motor_failsafe_tripped_errors_count));
+}
+
+bool IsaacbotErrorFilter::isError() const
+{
+    std::lock_guard<std::mutex> lck(mtx_);
+
+    return std::any_of(
+        error_filters_.begin(), error_filters_.end(),
+        [](const auto & entry) { return entry.second.isError(); });
+}
+
+bool IsaacbotErrorFilter::isError(const ErrorsFilterIds id) const
+{
+    std::lock_guard<std::mutex> lck(mtx_);
+
+    return error_filters_.at(id).isError();
+}
+
+void IsaacbotErrorFilter::updateError(const ErrorsFilterIds id, const bool current_error)
+{
+    // Written from the RT thread (see header) - must never block waiting on isError()/
+    // getErrorMap() running on the diagnostics thread. On contention, skip this update: the next
+    // read()/write() cycle retries, and ErrorFilter's own consecutive-count debouncing means one
+    // skipped update doesn't change the eventual latched result.
+    std::unique_lock<std::mutex> lck(mtx_, std::try_to_lock);
+
+    if (!lck.owns_lock()) {
+        return;
+    }
+
+    clearErrorsIfFlagSet();
+    error_filters_.at(id).updateError(current_error);
+}
+
+std::map<std::string, bool> IsaacbotErrorFilter::getErrorMap() const
+{
+    std::lock_guard<std::mutex> lck(mtx_);
+
+    std::map<std::string, bool> error_map;
+
+    for (const auto & [id, filter] : error_filters_) {
+        error_map[kErrorFilterIdNames.at(id)] = filter.isError();
+    }
+
+    return error_map;
+}
+
+// Assumes mtx_ is already held by the caller (updateError()).
+void IsaacbotErrorFilter::clearErrorsIfFlagSet()
+{
+    if (clear_errors_) {
+        std::for_each(
+            error_filters_.begin(), error_filters_.end(),
+            [](auto & entry) { entry.second.clearError(); });
+        clear_errors_.store(false);
+    }
+}
+
+}  // namespace isaacbot_hardware_interface

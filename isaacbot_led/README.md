@@ -1,0 +1,200 @@
+# isaacbot_led
+
+Drives the isaacbot's two SK9822 LED panels (front and rear bumper). A controller renders layered
+image animations into one RGBA frame per panel. A driver encodes those frames into SK9822
+packets, and `isaacbot_udp_driver` sends them to the LED board over UDP.
+
+```
+led/set_animation ──► isaacbot_led_controller ──led/channel_<n>_frame──► isaacbot_led_driver
+                      (isaacbot_led_container)                           (isaacbot_led_container)
+                                                                            │ udp_write/led_channel_<n>
+                                                                            ▼
+                               isaacbot_udp_led_channel_<n>_sender_node ──UDP──► LED board
+                               (isaacbot_led_container)
+```
+
+## Nodes and interfaces
+
+### isaacbot_led_controller (component `isaacbot_led::LedControllerNode`)
+
+| Direction | Name | Type |
+|-----------|------|------|
+| srv | `led/set_animation` | `isaacbot_msgs/SetLedAnimation` |
+| srv | `led/stop_animation` | `isaacbot_msgs/StopLedAnimation`: clears an animation (and its queued copies) from its layer on every segment; fails if it isn't playing |
+| pub | `led/channel_<n>_frame` | `sensor_msgs/Image` (`rgba8`) at `controller_frequency`: `height` = the panel's serpentine `rows` (1 for a straight strip), `data` in wire order (LED 0 first) |
+| pub | `led/channel_<n>_preview` | the same image at `preview_publish_rate`, best effort, depth 1: for UIs (an LED page), so they don't pull the 50 Hz frame through the Zenoh router |
+| pub | `led/animations` | `isaacbot_msgs/LedAnimationCatalog`, latched, once after loading |
+| pub | `led/state` | `isaacbot_msgs/LedState` (what every layer of every segment plays), latched, at `state_publish_rate` |
+| pub | `diagnostics` | hardware id `Bumper Led`: `Led controller status` + render rate |
+
+Parameters (`src/led_controller_parameters.yaml`): `animations_config_path` (required),
+`controller_frequency` (50 Hz), `state_publish_rate` (5 Hz), `preview_publish_rate` (5 Hz, 0 = no
+preview topics).
+
+### isaacbot_led_driver (lifecycle component `isaacbot_led::LedDriverNode`)
+
+| Direction | Name | Type |
+|-----------|------|------|
+| sub | `led/channel_<n>_frame` | `sensor_msgs/Image` |
+| pub | `udp_write/led_channel_<n>` | `udp_msgs/UdpPacket` (SK9822 frame) |
+| srv | `led/set_brightness` | `isaacbot_msgs/SetLedBrightness` (0.0–1.0); also updates the `global_brightness` parameter, so it survives a reconfigure |
+| pub | `led/brightness` | `std_msgs/Float32`, latched, the brightness in effect (on activation and after each change) |
+| client | `hardware/led_control_enable` | `std_srvs/SetBool`, only with `led_control_handshake` |
+| pub | `diagnostics` | hardware id `Bumper Led`: `Led driver status` |
+
+Lifecycle transitions:
+- **configure** reads parameters and creates the encoders, topics and services.
+- **activate** obtains LED control, clears the LEDs and starts forwarding frames. With
+  `led_control_handshake`, frames are ignored until `hardware/led_control_enable` grants
+  control.
+- **deactivate** clears the LEDs and releases control.
+
+With `autostart` (default) the node configures and activates itself once the executor spins.
+It tries once, with no retry (unlike `isaacbot_safety`'s `ConfigureRetry`): configure depends on
+nothing outside the node, and `hardware/led_control_enable` is only asked for in activate,
+with its own retries. A driver that did not come up shows as ERROR `Driver is not active!`
+in `Led driver status`.
+
+Parameters (`src/led_driver_parameters.yaml`, values in `config/ardennes_driver.yaml`):
+
+| Name | Default | Description |
+|------|---------|-------------|
+| `frame_timeout` | `0.1` | Frames older than this [s] are dropped |
+| `global_brightness` | `1.0` | Initial brightness, `[0.0, 1.0]` |
+| `channel_1_num_led` / `channel_2_num_led` | `24` (config: `40`) | LEDs per panel |
+| `led_control_handshake` | `false` | Request control from `hardware/led_control_enable` on activation |
+| `autostart` | `true` | Configure and activate on startup |
+
+### isaacbot_udp_led_channel_{1,2}_sender_node (`isaacbot_udp_driver`)
+
+These are lifecycle `isaacbot::transport::udp::UdpSenderNode` components, loaded into
+`isaacbot_led_container` next to the driver with intra-process communication (hardware only), so the
+50 Hz frames never cross the Zenoh router. Each one subscribes to
+`udp_write/led_channel_<n>` and sends to the address in
+`config/ardennes_udp_led_channel_<n>.yaml` (channel 1 → `192.168.77.202:3334`, channel 2 → `192.168.77.201:3333`).
+
+## Animations
+
+`config/ardennes_animations.yaml` describes the hardware and the animation catalog. The front
+bumper is channel 1, the rear bumper is channel 2, and each bumper is one full-width segment.
+Front and rear play different images for the same state, and directional animations such as
+blinkers work.
+
+Both panels are physically 2 rows × 20 LEDs wired in series: LEDs 0–19 run away from LED 0 and
+LEDs 20–39 come back. The rear panel has LED 0 on the robot's right (seen from behind it reads
+19–0 over 20–39). The front panel is mounted the other way round, with LED 0 on the robot's left.
+Each panel's `rows: 2` folds the logical 40-LED frame into that wiring (logical LEDs 2k and 2k+1
+are the two LEDs of column k, counted from the end LED 0 is on), and the front segment runs `39-0`
+so that it also counts from the robot's right. On both bumpers segment LED 0 is the robot's right,
+so every animation, blinkers included, lights the same physical side front and rear.
+
+```yaml
+panels:            # physical strips: UDP channel + LED count
+  - channel: 1
+    number_of_leds: 40
+    rows: 2        # optional: strip folded into serpentine rows (default 1)
+  - channel: 2
+    number_of_leds: 40
+    rows: 2
+segments:          # virtual strips on a panel; a reversed range runs backwards
+  - name: front
+    channel: 1
+    led_range: 39-0
+  - name: rear
+    channel: 2
+    led_range: 0-39
+segments_map:      # named groups of segments
+  all: [front, rear]
+  front: [front]
+  rear: [rear]
+led_animations:
+  - id: 0          # must match the isaacbot_msgs/LedAnimation constant
+    name: E_STOP
+    priority: 3    # layer, see below
+    animations:
+      - type: isaacbot_led::ImageAnimation
+        segments: front
+        animation:
+          image: $(find isaacbot_led)/animations/ardennes/estop_front.png
+          duration: 4
+      - type: isaacbot_led::ImageAnimation
+        segments: rear
+        animation:
+          image: $(find isaacbot_led)/animations/ardennes/estop_rear.png
+          duration: 4
+```
+
+Every segment has four layers, indexed by `priority`. They are composited with `ERROR` on top,
+and transparent pixels show the layer underneath:
+
+| priority | Layer | Behaviour |
+|---------:|-------|-----------|
+| 0 | `ERROR` | Single animation, optionally repeating |
+| 1 | `ALERT` | FIFO queue, never repeats; requests are rejected while the queue is full |
+| 2 | `INFO` | Single animation, optionally repeating |
+| 3 | `STATE` | Single animation, optionally repeating |
+
+Animation types (pluginlib, `plugins.xml`, base `isaacbot_led::Animation`):
+
+| Type | Keys |
+|------|------|
+| `isaacbot_led::ImageAnimation` | `image`, `duration` [s], optional `repeat` (1), `color` (`0xRRGGBB`: the image is converted to greyscale and recoloured) |
+| `isaacbot_led::MovingImageAnimation` | the above, plus `center_offset`, `object_width`, `start_offset`, `splash_duration`, `image_mirrored`, `position_mirrored`, optional `default_image_position` (0–1). The request `param` (0–1) sets the image position, e.g. the battery level. |
+
+Images live in `animations/ardennes/`. An image is resized to the segment: each row is one frame
+and each column is one LED. `$(find <pkg>)` is resolved at load time.
+
+To add an animation, add an entry with a new `id` to the YAML. For callers that use named ids,
+also add the constant to `isaacbot_msgs/msg/LedAnimation.msg`. Then request it:
+
+```bash
+ros2 service call /isaacbot/led/set_animation isaacbot_msgs/srv/SetLedAnimation \
+  "{animation: {id: 1, param: ''}, repeating: true}"
+ros2 service call /isaacbot/led/stop_animation isaacbot_msgs/srv/StopLedAnimation "{id: 1}"
+ros2 service call /isaacbot/led/set_brightness isaacbot_msgs/srv/SetLedBrightness "{data: 0.5}"
+ros2 topic echo /isaacbot/led/state
+```
+
+`isaacbot_safety`'s `isaacbot_led_safety_node` is the normal client of `led/set_animation`.
+
+## Launch Files
+
+- `isaacbot_led.launch.py` - `isaacbot_led_container`: the controller, plus the driver and the two UDP
+  senders on hardware only.
+
+| Argument | Default | Description |
+|----------|---------|-------------|
+| `namespace` | `$ISAACBOT_SYSTEM_NAMESPACE`, else empty | Namespace of all nodes. |
+| `robot_model` | `$ROBOT_MODEL_NAME`, else `ardennes` | Selects `config/<robot_model>_*.yaml`. |
+| `animations_config_path` | `config/<robot_model>_animations.yaml` | Animation catalog. |
+| `common_dir_path` | empty | If set, the default animations file is read from `<common_dir_path>/isaacbot_led/config/`. |
+| `use_sim` | `False` | `True` skips `isaacbot_led_driver` and the UDP senders (the controller still publishes frames). |
+| `log_level` | `INFO` | Logging level. |
+
+## Layout
+
+```
+domain/          Animation (+ Image/MovingImage), LedPanel, LedSegment and its layers,
+                 SegmentConverter, Sk9822FrameEncoder, AnimationCatalog/Factory/ImageSource
+                 ports - no ROS, no file I/O
+application/     SetAnimation, StopAnimation, RenderTick, GetLedState, ValidateAnimationCatalog,
+                 EncodeFrame, SetBrightness use cases; LedControlHandshake (the driver's
+                 LED control retries and epochs)
+infrastructure/  LedControllerNode, LedDriverNode, controller diagnostics,
+                 YAML config loader, pluginlib animation factory, animation plugins
+                 (the image animations reading PNG files through PngImageFileSource)
+```
+
+## Tests
+
+```bash
+colcon test --packages-select isaacbot_led && colcon test-result --all --verbose
+```
+
+- `test/unit/` covers the domain, the use cases, the YAML loader, the PNG reader and the diagnostics.
+- `test/integration/test_led_driver_node.cpp` runs the driver node: its lifecycle, frame
+  forwarding and dropping malformed frames.
+- `test/integration/test_led_controller_node.cpp` runs the controller node on
+  `led_controller_test_animations.yaml`: catalog, set/stop, frames, state and diagnostics.
+- `test/test_launch_structure.py` checks the launch file's composition: one container holding all
+  four nodes intra-process, the UDP senders on hardware only.

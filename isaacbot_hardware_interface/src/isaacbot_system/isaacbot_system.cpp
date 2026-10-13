@@ -1,0 +1,1164 @@
+// Copyright 2025 Mechatronics Academy
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include "isaacbot_hardware_interface/isaacbot_system/isaacbot_system.hpp"
+
+#include <algorithm>
+#include <array>
+#include <cinttypes>
+#include <cmath>
+#include <chrono>
+#include <cstdint>
+#include <cstdio>
+#include <exception>
+#include <functional>
+#include <limits>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include <hardware_interface/types/hardware_interface_type_values.hpp>
+
+#include <diagnostic_updater/diagnostic_status_wrapper.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <rclcpp_lifecycle/node_interfaces/lifecycle_node_interface.hpp>
+#include <rclcpp_lifecycle/state.hpp>
+#include <rclcpp/logging.hpp>
+#include <hardware_interface/handle.hpp>
+#include <hardware_interface/system_interface.hpp>
+#include <hardware_interface/types/hardware_interface_return_values.hpp>
+
+#include "isaacbot_hardware_interface/domain/safety_link_diagnosis.hpp"
+#include "isaacbot_hardware_interface/domain/imu_data_health.hpp"
+#include "isaacbot_hardware_interface/system_ros_interface/system_ros_interface.hpp"
+
+#include "isaacbot_hardware_interface/utils.hpp"
+
+namespace isaacbot_hardware_interface
+{
+
+IsaacbotSystem::IsaacbotSystem(const std::vector<std::string> & joint_order)
+: SystemInterface()
+, joint_size_(joint_order.size())
+, joint_order_(joint_order)
+, joints_names_sorted_(joint_size_)
+{
+
+}
+
+CallbackReturn IsaacbotSystem::on_init(const hardware_interface::HardwareComponentInterfaceParams & params)
+{
+    if (hardware_interface::SystemInterface::on_init(params) != CallbackReturn::SUCCESS) {
+        return CallbackReturn::ERROR;
+    }
+
+    try {
+        checkJointSize();
+        sortAndCheckJointNames();
+        setInitialValues();
+        checkInterfaces();
+    } catch (const std::runtime_error & e) {
+        RCLCPP_ERROR_STREAM(logger_, "An exception occurred while initializing: " << e.what());
+        return CallbackReturn::ERROR;
+    }
+
+    try {
+        readDrivetrainSettings();
+        readDriverStatesUpdateFrequency();
+        readDriverInitAndActivationAttempts();
+        readIsaacbotControllerSettings();
+        readErrorFilterMaxErrorsCounts();
+        readEStopSettings();
+    } catch (const std::exception & e) {
+        // Widened from std::invalid_argument: std::stof/std::stoi can also throw
+        // std::out_of_range, and a missing key (operator[] replaced with .at() below) throws
+        // std::out_of_range too - both must fail on_init() cleanly instead of escaping uncaught.
+        RCLCPP_ERROR_STREAM(logger_, "An exception occurred while reading the parameters: " << e.what());
+        return CallbackReturn::ERROR;
+    }
+
+    return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn IsaacbotSystem::on_configure(const rclcpp_lifecycle::State &)
+{
+    try {
+        // Keep this order: configureIsaacbotController() releases the start-up E-Stop triggers
+        // before the motor drivers are initialised - see EmergencyStop::releaseStartupTriggers().
+        configureIsaacbotController();
+        configureIsaacbotDriver();
+    } catch (const std::exception & e) {
+        // Widened from std::runtime_error: MB::ModbusException (thrown by IsaacbotModbus during
+        // e.g. coil initialization in configureIsaacbotController()) derives directly from
+        // std::exception, not std::runtime_error, and must not escape on_configure() uncaught.
+        RCLCPP_ERROR_STREAM(logger_, "Failed to configure Isaacbot System. Error: " << e.what());
+        // configureIsaacbotController() may have already started isaacbot_controller_ (and its
+        // background poll thread) before a later step in this try block failed - tear it down
+        // rather than leaving it running past a failed configure.
+        teardownIsaacbotComponents();
+        return CallbackReturn::ERROR;
+    }
+
+    // Both isaacbot_driver_ and e_stop_ are guaranteed set at this point - configureIsaacbotController()
+    // and configureIsaacbotDriver() above either both succeeded or on_configure() already returned
+    // ERROR from the catch block.
+    try {
+        control_loop_use_case_ = std::make_unique<IsaacbotControlLoopUseCase>(
+            isaacbot_driver_, e_stop_, *isaacbot_error_filter_);
+
+        std::fill(hw_commands_velocities_.begin(), hw_commands_velocities_.end(), 0.0);
+        std::fill(hw_states_positions_.begin(), hw_states_positions_.end(), 0.0);
+        std::fill(hw_states_velocities_.begin(), hw_states_velocities_.end(), 0.0);
+        std::fill(hw_states_efforts_.begin(), hw_states_efforts_.end(), 0.0);
+
+        // Force read() to re-seed next_driver_state_update_time_ from the first `time` it
+        // receives after this (re)configure, rather than comparing against a value seeded under
+        // a previous activation - see the member's declaration for why the clock type must match.
+        driver_state_update_time_initialized_ = false;
+
+        system_ros_interface_ = std::make_unique<SystemROSInterface>("isaacbot_hardware_controller");
+
+        system_ros_interface_->addService<TriggerSrv, std::function<void()>>(
+            "hardware_interface/sw_user_e_stop_set", std::bind(&EmergencyStopInterface::setEStop, e_stop_), 1,
+            rclcpp::CallbackGroupType::MutuallyExclusive);
+
+        auto e_stop_reset_qos = rclcpp::ServicesQoS();
+        e_stop_reset_qos.keep_last(1);
+        system_ros_interface_->addService<TriggerSrv, std::function<void()>>(
+            "hardware_interface/sw_user_e_stop_reset", std::bind(&IsaacbotSystem::resetEStop, this), 2,
+            rclcpp::CallbackGroupType::MutuallyExclusive, e_stop_reset_qos);
+
+        auto e_stop_latch_reset_qos = rclcpp::ServicesQoS();
+        e_stop_latch_reset_qos.keep_last(1);
+        system_ros_interface_->addService<TriggerSrv, std::function<void()>>(
+            "hardware_interface/sw_e_stop_latch_reset", std::bind(&IsaacbotSystem::resetEStopLatch, this), 2,
+            rclcpp::CallbackGroupType::MutuallyExclusive, e_stop_latch_reset_qos);
+
+        // General-purpose aux outputs. Group 3, not the E-Stop groups 1/2: an aux write blocks for
+        // a Modbus round-trip, and must never hold up an E-Stop service call. Each callback throws
+        // on failure, which the wrapper turns into success=false with the reason.
+        for (unsigned i = 0; i < kAuxOutputCount; ++i) {
+            system_ros_interface_->addService<SetBoolSrv, std::function<void(bool)>>(
+                "hardware_interface/aux_output_" + std::to_string(i) + "/set",
+                [this, i](const bool state) { isaacbot_controller_->setAuxOutput(i, state); }, 3,
+                rclcpp::CallbackGroupType::MutuallyExclusive);
+        }
+
+        system_ros_interface_->addDiagnosticTask(
+        std::string("system errors"), this, &IsaacbotSystem::diagnoseErrors);
+
+        system_ros_interface_->addDiagnosticTask(
+        std::string("system status"), this, &IsaacbotSystem::diagnoseStatus);
+
+        system_ros_interface_->addDiagnosticTask(
+        std::string("safety plc link"), this, &IsaacbotSystem::diagnoseSafetyLink);
+
+        system_ros_interface_->addDiagnosticTask(
+        std::string("command path"), this, &IsaacbotSystem::diagnoseCommandPath);
+
+        system_ros_interface_->addDiagnosticTask(
+        std::string("imu data"), this, &IsaacbotSystem::diagnoseImuData);
+
+        const auto & gpio_state = isaacbot_controller_->queryControlInterfaceIOStates();
+        system_ros_interface_->updateMsgGpioStates(gpio_state);
+        system_ros_interface_->updateSafetyLinkState(isaacbot_controller_->linkHealth());
+        system_ros_interface_->publishSafetyMsgs();
+    } catch (const std::exception & e) {
+        // SystemROSInterface's constructor and addService()/create_publisher() calls can throw
+        // (e.g. rclcpp::exceptions::* on an invalid name, bad_alloc) - must not escape
+        // on_configure() uncaught, matching the try/catch above for the same reason.
+        RCLCPP_ERROR_STREAM(logger_, "Failed to configure Isaacbot System ROS interface. Error: " << e.what());
+        teardownIsaacbotComponents();
+        return CallbackReturn::ERROR;
+    }
+
+    return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn IsaacbotSystem::on_cleanup(const rclcpp_lifecycle::State &)
+{
+    teardownIsaacbotComponents();
+
+    return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn IsaacbotSystem::on_activate(const rclcpp_lifecycle::State &)
+{
+    // Actually engaging the motors (sending a zero-velocity command to each driver and waiting
+    // for them to arm) belongs here, not in on_configure() — a merely-configured component
+    // should not yet be commanding hardware.
+    if (!operationWithAttempts(
+            std::bind(&IsaacbotDriverInterface::activate, isaacbot_driver_),
+            max_isaacbot_driver_activation_attempts_, []() {}, std::chrono::milliseconds(0),
+            [this](const std::string & message) { RCLCPP_WARN_STREAM(logger_, message); })) {
+        RCLCPP_ERROR_STREAM(logger_, "Failed to activate Isaacbot System: Couldn't activate IsaacbotDriver in "
+                                     << max_isaacbot_driver_activation_attempts_ << " attempts.");
+        return CallbackReturn::ERROR;
+    }
+
+    // Arms (re-arms, on a re-activation) every motor's hardware watchdog. This makes the raw
+    // Phidget-level trip bit observably clear again, but does NOT by itself clear a latched
+    // MOTOR_FAILSAFE_TRIPPED fault in IsaacbotErrorFilter - only setClearErrorsFlag() (called from
+    // resetEStopLatch()) does that (see updateError()'s "does NOT un-latch" contract in
+    // isaacbot_error_filter.hpp). So motion stays refused by write() until the operator explicitly
+    // acknowledges via resetEStopLatch(), even across a deactivate/reactivate cycle.
+    try {
+        isaacbot_driver_->armFailsafe();
+    } catch (const std::exception & e) {
+        RCLCPP_ERROR_STREAM(logger_, "Failed to arm motor failsafe: " << e.what());
+        return CallbackReturn::ERROR;
+    }
+
+    // A command left over from a previous activation must never be the first thing written to
+    // the drivers once write() starts commanding motion again. on_configure() already does this,
+    // but a component can be re-activated without being re-configured.
+    zeroVelocityCommands();
+
+    return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn IsaacbotSystem::on_deactivate(const rclcpp_lifecycle::State &)
+{
+    // Symmetric with on_activate(): leave no stale command behind for the next activation, and
+    // make the E-Stop resettable from Inactive->Active without first having to centre the sticks
+    // (the reset itself still requires ACTIVE - see resetEStop()).
+    zeroVelocityCommands();
+
+    return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn IsaacbotSystem::on_shutdown(const rclcpp_lifecycle::State &)
+{
+    // Valid from Unconfigured too (e.g. controller_manager shutting down a component whose
+    // on_configure() was never reached), where teardownIsaacbotComponents()'s null check on
+    // isaacbot_driver_ is what keeps this from null-derefing.
+    teardownIsaacbotComponents();
+
+    return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn IsaacbotSystem::on_error(const rclcpp_lifecycle::State &)
+{
+    if (e_stop_) {
+        try {
+            e_stop_->setEStop();
+        } catch (const std::exception & e) {
+            // Widened from std::runtime_error: MB::ModbusException derives directly from
+            // std::exception, not std::runtime_error, and must not escape on_error() - the
+            // error-handling callback itself - uncaught.
+            RCLCPP_ERROR_STREAM(logger_, "Handling error failed: " << e.what());
+            return CallbackReturn::ERROR;
+        }
+    }
+
+    if (system_ros_interface_) {
+        system_ros_interface_->broadcastOnDiagnosticTasks(
+            diagnostic_msgs::msg::DiagnosticStatus::ERROR,
+            "An error has occurred during a node state transition.");
+    }
+
+    // Delegate the common reset to teardownIsaacbotComponents() so this path and on_cleanup()/
+    // on_shutdown() can't drift apart as owned resources are added/changed.
+    teardownIsaacbotComponents();
+
+    return CallbackReturn::SUCCESS;
+}
+
+void IsaacbotSystem::teardownIsaacbotComponents()
+{
+    // First: its executor thread runs the diagnostic tasks and the service callbacks, which read
+    // the components below. Destroying it cancels that executor and joins the thread, waiting for
+    // a callback that is running, so nothing can call into a component once it is released.
+    system_ros_interface_.reset();
+
+    control_loop_use_case_.reset();
+    isaacbot_controller_.reset();
+
+    if (isaacbot_driver_) {
+        isaacbot_driver_->deinitialize();
+        isaacbot_driver_.reset();
+    }
+
+    e_stop_.reset();
+}
+
+std::vector<StateInterface> IsaacbotSystem::export_state_interfaces()
+{
+    std::vector<StateInterface> state_interfaces;
+
+    for (std::size_t i = 0; i < joint_size_; i++) {
+        state_interfaces.emplace_back(StateInterface(
+            joints_names_sorted_[i], hardware_interface::HW_IF_POSITION, &hw_states_positions_[i]));
+        state_interfaces.emplace_back(StateInterface(
+            joints_names_sorted_[i], hardware_interface::HW_IF_VELOCITY, &hw_states_velocities_[i]));
+        state_interfaces.emplace_back(StateInterface(
+            joints_names_sorted_[i], hardware_interface::HW_IF_EFFORT, &hw_states_efforts_[i]));
+    }
+
+    return state_interfaces;
+}
+
+std::vector<CommandInterface> IsaacbotSystem::export_command_interfaces()
+{
+    std::vector<CommandInterface> command_interfaces;
+
+    for (std::size_t i = 0; i < joint_size_; i++) {
+        command_interfaces.emplace_back(hardware_interface::CommandInterface(
+            joints_names_sorted_[i], hardware_interface::HW_IF_VELOCITY, &hw_commands_velocities_[i]));
+    }
+
+    return command_interfaces;
+}
+
+return_type IsaacbotSystem::read(const rclcpp::Time & time, const rclcpp::Duration & /* period */)
+{
+    updateMotorsState(time);
+    updateCommunicationStatus();
+
+    // Seed on the first cycle (or the first cycle after a (re)configure) from `time` itself,
+    // rather than a fixed clock type: `time` is whatever clock the resource manager is using
+    // (e.g. RCL_ROS_TIME), and rclcpp::Time comparisons throw std::runtime_error when the two
+    // operands were constructed with different clock types.
+    if (!driver_state_update_time_initialized_) {
+        next_driver_state_update_time_ = time;
+        driver_state_update_time_initialized_ = true;
+    }
+
+    if (time >= next_driver_state_update_time_) {
+        updateDriverState();
+        updateFlagErrors();
+        updateDriverStateMsg();
+        system_ros_interface_->publishRobotDriverState();
+
+        const auto & gpio_state = isaacbot_controller_->queryControlInterfaceIOStates();
+        system_ros_interface_->updateMsgGpioStates(gpio_state);
+        system_ros_interface_->updateSafetyLinkState(isaacbot_controller_->linkHealth());
+        system_ros_interface_->publishSafetyMsgs();
+
+        // Advance on a fixed schedule rather than from `time`: with a 20 ms control period,
+        // `time + 50 ms` only fires on the third cycle after it, i.e. every 60 ms (16.7 Hz).
+        // Stepping the deadline keeps the average at driver_states_update_frequency, one
+        // control period of jitter. After a stall, resync instead of bursting to catch up.
+        next_driver_state_update_time_ += driver_states_update_period_;
+        if (next_driver_state_update_time_ <= time) {
+            next_driver_state_update_time_ = time + driver_states_update_period_;
+        }
+    }
+
+    updateEStopState();
+    updateContactorPlausibility();
+
+    return return_type::OK;
+}
+
+return_type IsaacbotSystem::write(const rclcpp::Time & /* time */, const rclcpp::Duration & /* period */)
+{
+    // get_lifecycle_state() is documented as not real-time safe and not for use in the
+    // control loop; get_lifecycle_id() is the cached, RT-safe equivalent (see
+    // hardware_interface::HardwareComponentInterface).
+    const auto lifecycle_state = this->get_lifecycle_id();
+    const bool lifecycle_active = (lifecycle_state == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE);
+
+    // Snapshot what the controller just wrote, before the branch below can zero it, so the flag
+    // the E-Stop reset service reads reflects what is actually being commanded this cycle.
+    refreshVelocityCommandsZeroFlag();
+
+    // The motion / zero-to-feed-the-watchdog / nothing decision lives in the application layer -
+    // see IsaacbotControlLoopUseCase::decideWriteCommand() for the rationale behind each mode.
+    const auto mode = IsaacbotControlLoopUseCase::decideWriteCommand(
+        lifecycle_active,
+        lifecycle_state == lifecycle_msgs::msg::State::PRIMARY_STATE_INACTIVE,
+        e_stop_active_,
+        control_loop_use_case_->isHardwareFaultLatched());
+
+    control_loop_use_case_->recordWriteMode(mode);
+
+    if (mode == WriteCommandMode::kCommandMotion) {
+        handleIsaacbotDriverWriteOperation([this] {
+            getSpeedCmd(speed_cmd_buffer_);
+            isaacbot_driver_->sendSpeedCmd(speed_cmd_buffer_);
+        });
+        return return_type::OK;
+    }
+
+    // Motion is inhibited, so nothing consumed this cycle's command - drop it rather than letting
+    // it sit in the buffer. Without this, the last command written before the E-Stop engaged would
+    // be dumped straight to the drivers the moment the relay closes again, and (because the same
+    // buffer backs the E-Stop reset invariant) a single stale non-zero value would make the E-Stop
+    // unresettable. If the operator is genuinely still commanding motion, the controller simply
+    // writes a non-zero value again next cycle and refreshVelocityCommandsZeroFlag() above still
+    // refuses the reset.
+    zeroVelocityCommands();
+
+    if (mode == WriteCommandMode::kCommandZero) {
+        // The buffer was zeroed just above.
+        handleIsaacbotDriverWriteOperation([this] {
+            isaacbot_driver_->sendSpeedCmd(speed_cmd_buffer_);
+        });
+    }
+
+    return return_type::OK;
+}
+
+void IsaacbotSystem::checkJointSize() const
+{
+    if (info_.joints.size() != joint_size_) {
+        throw std::runtime_error(
+            "Wrong number of joints defined: " + std::to_string(info_.joints.size()) + ", " +
+            std::to_string(joint_size_) + " expected.");
+    }
+}
+
+void IsaacbotSystem::sortAndCheckJointNames()
+{
+    for (std::size_t i = 0; i < joint_size_; i++) {
+        std::size_t match_count = 0;
+
+        for (std::size_t j = 0; j < joint_size_; j++) {
+            if (checkIfJointNameContainValidSequence(info_.joints[j].name, joint_order_[i])) {
+                joints_names_sorted_[i] = info_.joints[j].name;
+                ++match_count;
+            }
+        }
+
+        if (match_count != 1) {
+            throw std::runtime_error(
+                "There should be exactly one joint containing " + joint_order_[i] + ", " +
+                std::to_string(match_count) + " found.");
+        }
+    }
+}
+
+void IsaacbotSystem::setInitialValues()
+{
+    hw_commands_velocities_.resize(joint_size_, 0.0);
+
+    hw_states_positions_.resize(joint_size_, std::numeric_limits<double>::quiet_NaN());
+    hw_states_velocities_.resize(joint_size_, std::numeric_limits<double>::quiet_NaN());
+    hw_states_efforts_.resize(joint_size_, std::numeric_limits<double>::quiet_NaN());
+
+    speed_cmd_buffer_.resize(joint_size_, 0.0f);
+}
+
+void IsaacbotSystem::checkInterfaces() const
+{
+    for (const hardware_interface::ComponentInfo & joint : info_.joints) {
+        // Commands
+        if (joint.command_interfaces.size() != 1) {
+            throw std::runtime_error(
+                "Joint " + joint.name + " has " + std::to_string(joint.command_interfaces.size()) +
+                " command interfaces. 1 expected.");
+        }
+
+        if (joint.command_interfaces[0].name != hardware_interface::HW_IF_VELOCITY) {
+            throw std::runtime_error(
+                "Joint " + joint.name + " has " + joint.command_interfaces[0].name +
+                " command interface. " + hardware_interface::HW_IF_VELOCITY + " expected.");
+        }
+
+        // States
+        if (joint.state_interfaces.size() != 3) {
+            throw std::runtime_error(
+                "Joint " + joint.name + " has " + std::to_string(joint.state_interfaces.size()) +
+                " state  " + (joint.state_interfaces.size() == 1 ? "interface." : "interfaces.") +
+                " 3 expected.");
+        }
+
+        if (joint.state_interfaces[0].name != hardware_interface::HW_IF_POSITION) {
+            throw std::runtime_error(
+                "Joint " + joint.name + " has " + joint.state_interfaces[0].name +
+                " as first state interface. " + hardware_interface::HW_IF_POSITION + " expected.");
+        }
+
+        if (joint.state_interfaces[1].name != hardware_interface::HW_IF_VELOCITY) {
+            throw std::runtime_error(
+                "Joint " + joint.name + " has " + joint.state_interfaces[1].name +
+                " as second state interface. " + hardware_interface::HW_IF_VELOCITY + " expected.");
+        }
+
+        if (joint.state_interfaces[2].name != hardware_interface::HW_IF_EFFORT) {
+            throw std::runtime_error(
+                "Joint " + joint.name + " has " + joint.state_interfaces[2].name +
+                " as third state interface. " + hardware_interface::HW_IF_EFFORT + " expected.");
+        }
+    }
+}
+
+void IsaacbotSystem::readDrivetrainSettings()
+{
+    drivetrain_settings_.motor_torque_constant =
+        std::stof(info_.hardware_parameters.at("motor_torque_constant"));
+    drivetrain_settings_.gear_ratio =
+        std::stof(info_.hardware_parameters.at("gear_ratio"));
+    drivetrain_settings_.gearbox_efficiency =
+        std::stof(info_.hardware_parameters.at("gearbox_efficiency"));
+    drivetrain_settings_.encoder_resolution =
+        std::stof(info_.hardware_parameters.at("encoder_resolution"));
+    drivetrain_settings_.max_rpm_motor_speed =
+        std::stof(info_.hardware_parameters.at("max_rpm_motor_speed"));
+    drivetrain_settings_.driver_comm_timeout_ms =
+        static_cast<unsigned>(std::stoi(info_.hardware_parameters.at("driver_comm_timeout_ms")));
+    drivetrain_settings_.raw_current_to_amps_scale =
+        std::stof(info_.hardware_parameters.at("raw_current_to_amps_scale"));
+
+    // Optional, unlike every parameter above: an existing URDF that predates this parameter keeps
+    // the compiled-in kDefaultMotorFailsafeTimeoutMs rather than failing on_init().
+    drivetrain_settings_.motor_failsafe_timeout_ms =
+        info_.hardware_parameters.count("motor_failsafe_timeout_ms") == 0
+            ? kDefaultMotorFailsafeTimeoutMs
+            : static_cast<unsigned>(
+                  std::stoi(info_.hardware_parameters.at("motor_failsafe_timeout_ms")));
+
+    // Optional as well; absent keeps the failsafe armed. Strictly parsed so a typo can never
+    // silently disable a safety mechanism.
+    if (info_.hardware_parameters.count("motor_failsafe_enabled") != 0) {
+        const std::string & value = info_.hardware_parameters.at("motor_failsafe_enabled");
+
+        if (value == "true" || value == "1") {
+            drivetrain_settings_.motor_failsafe_enabled = true;
+        } else if (value == "false" || value == "0") {
+            drivetrain_settings_.motor_failsafe_enabled = false;
+        } else {
+            throw std::runtime_error(
+                "motor_failsafe_enabled must be true, false, 1 or 0, got '" + value + "'.");
+        }
+    }
+
+    if (!drivetrain_settings_.motor_failsafe_enabled) {
+        RCLCPP_WARN_STREAM(
+            logger_,
+            "DCC1000 motor failsafe DISABLED (motor_failsafe_enabled=false): a stalled write() loop "
+            "will NOT brake the motors. Instrumented build only - keep wheels lifted or speeds low "
+            "and the RC E-Stop within reach.");
+    }
+
+    // Optional as well; absent keeps the previously hard-coded ramp.
+    drivetrain_settings_.motor_acceleration =
+        info_.hardware_parameters.count("motor_acceleration") == 0
+            ? kDefaultMotorAcceleration
+            : std::stof(info_.hardware_parameters.at("motor_acceleration"));
+
+    // DCC1000 accepts 0.5-10000 duty/s; reject here rather than fail later in the SDK call.
+    if (drivetrain_settings_.motor_acceleration < 0.5f ||
+        drivetrain_settings_.motor_acceleration > 10000.0f)
+    {
+        throw std::runtime_error(
+            "motor_acceleration must be in [0.5, 10000] duty/s, got " +
+            std::to_string(drivetrain_settings_.motor_acceleration) + ".");
+    }
+
+    // Optional as well; absent keeps the previously hard-coded 10 A limit on 24 V.
+    drivetrain_settings_.motor_current_limit =
+        info_.hardware_parameters.count("motor_current_limit") == 0
+            ? kDefaultMotorCurrentLimit
+            : std::stof(info_.hardware_parameters.at("motor_current_limit"));
+    drivetrain_settings_.motor_supply_voltage =
+        info_.hardware_parameters.count("motor_supply_voltage") == 0
+            ? kDefaultMotorSupplyVoltage
+            : std::stof(info_.hardware_parameters.at("motor_supply_voltage"));
+
+    // DCC1000 ranges: current limit 2-25 A, supply 8-30 V, current regulator gain 1-100.
+    if (drivetrain_settings_.motor_current_limit < 2.0f ||
+        drivetrain_settings_.motor_current_limit > 25.0f)
+    {
+        throw std::runtime_error(
+            "motor_current_limit must be in [2, 25] A, got " +
+            std::to_string(drivetrain_settings_.motor_current_limit) + ".");
+    }
+
+    if (drivetrain_settings_.motor_supply_voltage < 8.0f ||
+        drivetrain_settings_.motor_supply_voltage > 30.0f)
+    {
+        throw std::runtime_error(
+            "motor_supply_voltage must be in [8, 30] V, got " +
+            std::to_string(drivetrain_settings_.motor_supply_voltage) + ".");
+    }
+
+    const float gain = motorCurrentRegulatorGain(
+        drivetrain_settings_.motor_current_limit, drivetrain_settings_.motor_supply_voltage);
+    if (gain < 1.0f || gain > 100.0f) {
+        throw std::runtime_error(
+            "Derived motor current regulator gain must be in [1, 100], got " +
+            std::to_string(gain) + ".");
+    }
+}
+
+void IsaacbotSystem::readDriverStatesUpdateFrequency()
+{
+    const float driver_states_update_frequency =
+        std::stof(info_.hardware_parameters.at("driver_states_update_frequency"));
+
+    if (driver_states_update_frequency <= 0.0f) {
+        throw std::runtime_error(
+            "driver_states_update_frequency must be > 0, got " +
+            std::to_string(driver_states_update_frequency) + ".");
+    }
+
+    driver_states_update_period_ =
+        rclcpp::Duration::from_seconds(1.0f / driver_states_update_frequency);
+}
+
+void IsaacbotSystem::readDriverInitAndActivationAttempts()
+{
+    max_isaacbot_driver_initialization_attempts_ =
+        std::stoi(info_.hardware_parameters.at("max_isaacbot_driver_initialization_attempts"));
+    max_isaacbot_driver_activation_attempts_ =
+        std::stoi(info_.hardware_parameters.at("max_isaacbot_driver_activation_attempts"));
+}
+
+void IsaacbotSystem::readErrorFilterMaxErrorsCounts()
+{
+    const unsigned max_write_cmds_errors_count = static_cast<unsigned>(
+        std::stoi(info_.hardware_parameters.at("max_write_cmds_errors_count")));
+    const unsigned max_read_motor_states_errors_count = static_cast<unsigned>(
+        std::stoi(info_.hardware_parameters.at("max_read_motor_states_errors_count")));
+    const unsigned max_read_driver_state_errors_count = static_cast<unsigned>(
+        std::stoi(info_.hardware_parameters.at("max_read_driver_state_errors_count")));
+
+    // Not URDF-configurable, mirroring the reference Roboteq implementation's fault-flag
+    // category: a single occurrence escalates immediately, with no debounce.
+    constexpr unsigned kMaxFaultFlagErrorsCount = 1;
+    // Likewise not URDF-configurable: a motor watchdog trip is a safety-latched fault (see
+    // IsaacbotControlLoopUseCase::updateMotorFailsafeTrippedStatus()) and must escalate on the very
+    // first occurrence, with no debounce.
+    constexpr unsigned kMaxMotorFailsafeTrippedErrorsCount = 1;
+
+    isaacbot_error_filter_ = std::make_unique<IsaacbotErrorFilter>(
+        max_write_cmds_errors_count, max_read_motor_states_errors_count,
+        max_read_driver_state_errors_count, kMaxFaultFlagErrorsCount,
+        kMaxMotorFailsafeTrippedErrorsCount);
+}
+
+void IsaacbotSystem::readEStopSettings()
+{
+    // Both optional, unlike every parameter above: an existing URDF that predates them keeps the
+    // compiled-in defaults rather than failing on_init().
+    velocity_command_zero_tolerance_ = readPositiveToleranceParam(
+        "velocity_command_zero_tolerance", kDefaultVelocityCommandZeroTolerance);
+
+    velocity_state_zero_tolerance_ = readPositiveToleranceParam(
+        "velocity_state_zero_tolerance", kDefaultVelocityStateZeroTolerance);
+}
+
+double IsaacbotSystem::readPositiveToleranceParam(
+    const std::string & key, const double default_value) const
+{
+    if (info_.hardware_parameters.count(key) == 0) {
+        return default_value;
+    }
+
+    const double tolerance = std::stod(info_.hardware_parameters.at(key));
+
+    if (!(tolerance > 0.0)) {
+        throw std::runtime_error(
+            key + " must be > 0, got " + std::to_string(tolerance) + ".");
+    }
+
+    return tolerance;
+}
+
+void IsaacbotSystem::configureIsaacbotController()
+{
+    // Delegates the backend-specific construction (Modbus, or whatever a future isaacbot variant
+    // uses) to the subclass; this method only starts the safety IO (IsaacbotGpioPort) and releases
+    // the start-up E-Stop triggers (EmergencyStopInterface) - see defineIsaacbotController()'s
+    // declaration.
+    defineIsaacbotController();
+
+    isaacbot_controller_->start();
+    // start() drives both software E-Stop inputs to their asserted default; release them through
+    // the E-Stop, which owns every E-Stop coil write. Not resetEStop() - see
+    // EmergencyStop::releaseStartupTriggers().
+    e_stop_->releaseStartupTriggers();
+
+    RCLCPP_INFO(logger_, "Successfully configured isaacbot controller and SW User E-Stop.");
+}
+
+void IsaacbotSystem::configureIsaacbotDriver()
+{
+    defineIsaacbotDriver();
+
+    if (!operationWithAttempts(
+            std::bind(&IsaacbotDriverInterface::initialize, isaacbot_driver_),
+            max_isaacbot_driver_initialization_attempts_,
+            std::bind(&IsaacbotDriverInterface::deinitialize, isaacbot_driver_), std::chrono::milliseconds(0),
+            [this](const std::string & message) { RCLCPP_WARN_STREAM(logger_, message); })) {
+        throw std::runtime_error("Isaacbot drivers initialization failed.");
+    }
+
+    RCLCPP_INFO(logger_, "Successfully configured isaacbot driver");
+}
+
+void IsaacbotSystem::resetEStop()
+{
+    const auto lifecycle_state = this->get_lifecycle_state().id();
+
+    if (lifecycle_state != lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE) {
+        throw std::runtime_error(
+            "Can't reset sw user E-Stop when the hardware interface is not in ACTIVE state.");
+    }
+
+    e_stop_->resetEStop();
+}
+
+void IsaacbotSystem::resetEStopLatch()
+{
+    const auto lifecycle_state = this->get_lifecycle_state().id();
+
+    if (lifecycle_state != lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE) {
+        throw std::runtime_error(
+            "Can't reset E-Stop Latch when the hardware interface is not in ACTIVE state.");
+    }
+
+    e_stop_->resetEStopLatch();
+
+    // Resetting the driver-fault latch is the operator's explicit signal that the underlying
+    // fault has been addressed - clear all accumulated per-category error-filter state too, not
+    // just the fault-flag category.
+    isaacbot_error_filter_->setClearErrorsFlag();
+
+    // Same signal, same scope: the latched welded-contactor fault lives outside the error filter
+    // (see ContactorMonitor), so it has to be cleared explicitly. If the contacts are still stuck,
+    // the very next read() cycle re-latches it, so this cannot hand back a false all-clear.
+    control_loop_use_case_->resetContactorFault();
+
+    // This service callback runs on a non-RT, MutuallyExclusive callback-group thread (never the
+    // RT read()/write() path - see check_rt_path_purity.sh), so the blocking Phidget SDK calls
+    // inside resetFailsafe() are safe here. A single sw_e_stop_latch_reset call both clears the
+    // software MOTOR_FAILSAFE_TRIPPED latch above and re-arms the hardware watchdog that actually
+    // gated command delivery - see MotorDriverInterface::resetFailsafe(). If this throws (e.g. a
+    // wheel driver is unreachable), it propagates uncaught to the service response the same way
+    // e_stop_->resetEStopLatch() already does; the software latch stays cleared, but the very next
+    // read() cycle will observe isFailsafeTripped() is still true and re-latch
+    // MOTOR_FAILSAFE_TRIPPED, so a failed hardware reset never leaves the operator with a false
+    // all-clear.
+    isaacbot_driver_->resetFailsafe();
+}
+
+void IsaacbotSystem::updateMotorsState(const rclcpp::Time & time)
+{
+    try {
+        isaacbot_driver_->updateMotorsState();
+        updateHwStates(time);
+        updateMotorsStateDataTimedOut();
+        control_loop_use_case_->updateMotorFailsafeTrippedStatus();
+    } catch (const std::runtime_error & e) {
+        RCLCPP_ERROR_STREAM_THROTTLE(
+            logger_, steady_clock_, 5000,
+            "An exception occurred while updating motors states: " << e.what());
+        isaacbot_error_filter_->updateError(ErrorsFilterIds::READ_MOTOR_STATES, true);
+    }
+}
+
+void IsaacbotSystem::updateMotorsStateDataTimedOut()
+{
+    control_loop_use_case_->updateMotorsStateTimeoutStatus();
+}
+
+void IsaacbotSystem::updateDriverState()
+{
+    try {
+        isaacbot_driver_->updateDriversState();
+        updateDriverStateDataTimedOut();
+    } catch (const std::runtime_error & e) {
+        RCLCPP_ERROR_STREAM_THROTTLE(
+            logger_, steady_clock_, 5000,
+            "An exception occurred while updating drivers states: " << e.what());
+        isaacbot_error_filter_->updateError(ErrorsFilterIds::READ_DRIVER_STATE, true);
+    }
+}
+
+void IsaacbotSystem::updateDriverStateDataTimedOut()
+{
+    control_loop_use_case_->updateDriverStateTimeoutStatus();
+}
+
+void IsaacbotSystem::updateFlagErrors()
+{
+    const auto reset_result = control_loop_use_case_->updateFaultFlagStatus();
+
+    if (reset_result) {
+        logWriteOperationResult(*reset_result);
+    }
+}
+
+void IsaacbotSystem::updateCommunicationStatus()
+{
+    try {
+        isaacbot_driver_->updateCommunicationStatus();
+    } catch (const std::runtime_error & e) {
+        RCLCPP_ERROR_STREAM_THROTTLE(
+            logger_, steady_clock_, 5000,
+            "An exception occurred while updating communication status: " << e.what());
+    }
+}
+
+namespace
+{
+
+unsigned char toDiagnosticLevel(const HealthLevel level)
+{
+    switch (level) {
+        case HealthLevel::kOk:
+            return diagnostic_updater::DiagnosticStatusWrapper::OK;
+        case HealthLevel::kWarn:
+            return diagnostic_updater::DiagnosticStatusWrapper::WARN;
+        case HealthLevel::kError:
+            return diagnostic_updater::DiagnosticStatusWrapper::ERROR;
+    }
+
+    return diagnostic_updater::DiagnosticStatusWrapper::ERROR;
+}
+
+unsigned char toDiagnosticLevel(const SafetyLinkSeverity s)
+{
+    switch (s) {
+        case SafetyLinkSeverity::kOk:
+            return diagnostic_updater::DiagnosticStatusWrapper::OK;
+        case SafetyLinkSeverity::kWarn:
+            return diagnostic_updater::DiagnosticStatusWrapper::WARN;
+        case SafetyLinkSeverity::kError:
+            return diagnostic_updater::DiagnosticStatusWrapper::ERROR;
+    }
+
+    // Unreachable - every SafetyLinkSeverity enumerator is handled above. Satisfies
+    // -Wreturn-type without a `default:` label, which would silently swallow a future
+    // enumerator instead of failing to compile.
+    return diagnostic_updater::DiagnosticStatusWrapper::ERROR;
+}
+
+}  // namespace
+
+// Where does a velocity command go missing between write() and the motor? Every row of this
+// answers one question: how many were issued, how many were dropped (and why), how the driver's
+// asynchronous calls completed and how long they took, and what each write() cycle did. Counters
+// are cumulative since start; compare two reads to get a rate. The level is ERROR only while
+// completions are still returning errors (see domain/command_path_health.hpp), so a board that
+// is no longer attached (return code 0x34) cannot hide behind a quiet "OK".
+void IsaacbotSystem::diagnoseCommandPath(diagnostic_updater::DiagnosticStatusWrapper & status)
+{
+    if (!isaacbot_driver_ || !control_loop_use_case_) {
+        status.summary(diagnostic_updater::DiagnosticStatusWrapper::WARN, "Not configured.");
+        return;
+    }
+
+    const std::array<std::pair<DriverNames, const char *>, 4> wheels{{
+        {DriverNames::FRONT_LEFT, "Front Left"},
+        {DriverNames::FRONT_RIGHT, "Front Right"},
+        {DriverNames::REAR_LEFT, "Rear Left"},
+        {DriverNames::REAR_RIGHT, "Rear Right"}}};
+
+    // An error counted within this window is "still happening". The diagnostics task runs about
+    // once a second, so three seconds tolerates one missed look without crying wolf.
+    constexpr std::int64_t kRecentNs = 3000000000;
+    const std::int64_t now_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+
+    std::uint64_t total_attempted = 0;
+    std::uint64_t total_dropped_pending = 0;
+    std::uint64_t total_dropped_no_driver = 0;
+    std::uint64_t total_errors = 0;
+    std::uint32_t worst_latency_us = 0;
+    bool errors_increasing = false;
+    double seconds_since_error = -1.0;
+
+    std::size_t wheel_index = 0;
+
+    for (const auto & [name, label] : wheels) {
+        const auto s = isaacbot_driver_->getCommandStats(name);
+        const std::string p = std::string(label) + " ";
+
+        auto & trend = command_error_trend_[wheel_index++];
+        trend.update(s.completed_error, now_ns);
+
+        if (trend.increasedWithin(now_ns, kRecentNs)) {
+            errors_increasing = true;
+        }
+
+        const double since = trend.secondsSinceIncrease(now_ns);
+
+        if (since >= 0.0 && (seconds_since_error < 0.0 || since < seconds_since_error)) {
+            seconds_since_error = since;
+        }
+
+        status.add(p + "commands submitted", s.submitted);
+        status.add(p + "dropped, previous command still pending", s.dropped_pending);
+        status.add(p + "dropped, driver object gone", s.dropped_no_driver);
+        status.addf(p + "dropped while pending (%)", "%.2f", 100.0 * s.droppedPendingRatio());
+        status.add(p + "completed ok", s.completed_ok);
+        status.add(p + "completed failsafe-rejected", s.completed_failsafe);
+        status.add(p + "completed with other error", s.completed_error);
+        status.add(
+            p + "last non-ok return code",
+            s.last_error_code == 0 ? std::string("none")
+                                   : isaacbot_driver_->describeReturnCode(s.last_error_code));
+        status.addf(p + "completion latency last (ms)", "%.2f", s.latency_last_us / 1000.0);
+        status.addf(p + "completion latency mean (ms)", "%.2f", s.meanLatencyUs() / 1000.0);
+        status.addf(p + "completion latency max (ms)", "%.2f", s.latency_max_us / 1000.0);
+        status.add(p + "command in flight now", s.pending);
+        status.add(p + "in flight for (ms)", s.pending_age_ms);
+
+        total_attempted += s.attempted();
+        total_dropped_pending += s.dropped_pending;
+        total_dropped_no_driver += s.dropped_no_driver;
+        total_errors += s.completed_error;
+        worst_latency_us = std::max(worst_latency_us, s.latency_max_us);
+    }
+
+    const auto w = control_loop_use_case_->writeCycleStats();
+    status.add("write cycles: forwarded motion", w.motion_cycles);
+    status.add("write cycles: inhibited, zeros sent", w.zero_cycles);
+    status.add("write cycles: skipped, nothing sent", w.skip_cycles);
+    status.add("write cycles: skipped, mutex busy", w.lock_contentions);
+    status.add("write cycles: operation threw", w.exceptions);
+
+    CommandPathHealthInput input;
+    input.command_errors_increasing = errors_increasing;
+    input.command_errors_total = total_errors;
+    input.seconds_since_command_error = seconds_since_error;
+    input.dropped_no_driver = total_dropped_no_driver;
+    input.write_exceptions = w.exceptions;
+    const auto verdict = evaluateCommandPathHealth(input);
+
+    char summary[200];
+    std::snprintf(
+        summary, sizeof(summary),
+        "%s %" PRIu64 " dropped-pending of %" PRIu64 " attempted, worst completion %.1f ms.",
+        verdict.message.c_str(), total_dropped_pending, total_attempted, worst_latency_us / 1000.0);
+
+    status.summary(toDiagnosticLevel(verdict.level), summary);
+}
+
+void IsaacbotSystem::diagnoseImuData(diagnostic_updater::DiagnosticStatusWrapper & status)
+{
+    if (!system_ros_interface_) {
+        status.summary(diagnostic_updater::DiagnosticStatusWrapper::WARN, "Not configured.");
+        return;
+    }
+
+    const auto s = system_ros_interface_->imuDataStats();
+    const auto verdict = evaluateImuDataHealth(s);
+
+    const std::int64_t now_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+    double rate_hz = 0.0;
+
+    if (imu_prev_ns_ != 0 && now_ns > imu_prev_ns_) {
+        rate_hz = static_cast<double>(s.total - imu_prev_total_) /
+            (static_cast<double>(now_ns - imu_prev_ns_) * 1e-9);
+    }
+
+    imu_prev_total_ = s.total;
+    imu_prev_ns_ = now_ns;
+
+    status.add("messages received", s.total);
+    status.add("messages valid", s.valid);
+    status.add("messages with NaN/inf", s.not_finite);
+    status.addf("message rate since last look (Hz)", "%.1f", rate_hz);
+
+    if (s.received_any) {
+        status.addf("last message age (s)", "%.2f", s.last_message_age_s);
+    } else {
+        status.add("last message age (s)", "never");
+    }
+
+    if (s.valid > 0) {
+        status.addf("last valid message age (s)", "%.2f", s.last_valid_age_s);
+    } else {
+        status.add("last valid message age (s)", "never");
+    }
+
+    status.add("last message valid", s.last_finite);
+
+    status.summary(toDiagnosticLevel(verdict.level), verdict.message);
+}
+
+// The safety link had no diagnostic of its own: read()/write() always return OK, so a dead PLC
+// link reached nothing but a stale gpio_state topic. This reports the link and the two threads
+// that service it, plus the contactor cross-check, so "why did the isaacbot stop?" is answerable
+// from /diagnostics alone. The level and summary come from evaluateSafetyLinkHealth().
+void IsaacbotSystem::diagnoseSafetyLink(diagnostic_updater::DiagnosticStatusWrapper & status)
+{
+    const auto health = isaacbot_controller_->linkHealth();
+
+    status.add("Watchdog thread running", health.watchdog_running);
+    status.add("IO poll thread running", health.poll_running);
+    status.add("Watchdog late kicks", static_cast<int>(health.watchdog_miss_count));
+    status.add("Watchdog errors", static_cast<int>(health.watchdog_error_count));
+    status.add("IO poll errors", static_cast<int>(health.poll_error_count));
+
+    if (health.last_kick_age_ms == SafetyLinkHealth::kUnknownAgeMs) {
+        status.add("Last heartbeat kick age (ms)", "never");
+    } else {
+        status.add("Last heartbeat kick age (ms)", static_cast<int>(health.last_kick_age_ms));
+    }
+
+    if (health.last_poll_age_ms == SafetyLinkHealth::kUnknownAgeMs) {
+        status.add("Last IO poll age (ms)", "never");
+    } else {
+        status.add("Last IO poll age (ms)", static_cast<int>(health.last_poll_age_ms));
+    }
+
+    const bool contactor_fault = control_loop_use_case_->isContactorFaultLatched();
+    const bool contactor_failed_open = control_loop_use_case_->contactorMonitor().isFailedOpen();
+
+    status.add("Contactor fault latched", contactor_fault);
+    status.add("Contactor failed open", contactor_failed_open);
+
+    const auto d = evaluateSafetyLinkHealth(health, contactor_fault, contactor_failed_open);
+    status.summary(toDiagnosticLevel(d.severity), d.message);
+}
+
+void IsaacbotSystem::updateEStopState()
+{
+    e_stop_active_ = control_loop_use_case_->updateEStopActiveState();
+}
+
+// Cross-checks the E-Stop latch against the contactor's aux-contact feedback. steady_clock rather
+// than read()'s `time`: this is a hardware drop-out deadline, so it must not be affected by
+// use_sim_time or by a ROS time jump.
+void IsaacbotSystem::updateContactorPlausibility()
+{
+    const auto fault = control_loop_use_case_->updateContactorPlausibility(
+        std::chrono::steady_clock::now());
+
+    if (fault == ContactorFault::kWeldedSuspected) {
+        RCLCPP_ERROR_STREAM_THROTTLE(
+            logger_, steady_clock_, 5000,
+            "E-Stop latch is asserted but the motor contactor still reports engaged. The motors "
+            "may still be powered - suspect welded contacts. Motion is inhibited until "
+            "hardware_interface/sw_e_stop_latch_reset is called and the contactor is checked.");
+    } else if (fault == ContactorFault::kFailedOpen) {
+        RCLCPP_WARN_STREAM_THROTTLE(
+            logger_, steady_clock_, 5000,
+            "Motor contactor reports open while the E-Stop latch is clear - the isaacbot will not "
+            "drive. Check the contactor and its supply.");
+    }
+}
+
+void IsaacbotSystem::handleIsaacbotDriverWriteOperation(std::function<void()> write_operation)
+{
+    // write_operation() may ultimately call down into std::unordered_map::at()
+    // (ArdennesDriver::sendSpeedCmd()), which throws std::out_of_range - a sibling of
+    // std::runtime_error, not caught by it, on a lookup miss. IsaacbotControlLoopUseCase::
+    // performWriteOperation() already catches std::exception broadly for exactly this reason, so
+    // nothing can escape write()/updateFlagErrors() here.
+    logWriteOperationResult(control_loop_use_case_->performWriteOperation(write_operation));
+}
+
+void IsaacbotSystem::logWriteOperationResult(const WriteOperationResult & result)
+{
+    switch (result.outcome) {
+        case WriteOperationOutcome::kLockContention:
+            // Lock contention is expected and recoverable — skip this write cycle rather than
+            // pay exception cost on every contended RT tick.
+            RCLCPP_WARN_STREAM_THROTTLE(
+                logger_, steady_clock_, 5000,
+                "Couldn't acquire mutex for writing commands; skipping this write cycle.");
+            break;
+        case WriteOperationOutcome::kExceptionThrown:
+            RCLCPP_WARN_STREAM_THROTTLE(
+                logger_, steady_clock_, 5000,
+                "An exception occurred while writing commands: " << result.error_message);
+            break;
+        case WriteOperationOutcome::kSucceeded:
+            break;
+    }
+}
+
+bool IsaacbotSystem::areVelocityCommandsNearZero()
+{
+    // Runs on the service-callback thread (see the declaration): read the flag the RT thread
+    // published instead of racing it on hw_commands_velocities_.
+    const bool commands_are_zero = commands_are_zero_.load(std::memory_order_relaxed);
+    const bool states_are_zero = states_are_zero_.load(std::memory_order_relaxed);
+
+    if (!states_are_zero) {
+        // Reported separately from the command case because it means something quite different:
+        // the isaacbot is physically still moving, so clearing the E-Stop now would re-energise the
+        // motors mid-roll. No controller tuning makes this one benign.
+        RCLCPP_WARN_STREAM_THROTTLE(
+            logger_, steady_clock_, 5000,
+            "E-Stop reset refused: the wheels are still turning - largest |wheel velocity| is "
+                << max_abs_velocity_state_.load(std::memory_order_relaxed)
+                << " rad/s, tolerance is " << velocity_state_zero_tolerance_
+                << " rad/s. Wait for the isaacbot to come to a stop.");
+    }
+
+    if (!commands_are_zero) {
+        // Without this, "velocity commands are not zero" gives the operator nothing to act on -
+        // it can't distinguish a stick genuinely held off-centre from a few-count transmitter
+        // trim offset leaking through a too-narrow teleop deadband, which is what it turned out
+        // to be the first time this fired. Name the number and the threshold it missed.
+        RCLCPP_WARN_STREAM_THROTTLE(
+            logger_, steady_clock_, 5000,
+            "E-Stop reset refused: largest |velocity command| is "
+                << max_abs_velocity_command_.load(std::memory_order_relaxed)
+                << " rad/s, tolerance is " << velocity_command_zero_tolerance_
+                << " rad/s. Check that whatever is publishing cmd_vel is commanding a true zero "
+                   "(for RC teleop, that means the stick deadband must cover the sticks' resting "
+                   "offset).");
+    }
+
+    return commands_are_zero && states_are_zero;
+}
+
+void IsaacbotSystem::refreshVelocityCommandsZeroFlag()
+{
+    double max_abs_command = 0.0;
+
+    for (const auto & command : hw_commands_velocities_) {
+        // A non-finite command is reported as such rather than folded into the max, which
+        // std::max would silently swallow.
+        if (!std::isfinite(command)) {
+            max_abs_command = command;
+            break;
+        }
+
+        max_abs_command = std::max(max_abs_command, std::abs(command));
+    }
+
+    max_abs_velocity_command_.store(max_abs_command, std::memory_order_relaxed);
+
+    commands_are_zero_.store(
+        areVelocitiesWithinTolerance(hw_commands_velocities_, velocity_command_zero_tolerance_),
+        std::memory_order_relaxed);
+
+    double max_abs_state = 0.0;
+
+    for (const auto & state : hw_states_velocities_) {
+        if (!std::isfinite(state)) {
+            max_abs_state = state;
+            break;
+        }
+
+        max_abs_state = std::max(max_abs_state, std::abs(state));
+    }
+
+    max_abs_velocity_state_.store(max_abs_state, std::memory_order_relaxed);
+
+    states_are_zero_.store(
+        areVelocitiesWithinTolerance(hw_states_velocities_, velocity_state_zero_tolerance_),
+        std::memory_order_relaxed);
+}
+
+void IsaacbotSystem::zeroVelocityCommands()
+{
+    std::fill(hw_commands_velocities_.begin(), hw_commands_velocities_.end(), 0.0);
+    std::fill(speed_cmd_buffer_.begin(), speed_cmd_buffer_.end(), 0.0f);
+}
+
+}  // namespace isaacbot_hardware_interface

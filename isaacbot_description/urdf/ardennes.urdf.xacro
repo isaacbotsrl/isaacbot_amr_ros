@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot name="ardennes" xmlns:xacro="http://wiki.ros.org/xacro">
+
+  <xacro:arg name="use_sim" default="false" />
+  <xacro:arg name="imu_xyz" default="0.0 0.0 0.0" />
+  <xacro:arg name="imu_rpy" default="0.0 0.0 0.0" />
+  <xacro:arg name="lidar_xyz" default="0.0 0.0 0.0" />
+  <xacro:arg name="lidar_rpy" default="0.0 0.0 0.0" />
+  <xacro:arg name="gps_xyz" default="0.0 0.0 0.0" />
+  <xacro:arg name="gps_rpy" default="0.0 0.0 0.0" />
+  <xacro:arg name="camera_xyz" default="0.25 0.0 0.2" />
+  <xacro:arg name="camera_rpy" default="0.0 0.0 0.0" />
+  <!-- With use_sim: a Gazebo depth camera on camera_link (ISAACBOT_SYSTEM_USE_CAMERA, see isaacbot_load_urdf). -->
+  <xacro:arg name="use_camera" default="false" />
+  <xacro:arg name="wheel_config_file" default="$(find isaacbot_description)/config/wheel_01.yaml" />
+  <xacro:arg name="battery_config_file" default="$(find isaacbot_description)/config/battery.yaml" />
+  <!-- Only used by the gz_ros2_control plugin (use_sim:=true); the caller must supply it. -->
+  <xacro:arg name="controller_config_file" default="" />
+  <xacro:arg name="namespace" default="" />
+
+  <xacro:include filename="$(find isaacbot_description)/urdf/ardennes/ardennes_macro.urdf.xacro" ns="isaacbot" />
+  <xacro:isaacbot.ardennes_robot
+    use_sim="$(arg use_sim)"
+    imu_xyz="$(arg imu_xyz)"
+    imu_rpy="$(arg imu_rpy)"
+    lidar_xyz="$(arg lidar_xyz)"
+    lidar_rpy="$(arg lidar_rpy)"
+    gps_xyz="$(arg gps_xyz)"
+    gps_rpy="$(arg gps_rpy)"
+    camera_xyz="$(arg camera_xyz)"
+    camera_rpy="$(arg camera_rpy)"
+    use_camera="$(arg use_camera)"
+    wheel_config_file="$(arg wheel_config_file)"
+    battery_config_file="$(arg battery_config_file)"
+    controller_config_file="$(arg controller_config_file)"
+    namespace="$(arg namespace)" />
+</robot>
