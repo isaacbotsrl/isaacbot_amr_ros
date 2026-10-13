@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_MODBUS_DRIVER_TEST_FAKES_FAKE_MODBUS_TRANSPORT_HPP_
-#define ISAACBOT_MODBUS_DRIVER_TEST_FAKES_FAKE_MODBUS_TRANSPORT_HPP_
+#ifndef ISAACBOT_AMR_MODBUS_DRIVER_TEST_FAKES_FAKE_MODBUS_TRANSPORT_HPP_
+#define ISAACBOT_AMR_MODBUS_DRIVER_TEST_FAKES_FAKE_MODBUS_TRANSPORT_HPP_
 
 #include <memory>
 #include <optional>
@@ -120,4 +120,4 @@ private:
 
 }  // namespace isaacbot::transport::modbus::test
 
-#endif  // ISAACBOT_MODBUS_DRIVER_TEST_FAKES_FAKE_MODBUS_TRANSPORT_HPP_
+#endif  // ISAACBOT_AMR_MODBUS_DRIVER_TEST_FAKES_FAKE_MODBUS_TRANSPORT_HPP_

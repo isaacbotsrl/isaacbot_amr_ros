@@ -7,7 +7,7 @@
         topic   : nav_cmd_vel_stamped
         timeout : 0.5
         priority: 5
-      # Driver UI, via isaacbot_command_freshness_node, which drops commands the websocket
+      # Driver UI, via isaacbot_amr_command_freshness_node, which drops commands the websocket
       # delivered late after a Wi-Fi stall. 0.3 s = three periods of the UI's 10 Hz stream.
       driver_interface:
         topic   : teleop_driver_interface_cmd_vel_fresh_stamped
@@ -23,7 +23,7 @@
         timeout : 0.5
         priority: 110
 
-    # Fed by isaacbot_motion_lock_node (10 Hz). An input is masked when its priority is below
+    # Fed by isaacbot_amr_motion_lock_node (10 Hz). An input is masked when its priority is below
     # the lock's, so 200 stops everything on E-Stop; use 7 to gate only nav.
     # A stale lock counts as locked, so if the node dies the mux closes.
     locks:

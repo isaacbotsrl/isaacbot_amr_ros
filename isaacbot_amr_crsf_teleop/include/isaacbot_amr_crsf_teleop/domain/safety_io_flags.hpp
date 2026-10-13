@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_CRSF_TELEOP_DOMAIN_SAFETY_IO_FLAGS_HPP_
-#define ISAACBOT_CRSF_TELEOP_DOMAIN_SAFETY_IO_FLAGS_HPP_
+#ifndef ISAACBOT_AMR_CRSF_TELEOP_DOMAIN_SAFETY_IO_FLAGS_HPP_
+#define ISAACBOT_AMR_CRSF_TELEOP_DOMAIN_SAFETY_IO_FLAGS_HPP_
 
 namespace isaacbot_amr_crsf_teleop
 {
@@ -80,4 +80,4 @@ bool isSafeToCalibrate(const SafetyIoFlags & flags);
 
 }  // namespace isaacbot_amr_crsf_teleop
 
-#endif  // ISAACBOT_CRSF_TELEOP_DOMAIN_SAFETY_IO_FLAGS_HPP_
+#endif  // ISAACBOT_AMR_CRSF_TELEOP_DOMAIN_SAFETY_IO_FLAGS_HPP_

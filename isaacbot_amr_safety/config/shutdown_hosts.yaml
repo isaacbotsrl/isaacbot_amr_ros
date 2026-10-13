@@ -1,4 +1,4 @@
-# Hosts isaacbot_safety_node asks to shut down before it powers off the ROS controller
+# Hosts isaacbot_amr_safety_node asks to shut down before it powers off the ROS controller
 # (IsaacbotShutdown tree, ShutdownHostsFromFile). Each host must run an HTTP server that accepts
 #   GET http://<ip>:<port>/shutdown?ts=<unix seconds>&sig=<hex HMAC-SHA256(secret, "/shutdown|<ts>")>
 # answers 200 and then powers off. The node waits until the host stops answering ping or

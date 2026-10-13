@@ -46,7 +46,7 @@ namespace
 
 /**
  * Loads IsaacbotSafetyBT.btproj with the plugin lists of config/isaacbot_amr_safety.yaml, exactly as
- * isaacbot_safety_node does, and runs the IsaacbotShutdown tree against a fake E-Stop service. The power-off
+ * isaacbot_amr_safety_node does, and runs the IsaacbotShutdown tree against a fake E-Stop service. The power-off
  * command is replaced by one that records the reason.
  */
 class ShutdownTreeTest : public ::testing::Test
@@ -68,9 +68,9 @@ protected:
         executor_.add_node(server_node_);
         spin_thread_ = std::thread([this]() { executor_.spin(); });
 
-        const auto params = YAML::LoadFile(ISAACBOT_SAFETY_CONFIG)["/**"]["isaacbot_safety_node"]["ros__parameters"];
+        const auto params = YAML::LoadFile(ISAACBOT_AMR_SAFETY_CONFIG)["/**"]["isaacbot_amr_safety_node"]["ros__parameters"];
         isaacbot_amr_safety::registerBehaviorTree(
-            factory_, ISAACBOT_SAFETY_BT_PROJECT,
+            factory_, ISAACBOT_AMR_SAFETY_BT_PROJECT,
             params["plugin_libs"].as<std::vector<std::string>>(),
             params["ros_plugin_libs"].as<std::vector<std::string>>());
 
@@ -98,7 +98,7 @@ protected:
         blackboard->set<std::chrono::milliseconds>("bt_loop_duration", 10ms);
         blackboard->set<std::chrono::milliseconds>("wait_for_service_timeout", 2000ms);
         blackboard->set<std::chrono::milliseconds>("server_timeout", 500ms);
-        blackboard->set<std::string>("SHUTDOWN_HOSTS_FILE", ISAACBOT_SAFETY_SHUTDOWN_HOSTS);
+        blackboard->set<std::string>("SHUTDOWN_HOSTS_FILE", ISAACBOT_AMR_SAFETY_SHUTDOWN_HOSTS);
         blackboard->set<float>("SHUTDOWN_COMMAND_TIMEOUT", 5.0f);
         blackboard->set<std::string>(
             "SHUTDOWN_LOCALHOST_COMMAND",
@@ -147,7 +147,7 @@ TEST_F(ShutdownTreeTest, TripsEStopThenPowersOff)
     const std::string reason = "Battery temperature 61.0 C above fatal 60.0 C; it's hot";
     auto tree = factory_.createTree(
         "IsaacbotShutdown",
-        createBlackboard("printf '%s' \"$ISAACBOT_SHUTDOWN_REASON\" > '" + reason_file_.string() + "'", reason));
+        createBlackboard("printf '%s' \"$ISAACBOT_AMR_SHUTDOWN_REASON\" > '" + reason_file_.string() + "'", reason));
 
     EXPECT_EQ(tickUntilDone(tree), BT::NodeStatus::SUCCESS);
     EXPECT_EQ(e_stop_calls_.load(), 1);
@@ -172,7 +172,7 @@ TEST_F(ShutdownTreeTest, RetryRunsTheWholeSequenceAgain)
     blackboard->set<std::string>(
         "SHUTDOWN_LOCALHOST_COMMAND",
         isaacbot_amr_safety::infrastructure::buildShutdownCommand(
-            "printf '%s' \"$ISAACBOT_SHUTDOWN_REASON\" > '" + reason_file_.string() + "'", "second"));
+            "printf '%s' \"$ISAACBOT_AMR_SHUTDOWN_REASON\" > '" + reason_file_.string() + "'", "second"));
 
     EXPECT_EQ(tickUntilDone(tree), BT::NodeStatus::SUCCESS);
     EXPECT_EQ(e_stop_calls_.load(), 2);
@@ -180,7 +180,7 @@ TEST_F(ShutdownTreeTest, RetryRunsTheWholeSequenceAgain)
 }
 
 // A remote host takes the shutdown tree through ShutdownHostsFromFile's ping. The ping to a dead
-// host lasts a full second and must run beside the tick, never inside it: isaacbot_safety_node ticks
+// host lasts a full second and must run beside the tick, never inside it: isaacbot_amr_safety_node ticks
 // from the same executor thread that serves the E-Stop and battery callbacks.
 TEST_F(ShutdownTreeTest, SkipsUnreachableHostWithoutBlockingTheTick)
 {
@@ -189,7 +189,7 @@ TEST_F(ShutdownTreeTest, SkipsUnreachableHostWithoutBlockingTheTick)
         hosts << "hosts:\n  - ip: " << isaacbot_amr_safety::test::kUnreachableIp << "\n    timeout: 1.0\n";
     }
     auto blackboard = createBlackboard(
-        "printf '%s' \"$ISAACBOT_SHUTDOWN_REASON\" > '" + reason_file_.string() + "'", "remote");
+        "printf '%s' \"$ISAACBOT_AMR_SHUTDOWN_REASON\" > '" + reason_file_.string() + "'", "remote");
     blackboard->set<std::string>("SHUTDOWN_HOSTS_FILE", hosts_file_.string());
     auto tree = factory_.createTree("IsaacbotShutdown", blackboard);
 

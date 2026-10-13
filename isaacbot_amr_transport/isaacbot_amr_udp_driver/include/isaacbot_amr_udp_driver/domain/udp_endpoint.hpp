@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_UDP_DRIVER_DOMAIN_UDP_ENDPOINT_HPP_
-#define ISAACBOT_UDP_DRIVER_DOMAIN_UDP_ENDPOINT_HPP_
+#ifndef ISAACBOT_AMR_UDP_DRIVER_DOMAIN_UDP_ENDPOINT_HPP_
+#define ISAACBOT_AMR_UDP_DRIVER_DOMAIN_UDP_ENDPOINT_HPP_
 
 #include <cstdint>
 #include <optional>
@@ -51,4 +51,4 @@ private:
 
 }  // namespace isaacbot::transport::udp
 
-#endif  // ISAACBOT_UDP_DRIVER_DOMAIN_UDP_ENDPOINT_HPP_
+#endif  // ISAACBOT_AMR_UDP_DRIVER_DOMAIN_UDP_ENDPOINT_HPP_

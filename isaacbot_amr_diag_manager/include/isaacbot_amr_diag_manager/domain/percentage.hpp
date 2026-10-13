@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_DIAG_MANAGER_DOMAIN_PERCENTAGE_HPP_
-#define ISAACBOT_DIAG_MANAGER_DOMAIN_PERCENTAGE_HPP_
+#ifndef ISAACBOT_AMR_DIAG_MANAGER_DOMAIN_PERCENTAGE_HPP_
+#define ISAACBOT_AMR_DIAG_MANAGER_DOMAIN_PERCENTAGE_HPP_
 
 #include <optional>
 #include <vector>
@@ -38,4 +38,4 @@ std::optional<float> meanUsage(const std::vector<float> & core_usages);
 
 }  // namespace isaacbot_amr_diag_manager::domain
 
-#endif  // ISAACBOT_DIAG_MANAGER_DOMAIN_PERCENTAGE_HPP_
+#endif  // ISAACBOT_AMR_DIAG_MANAGER_DOMAIN_PERCENTAGE_HPP_

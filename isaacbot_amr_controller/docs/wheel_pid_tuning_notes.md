@@ -58,7 +58,7 @@ session can pick up without re-deriving anything. Gains from this session are al
 > **Turn feed-forward lane runs (2026-10-11, ground, battery 49-46 %, same 6 s schedule).** Implemented
 > as the `turn_feedforward` wheel-loop option (`72cee8a`): `turn_side * sign(w) * turn_feedforward`,
 > ramped in to 0.3 rad/s, scaled by the turn's share of the wheel speed, fed from
-> `isaacbot_drive_controller/cmd_vel_out` (25 Hz confirmed during the runs, peak |w| 1.00). One run each,
+> `isaacbot_amr_drive_controller/cmd_vel_out` (25 Hz confirmed during the runs, peak |w| 1.00). One run each,
 > set live on all four wheels, restored to 0 after. Median of 4 wheels:
 >
 > | | off (A) | 1.0 (B) | 1.8 (C) |
@@ -83,7 +83,7 @@ session can pick up without re-deriving anything. Gains from this session are al
 > constant breakaway effort. IMU / command 0.58-1.02 between 0.45 and 1.0 rad/s. Per-wheel end errors show
 > a diagonal pattern (+ spins: fl / rr -27..-46 %, fr / rl ahead; - spins mostly fr / rl behind) - a
 > diagonal pair unloading (chassis rocking on the floor or mass distribution), not a gain issue. The
-> `isaacbot_nav_params.yaml` note that the isaacbot stalls below ~1.0 rad/s (2026-09-26) no longer holds.
+> `isaacbot_amr_nav_params.yaml` note that the isaacbot stalls below ~1.0 rad/s (2026-09-26) no longer holds.
 > *Skid-steer calibration* (`wheel_odom_calibration` spin, 7 s holds, +-0.6 / 1.0 / 1.5 rad/s, 0 rejected):
 > `wheel_separation_multiplier` 1.644 (segments 1.616-1.723) against the shipped 1.659 - within the spread
 > and the 2026-10-06/07 range, **kept**. With 7 s holds spins reach 90-96 % of the command. *Nav 2 limits*
@@ -303,7 +303,7 @@ of 10 % as "not proven" and repeat the run. Runs 10/11 differ by one clamp step 
 cd /root/ros2_ws/rover_a1
 source /opt/ros/lyrical/setup.bash
 source install/setup.bash
-export ISAACBOT_SYSTEM_NAMESPACE=isaacbot
+export ISAACBOT_AMR_SYSTEM_NAMESPACE=isaacbot
 ros2 launch isaacbot_amr_bringup isaacbot_amr_bringup.launch.py
 ```
 

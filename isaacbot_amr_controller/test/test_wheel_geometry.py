@@ -41,7 +41,7 @@ def test_drive_controller_matches_description(wheel_type):
     wheel = _load(description_dir / f'{wheel_type}.yaml')
     controller = _load(CONTROLLER_CONFIG_DIR / f'{wheel_type}_controller.yaml')
 
-    drive = controller['/**']['isaacbot_drive_controller']['ros__parameters']
+    drive = controller['/**']['isaacbot_amr_drive_controller']['ros__parameters']
     assert drive['wheel_radius'] == pytest.approx(wheel['wheel_radius'])
     assert drive['wheel_separation'] == pytest.approx(wheel['wheel_separation'])
 
@@ -51,7 +51,7 @@ def test_drive_controller_chains_through_declared_wheel_pids(wheel_type):
     """Every '<pid>/<joint>' wheel name must point at a declared PID for that joint."""
     config = _load(CONTROLLER_CONFIG_DIR / f'{wheel_type}_controller.yaml')['/**']
     manager = config['controller_manager']['ros__parameters']
-    drive = config['isaacbot_drive_controller']['ros__parameters']
+    drive = config['isaacbot_amr_drive_controller']['ros__parameters']
     wheels = drive['left_wheel_names'] + drive['right_wheel_names']
     assert len(wheels) == 2 * drive['wheels_per_side']
     for wheel in wheels:
@@ -72,7 +72,7 @@ def test_drive_controller_chains_through_declared_wheel_pids(wheel_type):
 def test_turn_feedforward_matches_the_drive_controller(wheel_type):
     """Each PID's turn side and track must be diff_drive's, and diff_drive must publish ω."""
     config = _load(CONTROLLER_CONFIG_DIR / f'{wheel_type}_controller.yaml')['/**']
-    drive = config['isaacbot_drive_controller']['ros__parameters']
+    drive = config['isaacbot_amr_drive_controller']['ros__parameters']
     track = drive['wheel_separation'] * drive['wheel_separation_multiplier']
     assert drive['publish_limited_velocity'] is True
     for names, side in ((drive['left_wheel_names'], -1.0), (drive['right_wheel_names'], 1.0)):
@@ -87,7 +87,7 @@ def test_turn_feedforward_matches_the_drive_controller(wheel_type):
 def test_calibration_multipliers_are_plausible(wheel_type):
     """Skid-steer separation multipliers are > 1; radius multipliers stay near 1."""
     drive = _load(CONTROLLER_CONFIG_DIR / f'{wheel_type}_controller.yaml')[
-        '/**']['isaacbot_drive_controller']['ros__parameters']
+        '/**']['isaacbot_amr_drive_controller']['ros__parameters']
     assert 1.0 <= drive['wheel_separation_multiplier'] <= 2.5
     for side in ('left', 'right'):
         assert 0.9 <= drive[f'{side}_wheel_radius_multiplier'] <= 1.1
@@ -111,7 +111,7 @@ def test_drive_limits_respect_joint_velocity_limit(wheel_type):
     fit the joint limit, and reference + I must fit full duty (u_clamp_max).
     """
     config = _load(CONTROLLER_CONFIG_DIR / f'{wheel_type}_controller.yaml')['/**']
-    drive = config['isaacbot_drive_controller']['ros__parameters']
+    drive = config['isaacbot_amr_drive_controller']['ros__parameters']
     half_track = drive['wheel_separation'] * drive['wheel_separation_multiplier'] / 2.0
     max_v = max(drive['linear']['x']['max_velocity'], -drive['linear']['x']['min_velocity'])
     max_w = max(drive['angular']['z']['max_velocity'], -drive['angular']['z']['min_velocity'])

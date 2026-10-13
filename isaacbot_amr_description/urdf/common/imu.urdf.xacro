@@ -94,9 +94,9 @@
 
     <!-- ROS2 controller. Hardware only: in simulation the IMU interfaces live in the
          GazeboSimSystem block, and an empty <ros2_control> would have no <hardware>.
-         Unprefixed name, like isaacbot_system_node: the node is /<namespace>/isaacbot_imu. -->
+         Unprefixed name, like isaacbot_amr_system_node: the node is /<namespace>/isaacbot_amr_imu. -->
     <xacro:unless value="${use_sim}">
-    <ros2_control name="isaacbot_imu" type="sensor">
+    <ros2_control name="isaacbot_amr_imu" type="sensor">
         <hardware>
           <!-- Hardware IMU sensor interface  -->
           <plugin>isaacbot_amr_hardware_interface/PhidgetImuSensor</plugin>

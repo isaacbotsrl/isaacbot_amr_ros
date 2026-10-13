@@ -24,7 +24,7 @@
   gz_type_name: gz.msgs.PointCloudPacked
   direction: GZ_TO_ROS
 
-# Depth camera (RealSense D435i stand-in, ISAACBOT_SYSTEM_USE_CAMERA): the cloud rover_sensors'
+# Depth camera (RealSense D435i stand-in, ISAACBOT_AMR_SYSTEM_USE_CAMERA): the cloud rover_sensors'
 # rover_realsense (depth_image_proc) publishes. Without the camera nothing is published on the gz side.
 - ros_topic_name: /<namespace>/camera/depth/points
   gz_topic_name: /<namespace>/camera/depth/points
@@ -65,7 +65,7 @@
   gz_type_name: gz.msgs.Empty
   direction: GZ_TO_ROS
 
-# sim_safety_plc / isaacbot_motion_lock_node -> the panel's lamps and result line.
+# sim_safety_plc / isaacbot_amr_motion_lock_node -> the panel's lamps and result line.
 - ros_topic_name: /<namespace>/sim_safety/sw_e_stop
   gz_topic_name: /<namespace>/sim_safety/sw_e_stop
   ros_type_name: std_msgs/msg/Bool

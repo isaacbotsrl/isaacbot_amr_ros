@@ -13,16 +13,16 @@ package does, and how to build and start it.
 | Middleware (RMW) | `rmw_zenoh_cpp`, ROS domain `0` |
 | Zenoh router | Runs in its own container, `rover-a1-zenoh-router`, on TCP port `7447` |
 | Platform container | `rover-a1-platform`. Its image is built from `rover_docker/rovera1_app` (separate repository) |
-| Device management | balenaCloud. Device variables such as `ISAACBOT_SYSTEM_USE_GPS` reach the launch files as environment variables; the container's `start.sh` normalizes them |
+| Device management | balenaCloud. Device variables such as `ISAACBOT_AMR_SYSTEM_USE_GPS` reach the launch files as environment variables; the container's `start.sh` normalizes them |
 | Isaacbot LAN address | `192.168.1.201` (default target of the PC setup script) |
-| Robot namespace | `isaacbot` (`ISAACBOT_SYSTEM_NAMESPACE`) |
+| Robot namespace | `isaacbot` (`ISAACBOT_AMR_SYSTEM_NAMESPACE`) |
 | Controller computer (CPU, OS) | **TBD** |
 
-Source: `README.md`, `isaacbot_amr_scripts/setup_isaacbot_pc.sh`, `isaacbot_amr_scripts/README.md`,
+Source: `README.md`, `isaacbot_amr_scripts/setup_isaacbot_amr_pc.sh`, `isaacbot_amr_scripts/README.md`,
 `isaacbot_amr_bringup/launch/isaacbot_amr_bringup.launch.py`, `isaacbot_amr_metapackage/README.md`.
 
 The platform container runs two launch files: `isaacbot_amr_bringup.launch.py` (the driver stack) and
-`isaacbot_web_bridges.launch.py` (Foxglove bridge, rosbridge, rosapi). The container definition and
+`isaacbot_amr_web_bridges.launch.py` (Foxglove bridge, rosbridge, rosapi). The container definition and
 `start.sh` live in `rover_docker`, not in this repository.
 
 !!! note "Three containers make a isaacbot"
@@ -39,7 +39,7 @@ The platform container runs two launch files: `isaacbot_amr_bringup.launch.py` (
 
 ## Runtime node graph
 
-The main nodes started by `isaacbot_amr_bringup.launch.py` and `isaacbot_web_bridges.launch.py`. Every node
+The main nodes started by `isaacbot_amr_bringup.launch.py` and `isaacbot_amr_web_bridges.launch.py`. Every node
 runs in the `isaacbot` namespace except the web bridges. Topic names are relative to that namespace.
 
 ```mermaid
@@ -54,11 +54,11 @@ flowchart LR
   end
 
   subgraph CM["controller_manager process"]
-    HWI["ArdennesSystem + PhidgetImuSensor<br/>(isaacbot_hardware_controller)"]
+    HWI["ArdennesSystem + PhidgetImuSensor<br/>(isaacbot_amr_hardware_controller)"]
     PID["pid_controller_* x4"]
-    DD["isaacbot_drive_controller"]
-    JSB["isaacbot_joint_state_broadcaster"]
-    IMUB["isaacbot_imu_broadcaster"]
+    DD["isaacbot_amr_drive_controller"]
+    JSB["isaacbot_amr_joint_state_broadcaster"]
+    IMUB["isaacbot_amr_imu_broadcaster"]
   end
 
   PLC <--> HWI
@@ -68,11 +68,11 @@ flowchart LR
   HWI --> JSB
   HWI --> IMUB
 
-  RCT["isaacbot_crsf_teleop_node"]
-  FR["isaacbot_command_freshness_node"]
+  RCT["isaacbot_amr_crsf_teleop_node"]
+  FR["isaacbot_amr_command_freshness_node"]
   NAV["Nav 2 (orchestrator)"]
-  MUX["isaacbot_twist_mux_node"]
-  LOCK["isaacbot_motion_lock_node"]
+  MUX["isaacbot_amr_twist_mux_node"]
+  LOCK["isaacbot_amr_motion_lock_node"]
 
   RC --> RCT
   RCT -- teleop_elrs_cmd_vel_stamped --> MUX
@@ -82,15 +82,15 @@ flowchart LR
   LOCK -- motion_lock --> MUX
   MUX -- cmd_vel --> DD
 
-  EKF["isaacbot_ekf_node"]
+  EKF["isaacbot_amr_ekf_node"]
   DD -- odometry/wheels --> EKF
   IMUB -- imu/data --> EKF
   EKF -- "odom, TF odom to base_footprint" --> NAV
 
-  SAF["isaacbot_safety_node"]
-  LSAF["isaacbot_led_safety_node"]
-  BAT["isaacbot_battery_node"]
-  LED["isaacbot_led_controller + isaacbot_led_driver"]
+  SAF["isaacbot_amr_safety_node"]
+  LSAF["isaacbot_amr_led_safety_node"]
+  BAT["isaacbot_amr_battery_node"]
+  LED["isaacbot_amr_led_controller + isaacbot_amr_led_driver"]
   BMS --> BAT
   BAT -- battery/battery_status --> SAF
   BAT -- battery/battery_status --> LSAF
@@ -98,14 +98,14 @@ flowchart LR
   LSAF -- "led/set_animation (srv)" --> LED
   LED --> LEDB
 
-  DIAG["isaacbot_diag_manager_node"]
-  AGG["isaacbot_diagnostic_aggregator"]
+  DIAG["isaacbot_amr_diag_manager_node"]
+  AGG["isaacbot_amr_diagnostic_aggregator"]
   DIAG -- diagnostics --> AGG
-  WEB["isaacbot_foxglove_bridge, isaacbot_amr_rosbridge_websocket, rosapi"]
+  WEB["isaacbot_amr_foxglove_bridge, isaacbot_amr_rosbridge_websocket, rosapi"]
   AGG -- diagnostics_agg --> WEB
 ```
 
-Source: `isaacbot_amr_bringup/launch/isaacbot_amr_bringup.launch.py`, `isaacbot_amr_bringup/launch/isaacbot_web_bridges.launch.py`,
+Source: `isaacbot_amr_bringup/launch/isaacbot_amr_bringup.launch.py`, `isaacbot_amr_bringup/launch/isaacbot_amr_web_bridges.launch.py`,
 `isaacbot_amr_controller/config/wheel_01_controller.yaml`, `isaacbot_amr_twist_mux/config/isaacbot_amr_twist_mux.yaml`,
 the package launch files. The [ROS 2 API](ros-api.md) page lists every topic and service.
 
@@ -134,7 +134,7 @@ Source: `isaacbot_amr_bringup/launch/isaacbot_amr_bringup.launch.py`, `isaacbot_
 | `isaacbot_amr_metapackage` | Build | Selects `isaacbot_amr_bringup` or `isaacbot_amr_gazebo` by `ISAACBOT_AMR_ROS_BUILD_TYPE`; holds the `.repos` lists. | [README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_metapackage/README.md) |
 | `isaacbot_amr_hardware_interface` | Hardware (ros2_control plugins) | `ArdennesSystem` (wheel motors, safety PLC) and `PhidgetImuSensor`. | [README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_hardware_interface/README.md) |
 | `isaacbot_amr_controller` | Control | Controller configuration and launch; `SeededPidController` wheel PIDs; drive-train tuning tools. | [README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_controller/README.md) |
-| `isaacbot_amr_twist_mux` | Control | `twist_mux` arbitration, `isaacbot_motion_lock_node`, `isaacbot_command_freshness_node`. | [README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_twist_mux/README.md) |
+| `isaacbot_amr_twist_mux` | Control | `twist_mux` arbitration, `isaacbot_amr_motion_lock_node`, `isaacbot_amr_command_freshness_node`. | [README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_twist_mux/README.md) |
 | `isaacbot_amr_crsf_teleop` | Teleop | CRSF (ExpressLRS) RC teleop, software E-Stop switches, RC link failsafe. | [README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_crsf_teleop/README.md) |
 | `isaacbot_amr_localization` | Localization | `robot_localization` EKFs: wheels + IMU, optionally GPS. | [README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_localization/README.md) |
 | `isaacbot_amr_gps_heading` | Localization | ENU heading from GNSS course, for `navsat_transform_node`. | [README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_gps_heading/README.md) |
@@ -148,7 +148,7 @@ Source: `isaacbot_amr_bringup/launch/isaacbot_amr_bringup.launch.py`, `isaacbot_
 | `isaacbot_amr_modbus` | Library | Vendored Modbus library for modern C++. | [README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_modbus/README.md) |
 | `isaacbot_amr_arch` | Docs (not a ROS package) | Firmware architecture and the safety chain. | [README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_arch/README.md) |
 | `isaacbot_amr_foxglove` | Tools (not a ROS package) | Foxglove dashboard layout for the `isaacbot` namespace. | [README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_foxglove/README.md) |
-| `isaacbot_amr_scripts` | Tools (not a ROS package) | Development PC setup (`setup_isaacbot_pc.sh`). | [README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_scripts/README.md) |
+| `isaacbot_amr_scripts` | Tools (not a ROS package) | Development PC setup (`setup_isaacbot_amr_pc.sh`). | [README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_scripts/README.md) |
 | `rover_platform_mbse` | MBSE (not a ROS package) | MATLAB/Simulink architecture, requirements and traceability. | [README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/rover_platform_mbse/README.md) |
 
 Source: `README.md` and each package README.
@@ -169,11 +169,11 @@ git clone -b master https://github.com/isaacbotsrl/isaacbot_amr_ros.git src/isaa
 ### Set the environment
 
 The setup script writes a `isaacbot-pc setup` block into `~/.bashrc`. It sets up ROS, the workspace
-overlay, the `ISAACBOT_*` variables and the Zenoh client settings for the isaacbot. It is safe to run
+overlay, the `ISAACBOT_AMR_*` variables and the Zenoh client settings for the isaacbot. It is safe to run
 again.
 
 ```bash
-src/isaacbot_amr_ros/isaacbot_amr_scripts/setup_isaacbot_pc.sh
+src/isaacbot_amr_ros/isaacbot_amr_scripts/setup_isaacbot_amr_pc.sh
 source ~/.bashrc
 ```
 
@@ -181,7 +181,7 @@ Or set the variables by hand:
 
 ```bash
 export ROS_DISTRO=lyrical
-export ISAACBOT_SYSTEM_NAMESPACE=isaacbot
+export ISAACBOT_AMR_SYSTEM_NAMESPACE=isaacbot
 export ISAACBOT_AMR_ROS_BUILD_TYPE=hardware     # real isaacbot
 # export ISAACBOT_AMR_ROS_BUILD_TYPE=simulation # Gazebo
 ```
@@ -190,9 +190,9 @@ export ISAACBOT_AMR_ROS_BUILD_TYPE=hardware     # real isaacbot
 |----------|---------|--------|
 | `ROS_DISTRO` | build | ROS 2 distribution (`lyrical`). |
 | `ISAACBOT_AMR_ROS_BUILD_TYPE` | `isaacbot_amr_metapackage`, `vcs import` | `hardware` builds `isaacbot_amr_bringup`; `simulation` builds `isaacbot_amr_gazebo`. |
-| `ISAACBOT_SYSTEM_NAMESPACE` | all launch files | Default `namespace` argument. The isaacbot uses `isaacbot`. |
-| `ISAACBOT_SYSTEM_USE_GPS` | `isaacbot_amr_bringup`, `isaacbot_amr_gazebo` | `true` adds GPS fusion (dual EKF). Default `false`. |
-| `ISAACBOT_SYSTEM_GPS_MAP_TF` | `isaacbot_amr_localization`, `isaacbot_amr_gazebo` | `true` lets the global EKF broadcast `map → odom`. Default `false`. |
+| `ISAACBOT_AMR_SYSTEM_NAMESPACE` | all launch files | Default `namespace` argument. The isaacbot uses `isaacbot`. |
+| `ISAACBOT_AMR_SYSTEM_USE_GPS` | `isaacbot_amr_bringup`, `isaacbot_amr_gazebo` | `true` adds GPS fusion (dual EKF). Default `false`. |
+| `ISAACBOT_AMR_SYSTEM_GPS_MAP_TF` | `isaacbot_amr_localization`, `isaacbot_amr_gazebo` | `true` lets the global EKF broadcast `map → odom`. Default `false`. |
 | `RMW_IMPLEMENTATION` | all nodes | `rmw_zenoh_cpp` (set by the setup script). |
 | `ZENOH_CONFIG_OVERRIDE` | all nodes | Client mode to `tcp/<isaacbot-ip>:7447` (set by the setup script). |
 
@@ -201,7 +201,7 @@ Source: `README.md`, `isaacbot_amr_scripts/README.md`, `isaacbot_amr_bringup/REA
 
 !!! warning "The PC joins the real isaacbot's graph"
     With the setup block in `~/.bashrc`, every node started on the PC is a Zenoh client of the
-    isaacbot's router. Use `isaacbot_amr_gazebo/scripts/isaacbot_sim.sh` for the simulation: it clears
+    isaacbot's router. Use `isaacbot_amr_gazebo/scripts/isaacbot_amr_sim.sh` for the simulation: it clears
     `ZENOH_CONFIG_OVERRIDE` and runs a local router. See [Simulation](simulation.md).
 
 ### Get the dependencies and build
@@ -240,10 +240,10 @@ source install/setup.bash
 ```bash
 # Real isaacbot (inside the platform container, or directly)
 ros2 launch isaacbot_amr_bringup isaacbot_amr_bringup.launch.py
-ros2 launch isaacbot_amr_bringup isaacbot_web_bridges.launch.py
+ros2 launch isaacbot_amr_bringup isaacbot_amr_web_bridges.launch.py
 
 # Simulation
-src/isaacbot_amr_ros/isaacbot_amr_gazebo/scripts/isaacbot_sim.sh
+src/isaacbot_amr_ros/isaacbot_amr_gazebo/scripts/isaacbot_amr_sim.sh
 ```
 
 ### Test
@@ -265,9 +265,9 @@ Source: `README.md`.
 
 | Argument | Default | Description |
 |----------|---------|-------------|
-| `namespace` | `$ISAACBOT_SYSTEM_NAMESPACE`, else empty | Namespace of every node. |
+| `namespace` | `$ISAACBOT_AMR_SYSTEM_NAMESPACE`, else empty | Namespace of every node. |
 | `log_level` | `INFO` | `DEBUG`, `INFO`, `WARN`, `ERROR` or `FATAL`, passed to every package. |
-| `use_gps` | `$ISAACBOT_SYSTEM_USE_GPS`, else `false` | `true`: wheels + IMU + GPS (dual EKF). `false`: wheels + IMU. |
+| `use_gps` | `$ISAACBOT_AMR_SYSTEM_USE_GPS`, else `false` | `true`: wheels + IMU + GPS (dual EKF). `false`: wheels + IMU. |
 | `common_dir_path` | empty | Directory with per-package config overrides (`<dir>/<package>/config/...`). |
 | `disable_manager` | `False` | `True` skips `isaacbot_amr_safety`. |
 | `exit_on_wrong_hw` | `false` | Exit instead of idling when `ROBOT_HW_CONFIG_CORRECT` is not `true`. |

@@ -46,7 +46,7 @@ namespace
 {
 
 /**
- * Runs the real isaacbot_led_safety_node in-process with the shipped tree, against a fake LED
+ * Runs the real isaacbot_amr_led_safety_node in-process with the shipped tree, against a fake LED
  * controller that records every led/set_animation request and accepts it.
  */
 class LedSafetyNodeAnimationsTest : public ::testing::Test
@@ -79,7 +79,7 @@ protected:
         rclcpp::NodeOptions options;
         options.parameter_overrides({
             {"bt_project_path",
-             std::string(ISAACBOT_SAFETY_SOURCE_DIR "/behavior_trees/IsaacbotLedSafetyBT.btproj")},
+             std::string(ISAACBOT_AMR_SAFETY_SOURCE_DIR "/behavior_trees/IsaacbotLedSafetyBT.btproj")},
             {"plugin_libs", std::vector<std::string>{"tick_after_timeout_bt_node"}},
             {"ros_plugin_libs", std::vector<std::string>{"call_set_led_animation_service_bt_node"}},
             {"bt_server_port", 15565},
@@ -87,7 +87,7 @@ protected:
             {"configure_retry_period", 1.0},
         });
 
-        led_node_ = std::make_shared<isaacbot_amr_safety::LedSafetyNode>("isaacbot_led_safety_node", options);
+        led_node_ = std::make_shared<isaacbot_amr_safety::LedSafetyNode>("isaacbot_amr_led_safety_node", options);
         led_executor_.add_node(led_node_->get_node_base_interface());
         led_thread_ = std::thread([this]() { led_executor_.spin(); });
     }

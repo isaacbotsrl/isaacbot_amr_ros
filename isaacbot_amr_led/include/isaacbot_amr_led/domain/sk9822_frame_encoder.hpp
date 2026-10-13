@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_LED_DOMAIN_SK9822_FRAME_ENCODER_HPP_
-#define ISAACBOT_LED_DOMAIN_SK9822_FRAME_ENCODER_HPP_
+#ifndef ISAACBOT_AMR_LED_DOMAIN_SK9822_FRAME_ENCODER_HPP_
+#define ISAACBOT_AMR_LED_DOMAIN_SK9822_FRAME_ENCODER_HPP_
 
 #include <cstdint>
 #include <vector>
@@ -60,4 +60,4 @@ private:
 
 }  // namespace isaacbot_amr_led
 
-#endif  // ISAACBOT_LED_DOMAIN_SK9822_FRAME_ENCODER_HPP_
+#endif  // ISAACBOT_AMR_LED_DOMAIN_SK9822_FRAME_ENCODER_HPP_

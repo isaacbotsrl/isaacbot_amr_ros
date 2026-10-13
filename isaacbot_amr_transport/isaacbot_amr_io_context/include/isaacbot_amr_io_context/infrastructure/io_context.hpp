@@ -19,8 +19,8 @@
 // to the workspace convention; the rclcpp log line dropped so this package carries no ROS
 // dependency.
 
-#ifndef ISAACBOT_IO_CONTEXT_INFRASTRUCTURE_IO_CONTEXT_HPP_
-#define ISAACBOT_IO_CONTEXT_INFRASTRUCTURE_IO_CONTEXT_HPP_
+#ifndef ISAACBOT_AMR_IO_CONTEXT_INFRASTRUCTURE_IO_CONTEXT_HPP_
+#define ISAACBOT_AMR_IO_CONTEXT_INFRASTRUCTURE_IO_CONTEXT_HPP_
 
 #include <cstddef>
 #include <cstdint>
@@ -112,4 +112,4 @@ private:
 
 }  // namespace isaacbot::transport
 
-#endif  // ISAACBOT_IO_CONTEXT_INFRASTRUCTURE_IO_CONTEXT_HPP_
+#endif  // ISAACBOT_AMR_IO_CONTEXT_INFRASTRUCTURE_IO_CONTEXT_HPP_

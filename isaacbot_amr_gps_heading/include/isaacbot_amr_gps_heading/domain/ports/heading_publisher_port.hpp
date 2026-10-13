@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_GPS_HEADING_DOMAIN_PORTS_HEADING_PUBLISHER_PORT_HPP_
-#define ISAACBOT_GPS_HEADING_DOMAIN_PORTS_HEADING_PUBLISHER_PORT_HPP_
+#ifndef ISAACBOT_AMR_GPS_HEADING_DOMAIN_PORTS_HEADING_PUBLISHER_PORT_HPP_
+#define ISAACBOT_AMR_GPS_HEADING_DOMAIN_PORTS_HEADING_PUBLISHER_PORT_HPP_
 
 #include "isaacbot_amr_gps_heading/domain/heading_alignment_estimator.hpp"
 
@@ -41,4 +41,4 @@ public:
 
 }  // namespace isaacbot_amr_gps_heading::domain
 
-#endif  // ISAACBOT_GPS_HEADING_DOMAIN_PORTS_HEADING_PUBLISHER_PORT_HPP_
+#endif  // ISAACBOT_AMR_GPS_HEADING_DOMAIN_PORTS_HEADING_PUBLISHER_PORT_HPP_

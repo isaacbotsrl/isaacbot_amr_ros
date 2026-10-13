@@ -16,16 +16,16 @@
 #
 # Fails if a known-blocking Modbus/Phidget-SDK symbol appears in code that runs on the RT control
 # loop thread ticked by controller_manager (see .claude/rules/ros2_control_architecture.md §5):
-#   - IsaacbotSystem::read()/write() themselves (src/isaacbot_system/isaacbot_system.cpp).
+#   - IsaacbotSystem::read()/write() themselves (src/isaacbot_amr_system/isaacbot_amr_system.cpp).
 #   - Every per-variant *_system.cpp file's RT-reachable virtual overrides - updateHwStates(),
 #     getSpeedCmd() and updateDriverStateMsg() (the latter from read()'s periodic driver-state
 #     block) - since IsaacbotSystem::read()/write() call these via virtual dispatch (see the
-#     RT contract comment on the IsaacbotSystem class in isaacbot_system.hpp). This is scanned for every
-#     file matching src/isaacbot_system/*_system.cpp, not just ardennes_system.cpp, so a future isaacbot
-#     variant (e.g. isaacbot_b1_system.cpp) is covered automatically without editing this script.
-#   - The RT-loop decision logic in src/application/isaacbot_control_loop_use_case.cpp, since every
+#     RT contract comment on the IsaacbotSystem class in isaacbot_amr_system.hpp). This is scanned for every
+#     file matching src/isaacbot_amr_system/*_system.cpp, not just ardennes_system.cpp, so a future isaacbot
+#     variant (e.g. isaacbot_amr_b1_system.cpp) is covered automatically without editing this script.
+#   - The RT-loop decision logic in src/application/isaacbot_amr_control_loop_use_case.cpp, since every
 #     method on IsaacbotControlLoopUseCase is reachable from the RT path.
-#   - The RT-reachable methods of the isaacbot_driver/ and isaacbot_safety_controller/ adapters behind
+#   - The RT-reachable methods of the isaacbot_amr_driver/ and isaacbot_amr_safety_controller/ adapters behind
 #     the domain ports (e.g. PhidgetMotorDriver::sendCmdVel()/readState(), IsaacbotSafetyController::
 #     queryControlInterfaceIOStates()) - an explicit, hand-maintained list, see
 #     RT_REACHABLE_ADAPTER_METHODS below.
@@ -43,7 +43,7 @@
 # written directly in one of the scanned bodies, but not one added several call-levels deep, or
 # hidden inside a new driver/adapter implementation. It complements, and does not replace, careful
 # review of any change touching the RT path - see the file-level comment on this concern in
-# isaacbot_system.hpp. Invoked from CMakeLists.txt as a plain CTest add_test, mirroring
+# isaacbot_amr_system.hpp. Invoked from CMakeLists.txt as a plain CTest add_test, mirroring
 # check_domain_purity.sh.
 set -euo pipefail
 
@@ -53,9 +53,9 @@ if [[ $# -ne 1 ]]; then
 fi
 
 PKG_DIR="$1"
-RT_CHECK_SYSTEM_DIR="${PKG_DIR}/src/isaacbot_system"
-RT_CHECK_SYSTEM_FILE="${RT_CHECK_SYSTEM_DIR}/isaacbot_system.cpp"
-CONTROL_LOOP_USE_CASE_FILE="${PKG_DIR}/src/application/isaacbot_control_loop_use_case.cpp"
+RT_CHECK_SYSTEM_DIR="${PKG_DIR}/src/isaacbot_amr_system"
+RT_CHECK_SYSTEM_FILE="${RT_CHECK_SYSTEM_DIR}/isaacbot_amr_system.cpp"
+CONTROL_LOOP_USE_CASE_FILE="${PKG_DIR}/src/application/isaacbot_amr_control_loop_use_case.cpp"
 
 if [[ ! -f "${RT_CHECK_SYSTEM_FILE}" ]]; then
     echo "check_rt_path_purity: ${RT_CHECK_SYSTEM_FILE} not found" >&2
@@ -68,7 +68,7 @@ if [[ ! -f "${CONTROL_LOOP_USE_CASE_FILE}" ]]; then
 fi
 
 # Every hardware_interface::SystemInterface implementation lives directly under
-# src/isaacbot_system/ as <variant>_system.cpp - isaacbot_system.cpp itself (the generic base) plus one
+# src/isaacbot_amr_system/ as <variant>_system.cpp - isaacbot_amr_system.cpp itself (the generic base) plus one
 # file per concrete isaacbot variant (e.g. ardennes_system.cpp).
 mapfile -t SYSTEM_FILES < <(find "${RT_CHECK_SYSTEM_DIR}" -maxdepth 1 -type f -name '*_system.cpp' | sort)
 
@@ -80,7 +80,7 @@ fi
 # Known-blocking symbols: raw Modbus TCP round-trips and synchronous Phidget SDK calls. Reads/
 # writes to hardware on the RT path must instead go through the cached/try_lock ports
 # (IsaacbotGpioPort, IsaacbotDriverInterface) and the Phidget SDK's _async entry points - see the RT
-# contract comment on the IsaacbotSystem class in isaacbot_system.hpp.
+# contract comment on the IsaacbotSystem class in isaacbot_amr_system.hpp.
 #
 # IMPORTANT for whoever adds a new safety-IO or driver backend (e.g. CAN instead of Modbus, a
 # different motor-controller SDK): the *_system.cpp file-glob above picks up a new isaacbot variant
@@ -150,7 +150,7 @@ check_body "${write_body}" "IsaacbotSystem::write()"
 
 # RT-reachable virtual overrides that a per-variant *_system.cpp defines - see the class-header
 # comment above defineIsaacbotDriver()/updateHwStates()/getSpeedCmd() declarations in
-# isaacbot_system.hpp for why each is RT-reachable via read()/write()'s virtual dispatch.
+# isaacbot_amr_system.hpp for why each is RT-reachable via read()/write()'s virtual dispatch.
 # No trailing "(" in these patterns - awk's dynamic regexps need it backslash-escaped, and the
 # method name alone is already unambiguous (mirrors the parenthesis-free patterns used for
 # IsaacbotSystem::read/write above).
@@ -203,32 +203,32 @@ FORBIDDEN_ADAPTER_PATTERNS=(
 # Thread() (the Modbus worker thread - blocking by design, handed off via getIoState()'s
 # try_lock), and the on_configure()/on_activate()/service-callback-only methods (initialize(),
 # activate(), armFailsafe(), resetFailsafe(), eStopUserBtnTrigger(), eStopLatchReset(), ...).
-DRIVER_DIR="${PKG_DIR}/src/isaacbot_driver"
-SAFETY_DIR="${PKG_DIR}/src/isaacbot_safety_controller"
-SENSORS_DIR="${PKG_DIR}/src/isaacbot_sensors"
+DRIVER_DIR="${PKG_DIR}/src/isaacbot_amr_driver"
+SAFETY_DIR="${PKG_DIR}/src/isaacbot_amr_safety_controller"
+SENSORS_DIR="${PKG_DIR}/src/isaacbot_amr_sensors"
 RT_REACHABLE_ADAPTER_METHODS=(
     "${DRIVER_DIR}/phidget_driver/phidget_motor_driver.cpp|^([A-Za-z].*[ &*])?PhidgetMotorDriver::readState[(]"
     "${DRIVER_DIR}/phidget_driver/phidget_motor_driver.cpp|^([A-Za-z].*[ &*])?PhidgetMotorDriver::sendCmdVel[(]"
     "${DRIVER_DIR}/phidget_driver/phidget_motor_driver.cpp|^([A-Za-z].*[ &*])?PhidgetMotorDriver::isCommunicationError[(]"
     "${DRIVER_DIR}/phidget_driver/phidget_motor_driver.cpp|^([A-Za-z].*[ &*])?PhidgetMotorDriver::isFailsafeTripped[(]"
-    "${DRIVER_DIR}/phidget_driver/phidget_isaacbot_driver.cpp|^([A-Za-z].*[ &*])?PhidgetIsaacbotDriver::updateCommunicationStatus[(]"
-    "${DRIVER_DIR}/phidget_driver/phidget_isaacbot_driver.cpp|^([A-Za-z].*[ &*])?PhidgetIsaacbotDriver::updateMotorsState[(]"
-    "${DRIVER_DIR}/phidget_driver/phidget_isaacbot_driver.cpp|^([A-Za-z].*[ &*])?PhidgetIsaacbotDriver::updateDriversState[(]"
-    "${DRIVER_DIR}/phidget_driver/phidget_isaacbot_driver.cpp|^([A-Za-z].*[ &*])?PhidgetIsaacbotDriver::attemptErrorFlagReset[(]"
-    "${DRIVER_DIR}/phidget_driver/phidget_isaacbot_driver.cpp|^([A-Za-z].*[ &*])?PhidgetIsaacbotDriver::isCommunicationError[(]"
-    "${DRIVER_DIR}/phidget_driver/phidget_isaacbot_driver.cpp|^([A-Za-z].*[ &*])?PhidgetIsaacbotDriver::isMotorStatesDataTimedOut[(]"
-    "${DRIVER_DIR}/phidget_driver/phidget_isaacbot_driver.cpp|^([A-Za-z].*[ &*])?PhidgetIsaacbotDriver::isDriverStateDataTimedOut[(]"
-    "${DRIVER_DIR}/phidget_driver/phidget_isaacbot_driver.cpp|^([A-Za-z].*[ &*])?PhidgetIsaacbotDriver::isFlagError[(]"
-    "${DRIVER_DIR}/phidget_driver/phidget_isaacbot_driver.cpp|^([A-Za-z].*[ &*])?PhidgetIsaacbotDriver::isFailsafeTripped[(]"
-    "${DRIVER_DIR}/phidget_driver/phidget_isaacbot_driver.cpp|^([A-Za-z].*[ &*])?PhidgetIsaacbotDriver::getData[(]"
+    "${DRIVER_DIR}/phidget_driver/phidget_isaacbot_amr_driver.cpp|^([A-Za-z].*[ &*])?PhidgetIsaacbotDriver::updateCommunicationStatus[(]"
+    "${DRIVER_DIR}/phidget_driver/phidget_isaacbot_amr_driver.cpp|^([A-Za-z].*[ &*])?PhidgetIsaacbotDriver::updateMotorsState[(]"
+    "${DRIVER_DIR}/phidget_driver/phidget_isaacbot_amr_driver.cpp|^([A-Za-z].*[ &*])?PhidgetIsaacbotDriver::updateDriversState[(]"
+    "${DRIVER_DIR}/phidget_driver/phidget_isaacbot_amr_driver.cpp|^([A-Za-z].*[ &*])?PhidgetIsaacbotDriver::attemptErrorFlagReset[(]"
+    "${DRIVER_DIR}/phidget_driver/phidget_isaacbot_amr_driver.cpp|^([A-Za-z].*[ &*])?PhidgetIsaacbotDriver::isCommunicationError[(]"
+    "${DRIVER_DIR}/phidget_driver/phidget_isaacbot_amr_driver.cpp|^([A-Za-z].*[ &*])?PhidgetIsaacbotDriver::isMotorStatesDataTimedOut[(]"
+    "${DRIVER_DIR}/phidget_driver/phidget_isaacbot_amr_driver.cpp|^([A-Za-z].*[ &*])?PhidgetIsaacbotDriver::isDriverStateDataTimedOut[(]"
+    "${DRIVER_DIR}/phidget_driver/phidget_isaacbot_amr_driver.cpp|^([A-Za-z].*[ &*])?PhidgetIsaacbotDriver::isFlagError[(]"
+    "${DRIVER_DIR}/phidget_driver/phidget_isaacbot_amr_driver.cpp|^([A-Za-z].*[ &*])?PhidgetIsaacbotDriver::isFailsafeTripped[(]"
+    "${DRIVER_DIR}/phidget_driver/phidget_isaacbot_amr_driver.cpp|^([A-Za-z].*[ &*])?PhidgetIsaacbotDriver::getData[(]"
     "${DRIVER_DIR}/ardennes_driver.cpp|^([A-Za-z].*[ &*])?ArdennesDriver::sendSpeedCmd[(]"
     "${DRIVER_DIR}/ardennes_driver.cpp|^([A-Za-z].*[ &*])?ArdennesDriver::attemptErrorFlagReset[(]"
-    "${SAFETY_DIR}/isaacbot_safety_controller.cpp|^([A-Za-z].*[ &*])?IsaacbotSafetyController::queryControlInterfaceIOStates[(]"
-    "${SAFETY_DIR}/isaacbot_safety_controller.cpp|^([A-Za-z].*[ &*])?IsaacbotSafetyController::isPinActive[(]"
-    "${SAFETY_DIR}/isaacbot_safety_controller.cpp|^([A-Za-z].*[ &*])?ContactCoilHandler::getIoState[(]"
-    "${SAFETY_DIR}/isaacbot_safety_controller_gpio_adapter.cpp|^([A-Za-z].*[ &*])?IsaacbotSafetyControllerGpioAdapter::queryControlInterfaceIOStates[(]"
-    "${SAFETY_DIR}/isaacbot_safety_controller_e_stop_io.cpp|^([A-Za-z].*[ &*])?IsaacbotSafetyControllerEStopIo::isUserButtonActive[(]"
-    "${SAFETY_DIR}/isaacbot_safety_controller_e_stop_io.cpp|^([A-Za-z].*[ &*])?IsaacbotSafetyControllerEStopIo::isLatchActive[(]"
+    "${SAFETY_DIR}/isaacbot_amr_safety_controller.cpp|^([A-Za-z].*[ &*])?IsaacbotSafetyController::queryControlInterfaceIOStates[(]"
+    "${SAFETY_DIR}/isaacbot_amr_safety_controller.cpp|^([A-Za-z].*[ &*])?IsaacbotSafetyController::isPinActive[(]"
+    "${SAFETY_DIR}/isaacbot_amr_safety_controller.cpp|^([A-Za-z].*[ &*])?ContactCoilHandler::getIoState[(]"
+    "${SAFETY_DIR}/isaacbot_amr_safety_controller_gpio_adapter.cpp|^([A-Za-z].*[ &*])?IsaacbotSafetyControllerGpioAdapter::queryControlInterfaceIOStates[(]"
+    "${SAFETY_DIR}/isaacbot_amr_safety_controller_e_stop_io.cpp|^([A-Za-z].*[ &*])?IsaacbotSafetyControllerEStopIo::isUserButtonActive[(]"
+    "${SAFETY_DIR}/isaacbot_amr_safety_controller_e_stop_io.cpp|^([A-Za-z].*[ &*])?IsaacbotSafetyControllerEStopIo::isLatchActive[(]"
     "${SENSORS_DIR}/phidget_imu_sensor.cpp|^([A-Za-z].*[ &*])?PhidgetImuSensor::read[(]"
     "${SENSORS_DIR}/phidget_imu_sensor.cpp|^([A-Za-z].*[ &*])?PhidgetImuSensor::updateExportedStateValues[(]"
 )

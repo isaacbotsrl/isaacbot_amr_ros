@@ -43,8 +43,8 @@ namespace
 {
 
 /**
- * Runs the real isaacbot_safety_node in-process against a fake hardware interface. The power-off
- * command is replaced by one that writes ISAACBOT_SHUTDOWN_REASON to a file.
+ * Runs the real isaacbot_amr_safety_node in-process against a fake hardware interface. The power-off
+ * command is replaced by one that writes ISAACBOT_AMR_SHUTDOWN_REASON to a file.
  */
 class SafetyNodeShutdownTest : public ::testing::Test
 {
@@ -56,7 +56,7 @@ protected:
     {
         const auto * test_info = ::testing::UnitTest::GetInstance()->current_test_info();
         reason_file_ = std::filesystem::temp_directory_path() /
-                       (std::string("isaacbot_safety_node_") + test_info->name() + "_reason.txt");
+                       (std::string("isaacbot_amr_safety_node_") + test_info->name() + "_reason.txt");
         std::filesystem::remove(reason_file_);
 
         hardware_node_ = std::make_shared<rclcpp::Node>("fake_hardware_interface");
@@ -70,7 +70,7 @@ protected:
         hardware_thread_ = std::thread([this]() { hardware_executor_.spin(); });
 
         client_node_ = std::make_shared<rclcpp::Node>("shutdown_test_client");
-        shutdown_client_ = client_node_->create_client<TriggerSrv>("isaacbot_safety_node/shutdown");
+        shutdown_client_ = client_node_->create_client<TriggerSrv>("isaacbot_amr_safety_node/shutdown");
     }
 
     void TearDown() override
@@ -89,8 +89,8 @@ protected:
     {
         rclcpp::NodeOptions options;
         options.parameter_overrides({
-            {"bt_project_path", std::string(ISAACBOT_SAFETY_SOURCE_DIR "/behavior_trees/IsaacbotSafetyBT.btproj")},
-            {"shutdown_hosts_path", std::string(ISAACBOT_SAFETY_SOURCE_DIR "/config/shutdown_hosts.yaml")},
+            {"bt_project_path", std::string(ISAACBOT_AMR_SAFETY_SOURCE_DIR "/behavior_trees/IsaacbotSafetyBT.btproj")},
+            {"shutdown_hosts_path", std::string(ISAACBOT_AMR_SAFETY_SOURCE_DIR "/config/shutdown_hosts.yaml")},
             {"plugin_libs", std::vector<std::string>{
                 "execute_command_bt_node", "shutdown_hosts_from_file_bt_node", "signal_shutdown_bt_node",
                 "tick_after_timeout_bt_node"}},
@@ -104,7 +104,7 @@ protected:
             {"shutdown.retry_backoff", retry_backoff},
         });
 
-        safety_node_ = std::make_shared<isaacbot_amr_safety::SafetyNode>("isaacbot_safety_node", options);
+        safety_node_ = std::make_shared<isaacbot_amr_safety::SafetyNode>("isaacbot_amr_safety_node", options);
         ASSERT_EQ(
             safety_node_->configure().id(), lifecycle_msgs::msg::State::PRIMARY_STATE_INACTIVE);
 
@@ -115,7 +115,7 @@ protected:
 
     std::string writeReasonCommand() const
     {
-        return "printf '%s' \"$ISAACBOT_SHUTDOWN_REASON\" > '" + reason_file_.string() + "'";
+        return "printf '%s' \"$ISAACBOT_AMR_SHUTDOWN_REASON\" > '" + reason_file_.string() + "'";
     }
 
     TriggerSrv::Response::SharedPtr callShutdown()

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_IO_CONTEXT_APPLICATION_INBOUND_BYTE_BRIDGE_HPP_
-#define ISAACBOT_IO_CONTEXT_APPLICATION_INBOUND_BYTE_BRIDGE_HPP_
+#ifndef ISAACBOT_AMR_IO_CONTEXT_APPLICATION_INBOUND_BYTE_BRIDGE_HPP_
+#define ISAACBOT_AMR_IO_CONTEXT_APPLICATION_INBOUND_BYTE_BRIDGE_HPP_
 
 #include <cstddef>
 #include <cstdint>
@@ -55,4 +55,4 @@ private:
 
 }  // namespace isaacbot::transport
 
-#endif  // ISAACBOT_IO_CONTEXT_APPLICATION_INBOUND_BYTE_BRIDGE_HPP_
+#endif  // ISAACBOT_AMR_IO_CONTEXT_APPLICATION_INBOUND_BYTE_BRIDGE_HPP_

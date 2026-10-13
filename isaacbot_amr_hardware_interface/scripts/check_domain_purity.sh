@@ -22,8 +22,8 @@
 #
 # Note on "infrastructure": this package has no single include/isaacbot_amr_hardware_interface/infrastructure/
 # directory. Everything outside domain/ and application/ IS the infrastructure layer, split into
-# subsystem-named directories instead (isaacbot_system/, isaacbot_driver/, isaacbot_safety_controller/,
-# isaacbot_sensors/, system_ros_interface/) - one per real hardware/ROS boundary. This
+# subsystem-named directories instead (isaacbot_amr_system/, isaacbot_amr_driver/, isaacbot_amr_safety_controller/,
+# isaacbot_amr_sensors/, system_ros_interface/) - one per real hardware/ROS boundary. This
 # is a deliberate, reviewed choice (each directory maps 1:1 to a concrete adapter a reader needs to
 # reason about independently), not a naming oversight, so don't go looking for an infrastructure/
 # folder that doesn't exist, and don't add one purely to match the template's default shape - the
@@ -42,8 +42,8 @@ DOMAIN_DIRS=(
 )
 
 # In-project (quoted) includes from domain/ files may only reach other domain/ headers or the
-# dependency-free utils.hpp - never isaacbot_system/, isaacbot_driver/, isaacbot_safety_controller/,
-# isaacbot_sensors/, or system_ros_interface/, all of which are infrastructure.
+# dependency-free utils.hpp - never isaacbot_amr_system/, isaacbot_amr_driver/, isaacbot_amr_safety_controller/,
+# isaacbot_amr_sensors/, or system_ros_interface/, all of which are infrastructure.
 ALLOWED_QUOTED_PATTERN='^isaacbot_amr_hardware_interface/(domain/[^/]+\.hpp$|utils\.hpp$)'
 
 # Angle-bracket includes are forbidden if they name a ROS package, hardware_interface, or a

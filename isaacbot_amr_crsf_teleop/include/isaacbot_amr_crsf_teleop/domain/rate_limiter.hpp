@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_CRSF_TELEOP_DOMAIN_RATE_LIMITER_HPP_
-#define ISAACBOT_CRSF_TELEOP_DOMAIN_RATE_LIMITER_HPP_
+#ifndef ISAACBOT_AMR_CRSF_TELEOP_DOMAIN_RATE_LIMITER_HPP_
+#define ISAACBOT_AMR_CRSF_TELEOP_DOMAIN_RATE_LIMITER_HPP_
 
 #include <chrono>
 #include <optional>
@@ -52,4 +52,4 @@ private:
 
 }  // namespace isaacbot_amr_crsf_teleop
 
-#endif  // ISAACBOT_CRSF_TELEOP_DOMAIN_RATE_LIMITER_HPP_
+#endif  // ISAACBOT_AMR_CRSF_TELEOP_DOMAIN_RATE_LIMITER_HPP_

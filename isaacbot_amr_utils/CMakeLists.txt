@@ -29,7 +29,7 @@ install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
 # Consumers get this include directory and nothing else: no exported dependencies, no targets.
 # Keep it that way. ament appends every exported dependency's include path to
 # isaacbot_amr_utils_INCLUDE_DIRS, so exporting rclcpp here would put it on the include path of the
-# ROS-free targets that use that variable (isaacbot_led_domain, for one). Users of the
+# ROS-free targets that use that variable (isaacbot_amr_led_domain, for one). Users of the
 # isaacbot_amr_utils::ros headers link rclcpp, std_msgs or rcl_interfaces themselves.
 ament_export_include_directories(include/${PROJECT_NAME})
 

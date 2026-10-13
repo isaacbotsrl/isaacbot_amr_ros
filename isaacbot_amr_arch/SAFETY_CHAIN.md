@@ -5,7 +5,7 @@ it. Written because none of this was recorded anywhere: before this document the
 string "PLC" appeared exactly once in the entire workspace, in a header comment
 in `isaacbot_amr_twist_mux/include/isaacbot_amr_twist_mux/domain/motion_lock_policy.hpp`, and
 the Modbus object map existed only as a table literal in
-`isaacbot_safety_controller.cpp`.
+`isaacbot_amr_safety_controller.cpp`.
 
 The authoritative diagram is `ardennes_arch.drawio`. This file is the prose that
 goes with it.
@@ -46,7 +46,7 @@ Modbus TCP to the safety controller at `192.168.88.11:502` (URDF
 inputs, FC5 write single coil. Reads are batched: the IO poll reads every mapped
 object in four transactions: one FC2 for `CONTACT_0`, and three FC1 reads for
 coils 0..5 (Digital Outputs area), 8..13 (aux outputs) and 14..19 (aux inputs).
-See `kCoilReadBlocks` in `isaacbot_safety_controller.cpp`.
+See `kCoilReadBlocks` in `isaacbot_amr_safety_controller.cpp`.
 
 The blocks are shaped by two quirks of the Portenta PLC IDE's Modbus server,
 both captured on the isaacbot:
@@ -99,8 +99,8 @@ E-Stop logic on them.
   write. State is published on `hardware_interface/aux_io_state`
   (`isaacbot_amr_msgs/AuxIoState`).
 
-Source of truth: `isaacbot_amr_hardware_interface/src/isaacbot_safety_controller/isaacbot_safety_controller.cpp`
-(the contact and coil tables) and `domain/isaacbot_gpio_types.hpp` (the enum).
+Source of truth: `isaacbot_amr_hardware_interface/src/isaacbot_amr_safety_controller/isaacbot_amr_safety_controller.cpp`
+(the contact and coil tables) and `domain/isaacbot_amr_gpio_types.hpp` (the enum).
 
 ---
 
@@ -192,7 +192,7 @@ because the messages keep flowing with last-known-good values in them.
 Five independent gates, in order from the wire inwards:
 
 1. **The contactor.** Hardware. Everything below is defense in depth.
-2. **`isaacbot_amr_twist_mux` / `isaacbot_motion_lock_node`** — maps both safety topics to
+2. **`isaacbot_amr_twist_mux` / `isaacbot_amr_motion_lock_node`** — maps both safety topics to
    `motion_lock` (`std_msgs/Bool`, priority 200 on the mux). Fail-safe closed:
    locked before the first message, when either topic is stale past
    `gpio_timeout` (1.0 s), and when `link_healthy` is false.
@@ -272,12 +272,12 @@ integral at a zero reference.
 
 | Concern | File |
 |---|---|
-| Modbus object map | `isaacbot_amr_hardware_interface/src/isaacbot_safety_controller/isaacbot_safety_controller.cpp` |
+| Modbus object map | `isaacbot_amr_hardware_interface/src/isaacbot_amr_safety_controller/isaacbot_amr_safety_controller.cpp` |
 | Threads, priority lock, heartbeat | same file, `ContactCoilHandler` / `ModbusLink` |
 | Link + reconnection | `isaacbot_amr_transport/isaacbot_amr_modbus_driver/src/application/modbus_discrete_io_client.cpp` |
 | E-Stop domain rules | `isaacbot_amr_hardware_interface/include/isaacbot_amr_hardware_interface/domain/emergency_stop.hpp` |
 | Welded-contactor check | `.../domain/contactor_monitor.hpp` |
-| Motion gate decision | `.../application/isaacbot_control_loop_use_case.hpp` |
+| Motion gate decision | `.../application/isaacbot_amr_control_loop_use_case.hpp` |
 | Motion lock policy | `isaacbot_amr_twist_mux/include/isaacbot_amr_twist_mux/domain/motion_lock_policy.hpp` |
 | Message contracts | `isaacbot_amr_msgs/msg/SafetyStatus.msg`, `isaacbot_amr_msgs/msg/SafetyCommandEcho.msg` |
 | All timing parameters | `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro` |

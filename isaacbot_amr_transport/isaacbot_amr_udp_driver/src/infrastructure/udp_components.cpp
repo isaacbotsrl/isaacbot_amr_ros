@@ -16,7 +16,7 @@
 // the component container of the node they serve and exchange packets intra-process instead
 // of through the Zenoh router.
 //
-// Compiled straight into the SHARED isaacbot_udp_driver_components library, never into the
+// Compiled straight into the SHARED isaacbot_amr_udp_driver_components library, never into the
 // STATIC _ros archive: the linker drops archive members nothing references, and with them the
 // static registration. The executables keep their own mains, which run the lifecycle shutdown
 // transition on Ctrl-C; rclcpp_components' generated main does not.

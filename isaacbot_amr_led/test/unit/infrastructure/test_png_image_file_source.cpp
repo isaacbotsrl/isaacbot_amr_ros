@@ -52,7 +52,7 @@ protected:
     void SetUp() override
     {
         dir_ = std::filesystem::temp_directory_path() /
-            ("isaacbot_led_test_" + std::to_string(::testing::UnitTest::GetInstance()->random_seed()) + "_" +
+            ("isaacbot_amr_led_test_" + std::to_string(::testing::UnitTest::GetInstance()->random_seed()) + "_" +
              ::testing::UnitTest::GetInstance()->current_test_info()->name());
         std::filesystem::create_directories(dir_);
     }
@@ -151,7 +151,7 @@ TEST_F(PngImageFileSourceTest, ConvertsAnRgbPngToOpaqueRgba)
 
 TEST_F(PngImageFileSourceTest, DecodesAShippedImage)
 {
-    const auto image = source_.read(std::string(ISAACBOT_LED_SOURCE_DIR) + "/animations/ardennes/flood_light.png");
+    const auto image = source_.read(std::string(ISAACBOT_AMR_LED_SOURCE_DIR) + "/animations/ardennes/flood_light.png");
 
     EXPECT_EQ(image.width, 46u);
     EXPECT_EQ(image.height, 350u);

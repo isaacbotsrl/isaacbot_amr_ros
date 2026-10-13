@@ -57,7 +57,7 @@ protected:
                 received_.push_back(msg.twist.linear.x);
             });
 
-        node_ = std::make_shared<CommandFreshnessNode>("isaacbot_command_freshness_node");
+        node_ = std::make_shared<CommandFreshnessNode>("isaacbot_amr_command_freshness_node");
 
         executor_.add_node(harness_);
         executor_.add_node(node_);

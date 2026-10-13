@@ -4,8 +4,8 @@ Arbitrates the isaacbot's velocity command sources with [`twist_mux`](https://gi
 
 It also provides two adapters, launched alongside the mux:
 
-- `isaacbot_motion_lock_node` lets the isaacbot's safety IO gate the mux.
-- `isaacbot_command_freshness_node` passes the Driver UI's commands to the mux only while they are
+- `isaacbot_amr_motion_lock_node` lets the isaacbot's safety IO gate the mux.
+- `isaacbot_amr_command_freshness_node` passes the Driver UI's commands to the mux only while they are
   fresh, so a Wi-Fi stall cannot make the isaacbot replay old motion.
 
 ## Command arbitration
@@ -17,7 +17,7 @@ highest priority wins, and each input times out:
 |---------:|-------|-------|--------:|--------|
 | 110 | `cmd_elrs` | `teleop_elrs_cmd_vel_stamped` | 0.5 s | ELRS RC teleop |
 | 100 | `joystick` | `teleop_foxglove_cmd_vel_stamped` | 0.5 s | Foxglove |
-| 8 | `driver_interface` | `teleop_driver_interface_cmd_vel_fresh_stamped` | 0.3 s | Driver UI (rover_drive_interface) joystick, routed by `rover_drive_mode` (MANUAL direct, ASSISTED through its lidar guard), via `isaacbot_command_freshness_node` |
+| 8 | `driver_interface` | `teleop_driver_interface_cmd_vel_fresh_stamped` | 0.3 s | Driver UI (rover_drive_interface) joystick, routed by `rover_drive_mode` (MANUAL direct, ASSISTED through its lidar guard), via `isaacbot_amr_command_freshness_node` |
 | 5 | `nav` | `nav_cmd_vel_stamped` | 0.5 s | Nav 2, on the separate orchestrator computer; forwarded by `rover_drive_mode` only in AUTOMATIC |
 
 The RC transmitter sits highest, so the operator with line of sight always has the last word;
@@ -34,7 +34,7 @@ input; a deployment that gates only Nav 2 (lock at 7) should pass its own file v
 
 ## Motion lock
 
-`isaacbot_motion_lock_node` subscribes `hardware_interface/safety_status`
+`isaacbot_amr_motion_lock_node` subscribes `hardware_interface/safety_status`
 (`isaacbot_amr_msgs/SafetyStatus`) and `hardware_interface/safety_command_echo`
 (`isaacbot_amr_msgs/SafetyCommandEcho`) and
 publishes `motion_lock` (`std_msgs/Bool`), which `twist_mux` consumes as a lock. It exists
@@ -43,7 +43,7 @@ the safety IO could not gate the mux at all.
 
 **It is fail-safe closed.** The lock is asserted — motion inhibited — when:
 
-- any enabled E-Stop condition is active (see `config/isaacbot_motion_lock.yaml`),
+- any enabled E-Stop condition is active (see `config/isaacbot_amr_motion_lock.yaml`),
 - either safety topic has not been received yet (startup),
 - either has gone stale beyond `gpio_timeout` (the hardware interface died), or
 - `SafetyStatus.link_healthy` is false — the hardware interface is alive but its link to the
@@ -67,7 +67,7 @@ The two `sw_*` stop requests this node *does* gate on come from `SafetyCommandEc
 safe direction for an echo: "we asked for a stop" is a sound reason to inhibit, and it is visible
 a poll or two before the latch it causes. Nothing here reads an echo as evidence of plant state.
 
-`twist_mux` itself treats a *stale lock topic* as locked, so if `isaacbot_motion_lock_node` dies the mux
+`twist_mux` itself treats a *stale lock topic* as locked, so if `isaacbot_amr_motion_lock_node` dies the mux
 closes rather than opens. The node therefore republishes at `publish_frequency` (10 Hz) to stay
 well inside the lock's 0.5 s timeout, and is launched alongside the mux.
 
@@ -87,7 +87,7 @@ only and leave all teleop sources free, lower it to 7; see the comment in
 
 twist_mux judges an input by when a message *arrives*. The Driver UI's commands cross a websocket
 (TCP), which holds them through a Wi-Fi stall and then delivers them in a burst, so the mux would
-replay seconds-old motion. `isaacbot_command_freshness_node` sits between the UI's commands
+replay seconds-old motion. `isaacbot_amr_command_freshness_node` sits between the UI's commands
 (`teleop_driver_interface_cmd_vel_stamped`, published by `rover_drive_mode` with the UI's header
 passed through) and the mux input
 (`teleop_driver_interface_cmd_vel_fresh_stamped`) and drops commands that arrive late.
@@ -113,8 +113,8 @@ it. The logic is in `domain/command_freshness_filter.hpp`:
 ## Config Files
 
 - `isaacbot_amr_twist_mux.yaml` - Twist mux's configuration (inputs and the safety lock).
-- `isaacbot_motion_lock.yaml` - Which safety-IO pins contribute to the lock, and its timing.
-- `isaacbot_command_freshness.yaml` - The Driver UI command freshness filter: topics, `max_delay`,
+- `isaacbot_amr_motion_lock.yaml` - Which safety-IO pins contribute to the lock, and its timing.
+- `isaacbot_amr_command_freshness.yaml` - The Driver UI command freshness filter: topics, `max_delay`,
   drift and resync settings.
 
 ## Launch Files

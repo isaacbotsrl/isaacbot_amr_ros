@@ -15,7 +15,7 @@
 # Fails if anything in domain/ or application/ includes anything but the C++ standard library
 # and this package's own headers - so no ROS, no yaml-cpp, no filesystem.
 #
-# isaacbot_crsf_teleop_core links none of those, but that only catches a symbol that is actually
+# isaacbot_amr_crsf_teleop_core links none of those, but that only catches a symbol that is actually
 # called - a header-only include (an rclcpp::Duration overload on a config struct, say) would
 # compile quietly and the layering would be gone with nothing to show for it. This is the check
 # that says so out loud. Run as: cmake -DSOURCE_DIR=<pkg> -P test/layer_purity.cmake

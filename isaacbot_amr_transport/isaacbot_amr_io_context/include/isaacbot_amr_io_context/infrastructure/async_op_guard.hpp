@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_IO_CONTEXT_INFRASTRUCTURE_ASYNC_OP_GUARD_HPP_
-#define ISAACBOT_IO_CONTEXT_INFRASTRUCTURE_ASYNC_OP_GUARD_HPP_
+#ifndef ISAACBOT_AMR_IO_CONTEXT_INFRASTRUCTURE_ASYNC_OP_GUARD_HPP_
+#define ISAACBOT_AMR_IO_CONTEXT_INFRASTRUCTURE_ASYNC_OP_GUARD_HPP_
 
 #include <atomic>
 #include <chrono>
@@ -172,4 +172,4 @@ private:
 
 }  // namespace isaacbot::transport
 
-#endif  // ISAACBOT_IO_CONTEXT_INFRASTRUCTURE_ASYNC_OP_GUARD_HPP_
+#endif  // ISAACBOT_AMR_IO_CONTEXT_INFRASTRUCTURE_ASYNC_OP_GUARD_HPP_

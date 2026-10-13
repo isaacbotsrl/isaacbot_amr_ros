@@ -17,7 +17,7 @@
 
 #include "rclcpp/rclcpp.hpp"
 
-#include "isaacbot_amr_gps_heading/infrastructure/isaacbot_gps_heading_node.hpp"
+#include "isaacbot_amr_gps_heading/infrastructure/isaacbot_amr_gps_heading_node.hpp"
 
 int main(int argc, char ** argv)
 {
@@ -28,7 +28,7 @@ int main(int argc, char ** argv)
 
     try {
         // Construction can throw on an invalid parameter override.
-        auto node = std::make_shared<isaacbot_amr_gps_heading::IsaacbotGpsHeadingNode>("isaacbot_gps_heading_node");
+        auto node = std::make_shared<isaacbot_amr_gps_heading::IsaacbotGpsHeadingNode>("isaacbot_amr_gps_heading_node");
 
         node->init();
 

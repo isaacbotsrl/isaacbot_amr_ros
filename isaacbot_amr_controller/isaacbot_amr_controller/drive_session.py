@@ -54,7 +54,7 @@ class DriveSession(Node):
 
     def output_dir(self) -> str:
         path = self.get_parameter('output_dir').value or os.path.join(
-            os.path.expanduser('~'), 'isaacbot_calibration',
+            os.path.expanduser('~'), 'isaacbot_amr_calibration',
             f'{self.get_name()}_{datetime.datetime.now():%Y%m%d_%H%M%S}')
         os.makedirs(path, exist_ok=True)
         return path

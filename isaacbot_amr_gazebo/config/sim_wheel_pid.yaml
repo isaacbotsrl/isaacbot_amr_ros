@@ -41,6 +41,6 @@
   # Gazebo's wheels are rigid cylinders of the CAD tyre radius (isaacbot_amr_description wheel_01.yaml
   # tyre_radius), so they roll at 0.1699, not at the real tyre's loaded 0.1651 the odometry is
   # tuned on. Without this the simulated wheel odometry under-reports distance by ~2.9 %.
-  isaacbot_drive_controller:
+  isaacbot_amr_drive_controller:
     ros__parameters:
       wheel_radius: 0.1699

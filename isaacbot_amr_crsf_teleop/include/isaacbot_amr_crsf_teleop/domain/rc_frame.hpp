@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_CRSF_TELEOP_DOMAIN_RC_FRAME_HPP_
-#define ISAACBOT_CRSF_TELEOP_DOMAIN_RC_FRAME_HPP_
+#ifndef ISAACBOT_AMR_CRSF_TELEOP_DOMAIN_RC_FRAME_HPP_
+#define ISAACBOT_AMR_CRSF_TELEOP_DOMAIN_RC_FRAME_HPP_
 
 #include <array>
 #include <cstddef>
@@ -78,4 +78,4 @@ struct RcLinkStats
 
 }  // namespace isaacbot_amr_crsf_teleop
 
-#endif  // ISAACBOT_CRSF_TELEOP_DOMAIN_RC_FRAME_HPP_
+#endif  // ISAACBOT_AMR_CRSF_TELEOP_DOMAIN_RC_FRAME_HPP_

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_SAFETY_INFRASTRUCTURE_COMMAND_HANDLER_HPP_
-#define ISAACBOT_SAFETY_INFRASTRUCTURE_COMMAND_HANDLER_HPP_
+#ifndef ISAACBOT_AMR_SAFETY_INFRASTRUCTURE_COMMAND_HANDLER_HPP_
+#define ISAACBOT_AMR_SAFETY_INFRASTRUCTURE_COMMAND_HANDLER_HPP_
 
 #include <sys/types.h>
 
@@ -114,4 +114,4 @@ private:
 
 }  // namespace isaacbot_amr_safety::infrastructure
 
-#endif  // ISAACBOT_SAFETY_INFRASTRUCTURE_COMMAND_HANDLER_HPP_
+#endif  // ISAACBOT_AMR_SAFETY_INFRASTRUCTURE_COMMAND_HANDLER_HPP_

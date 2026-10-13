@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_MODBUS_DRIVER_DOMAIN_CONTACT_COIL_TYPES_HPP_
-#define ISAACBOT_MODBUS_DRIVER_DOMAIN_CONTACT_COIL_TYPES_HPP_
+#ifndef ISAACBOT_AMR_MODBUS_DRIVER_DOMAIN_CONTACT_COIL_TYPES_HPP_
+#define ISAACBOT_AMR_MODBUS_DRIVER_DOMAIN_CONTACT_COIL_TYPES_HPP_
 
 namespace isaacbot::transport::modbus
 {
@@ -79,4 +79,4 @@ struct CoilInfo
 
 }  // namespace isaacbot::transport::modbus
 
-#endif  // ISAACBOT_MODBUS_DRIVER_DOMAIN_CONTACT_COIL_TYPES_HPP_
+#endif  // ISAACBOT_AMR_MODBUS_DRIVER_DOMAIN_CONTACT_COIL_TYPES_HPP_

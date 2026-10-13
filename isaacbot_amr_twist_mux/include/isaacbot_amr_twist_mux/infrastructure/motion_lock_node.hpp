@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_TWIST_MUX_INFRASTRUCTURE_MOTION_LOCK_NODE_HPP_
-#define ISAACBOT_TWIST_MUX_INFRASTRUCTURE_MOTION_LOCK_NODE_HPP_
+#ifndef ISAACBOT_AMR_TWIST_MUX_INFRASTRUCTURE_MOTION_LOCK_NODE_HPP_
+#define ISAACBOT_AMR_TWIST_MUX_INFRASTRUCTURE_MOTION_LOCK_NODE_HPP_
 
 #include <memory>
 #include <optional>
@@ -106,4 +106,4 @@ private:
 
 }  // namespace isaacbot_amr_twist_mux
 
-#endif  // ISAACBOT_TWIST_MUX_INFRASTRUCTURE_MOTION_LOCK_NODE_HPP_
+#endif  // ISAACBOT_AMR_TWIST_MUX_INFRASTRUCTURE_MOTION_LOCK_NODE_HPP_

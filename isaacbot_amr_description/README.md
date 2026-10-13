@@ -26,19 +26,19 @@ rviz/isaacbot.rviz                       RViz layout
 
 With `use_sim:=false` the URDF declares two hardware components. Each one runs its own node
 inside `controller_manager`, named after the component in the controller manager's namespace
-(`/isaacbot/isaacbot_system_node`, `/isaacbot/isaacbot_imu`). The names carry no namespace prefix: a
-`isaacbot/` prefix would make the node `/isaacbot/isaacbot_isaacbot_system_node`.
+(`/isaacbot/isaacbot_amr_system_node`, `/isaacbot/isaacbot_amr_imu`). The names carry no namespace prefix: a
+`isaacbot/` prefix would make the node `/isaacbot/isaacbot_amr_isaacbot_amr_system_node`.
 
 | Component (`<ros2_control name>`) | Type | Plugin | Exports |
 |-----------------------------------|------|--------|---------|
-| `isaacbot_system_node` | system | `isaacbot_amr_hardware_interface/ArdennesSystem` | velocity command + position/velocity/effort state per wheel joint; drives the Phidget DCC1000 motor controllers and talks Modbus TCP to the safety controller (E-Stop, GPIO) at `192.168.88.11:502` |
-| `isaacbot_imu` | sensor | `isaacbot_amr_hardware_interface/PhidgetImuSensor` (Phidgets Spatial + Madgwick filter) | `imu/orientation.*`, `imu/angular_velocity.*`, `imu/linear_acceleration.*` |
+| `isaacbot_amr_system_node` | system | `isaacbot_amr_hardware_interface/ArdennesSystem` | velocity command + position/velocity/effort state per wheel joint; drives the Phidget DCC1000 motor controllers and talks Modbus TCP to the safety controller (E-Stop, GPIO) at `192.168.88.11:502` |
+| `isaacbot_amr_imu` | sensor | `isaacbot_amr_hardware_interface/PhidgetImuSensor` (Phidgets Spatial + Madgwick filter) | `imu/orientation.*`, `imu/angular_velocity.*`, `imu/linear_acceleration.*` |
 
 The hardware parameters (Modbus address, timeouts, gear ratio, encoder resolution, …) are the
 `<param>` tags in `urdf/ardennes/ardennes_macro.urdf.xacro` and `urdf/common/imu.urdf.xacro`. With
 `use_sim:=true`, the system uses `gz_ros2_control/GazeboSimSystem` and carries the IMU interfaces
-(fed by the Gazebo IMU sensor), and `isaacbot_imu` has no hardware. gz_ros2_control doesn't pass its
-namespace on to the component node, so in simulation it is `/isaacbot_system_node`.
+(fed by the Gazebo IMU sensor), and `isaacbot_amr_imu` has no hardware. gz_ros2_control doesn't pass its
+namespace on to the component node, so in simulation it is `/isaacbot_amr_system_node`.
 
 ## Frame Conventions
 
@@ -64,7 +64,7 @@ This puts the four wheels at:
 All four wheel joints spin about **`+y`** (`<axis xyz="0 1 0"/>`). That sign is
 deliberate and the same for every wheel: with the contact patch below the hub,
 a positive joint velocity drives the isaacbot **forward** (`+x`). No wheel needs a
-negated axis. `isaacbot_drive_controller`'s `left_wheel_names` are correspondingly the
+negated axis. `isaacbot_amr_drive_controller`'s `left_wheel_names` are correspondingly the
 `+y` pair (`rl`, `fl`) and `right_wheel_names` the `-y` pair (`rr`, `fr`).
 
 `base_footprint` is the root (REP 105): the ground projection of `base_link`. The odometry
@@ -91,26 +91,26 @@ filters publish `odom → base_footprint`, so in 2D mode `odom` stays on the gro
 
 ## Launch Files
 
-- `isaacbot_load_urdf.launch.py` - generates the URDF with xacro and runs `robot_state_publisher`
-  (node `isaacbot_state_publisher_node`, publishing `robot_description` and TF with the
+- `isaacbot_amr_load_urdf.launch.py` - generates the URDF with xacro and runs `robot_state_publisher`
+  (node `isaacbot_amr_state_publisher_node`, publishing `robot_description` and TF with the
   `<namespace>/` frame prefix). `controller_config_path` is required: it is embedded in the URDF
   for `gz_ros2_control`, and `isaacbot_amr_controller.launch.py` supplies it.
 
   | Argument | Default | Description |
   |----------|---------|-------------|
   | `controller_config_path` | (required) | Controller config embedded in the URDF. |
-  | `namespace` | `$ISAACBOT_SYSTEM_NAMESPACE`, else empty | Namespace and TF frame prefix. |
+  | `namespace` | `$ISAACBOT_AMR_SYSTEM_NAMESPACE`, else empty | Namespace and TF frame prefix. |
   | `robot_model` | `$ROBOT_MODEL_NAME`, else `ardennes` | Robot model. |
   | `use_sim` | `False` | Build the simulation variant (`gz_ros2_control`). |
   | `wheel_type` | `wheel_01` | `wheel_01` or `custom`; selects `config/<wheel_type>.yaml`. |
   | `wheel_config_path` | `config/<wheel_type>.yaml` | Wheel geometry file. |
   | `publish_robot_state` | `True` | Start `robot_state_publisher`. |
 
-- `isaacbot_rviz.launch.py` - RViz with `rviz/isaacbot.rviz`. `<namespace>` in the config is
+- `isaacbot_amr_rviz.launch.py` - RViz with `rviz/isaacbot.rviz`. `<namespace>` in the config is
   substituted.
 
   | Argument | Default | Description |
   |----------|---------|-------------|
   | `rviz_config` | `rviz/isaacbot.rviz` | RViz config file. |
-  | `namespace` | `$ISAACBOT_SYSTEM_NAMESPACE`, else empty | Namespace used in the config. |
+  | `namespace` | `$ISAACBOT_AMR_SYSTEM_NAMESPACE`, else empty | Namespace used in the config. |
   | `use_sim` | `False` | Use simulation time. |

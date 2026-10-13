@@ -33,6 +33,6 @@ def test_a_process_exiting_on_its_own_shuts_the_launch_down(returncode):
 # A second Shutdown during teardown makes launch_ros shut its ROS adapter down twice.
 @pytest.mark.parametrize('returncode', [1, 0])
 def test_an_exit_during_shutdown_emits_nothing(returncode):
-    on_exit = shutdown_unless_shutting_down('isaacbot_led_container')
+    on_exit = shutdown_unless_shutting_down('isaacbot_amr_led_container')
     actions = on_exit(SimpleNamespace(returncode=returncode), SimpleNamespace(is_shutdown=True))
     assert actions == []

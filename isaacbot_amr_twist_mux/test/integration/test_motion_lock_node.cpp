@@ -77,7 +77,7 @@ protected:
             rclcpp::Parameter("gpio_timeout", 0.3),
         });
 
-        node_ = std::make_shared<MotionLockNode>("isaacbot_motion_lock_node", options);
+        node_ = std::make_shared<MotionLockNode>("isaacbot_amr_motion_lock_node", options);
 
         executor_.add_node(harness_);
         executor_.add_node(node_);

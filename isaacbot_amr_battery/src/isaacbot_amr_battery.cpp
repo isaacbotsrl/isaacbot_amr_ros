@@ -17,7 +17,7 @@
 
 #include "rclcpp/rclcpp.hpp"
 
-#include "isaacbot_amr_battery/infrastructure/isaacbot_battery_node.hpp"
+#include "isaacbot_amr_battery/infrastructure/isaacbot_amr_battery_node.hpp"
 
 int main(int argc, char ** argv)
 {
@@ -28,12 +28,12 @@ int main(int argc, char ** argv)
 
     try {
         // Construction can throw on an invalid parameter override.
-        auto isaacbot_battery_node =
-            std::make_shared<isaacbot_amr_battery::IsaacbotBatteryNode>("isaacbot_battery_node");
+        auto isaacbot_amr_battery_node =
+            std::make_shared<isaacbot_amr_battery::IsaacbotBatteryNode>("isaacbot_amr_battery_node");
 
-        isaacbot_battery_node->init();
+        isaacbot_amr_battery_node->init();
 
-        rclcpp::spin(isaacbot_battery_node);
+        rclcpp::spin(isaacbot_amr_battery_node);
     } catch (const std::exception & e) {
         RCLCPP_FATAL(logger, "Caught exception: %s", e.what());
         exit_code = 1;

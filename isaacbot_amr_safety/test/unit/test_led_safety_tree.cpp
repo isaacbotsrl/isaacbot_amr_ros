@@ -130,7 +130,7 @@ const std::vector<unsigned> kBatteryIds{
     LedAnimationMsg::CRITICAL_BATTERY, LedAnimationMsg::BATTERY_NOMINAL};
 
 /**
- * Ticks the shipped IsaacbotLedSafety tree (IsaacbotLedSafetyBT.btproj) the way isaacbot_led_safety_node
+ * Ticks the shipped IsaacbotLedSafety tree (IsaacbotLedSafetyBT.btproj) the way isaacbot_amr_led_safety_node
  * does: blackboard filled like createLedInitialBlackboard(), inputs written like its subscription
  * callbacks (raw entries and led_* verdicts), ticked at 10 Hz. Only led/set_animation is replaced.
  */
@@ -142,7 +142,7 @@ protected:
         // Plugins first, then the project, like registerBehaviorTree().
         factory_.registerNodeType<isaacbot_amr_safety::SafetyBtTickAfterTimeout>("SafetyBtTickAfterTimeout");
         factory_.registerNodeType<RecordingSetLedAnimation>("CallSetLedAnimationService", &calls_);
-        factory_.registerBehaviorTreeFromFile(ISAACBOT_SAFETY_LED_BT_PROJECT);
+        factory_.registerBehaviorTreeFromFile(ISAACBOT_AMR_SAFETY_LED_BT_PROJECT);
     }
 
     /** A fresh tree, as after the node's configure. */

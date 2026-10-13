@@ -23,14 +23,14 @@ int main(int argc, char ** argv)
     rclcpp::init(argc, argv);
 
     auto led_safety_node =
-    std::make_shared<isaacbot_amr_safety::LedSafetyNode>("isaacbot_led_safety_node");
+    std::make_shared<isaacbot_amr_safety::LedSafetyNode>("isaacbot_amr_led_safety_node");
     try {
         rclcpp::spin(led_safety_node->get_node_base_interface());
     } catch (const std::runtime_error & err) {
-        std::cerr << "[isaacbot_led_safety_node] Caught exception: " << err.what() << std::endl;
+        std::cerr << "[isaacbot_amr_led_safety_node] Caught exception: " << err.what() << std::endl;
     }
 
-    std::cout << "[isaacbot_led_safety_node] Shutting down" << std::endl;
+    std::cout << "[isaacbot_amr_led_safety_node] Shutting down" << std::endl;
     rclcpp::shutdown();
     
     return 0;

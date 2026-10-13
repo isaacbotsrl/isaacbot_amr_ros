@@ -13,8 +13,8 @@
 // limitations under the License.
 
 
-#ifndef ISAACBOT_CRSF_TELEOP_DOMAIN_TELEOP_HEALTH_HPP_
-#define ISAACBOT_CRSF_TELEOP_DOMAIN_TELEOP_HEALTH_HPP_
+#ifndef ISAACBOT_AMR_CRSF_TELEOP_DOMAIN_TELEOP_HEALTH_HPP_
+#define ISAACBOT_AMR_CRSF_TELEOP_DOMAIN_TELEOP_HEALTH_HPP_
 
 #include <string>
 
@@ -44,4 +44,4 @@ HealthReport evaluateTeleopHealth(bool first_frame_received, const LinkHealthSna
 
 }  // namespace isaacbot_amr_crsf_teleop
 
-#endif  // ISAACBOT_CRSF_TELEOP_DOMAIN_TELEOP_HEALTH_HPP_
+#endif  // ISAACBOT_AMR_CRSF_TELEOP_DOMAIN_TELEOP_HEALTH_HPP_

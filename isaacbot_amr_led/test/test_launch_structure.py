@@ -26,7 +26,7 @@ import pytest
 @pytest.fixture
 def led_launch(monkeypatch):
     path = Path(__file__).resolve().parents[1] / 'launch' / 'isaacbot_amr_led.launch.py'
-    spec = importlib.util.spec_from_file_location('isaacbot_led_launch', path)
+    spec = importlib.util.spec_from_file_location('isaacbot_amr_led_launch', path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
 
@@ -59,14 +59,14 @@ def test_one_container_holds_driver_controller_and_both_senders(led_launch):
     _, captured = led_launch
     assert len(captured['containers']) == 1
     container = captured['containers'][0]
-    assert container['name'] == 'isaacbot_led_container'
+    assert container['name'] == 'isaacbot_amr_led_container'
 
     nodes = captured['nodes']
     assert set(nodes) == {
-        'isaacbot_led_driver',
-        'isaacbot_led_controller',
-        'isaacbot_udp_led_channel_1_sender_node',
-        'isaacbot_udp_led_channel_2_sender_node',
+        'isaacbot_amr_led_driver',
+        'isaacbot_amr_led_controller',
+        'isaacbot_amr_udp_led_channel_1_sender_node',
+        'isaacbot_amr_udp_led_channel_2_sender_node',
     }
     assert ({id(node) for _, node, _ in nodes.values()}
             == {id(node) for node in container['composable_node_descriptions']})
@@ -74,13 +74,13 @@ def test_one_container_holds_driver_controller_and_both_senders(led_launch):
         assert {'use_intra_process_comms': True} in kwargs['extra_arguments']
 
 
-def test_transition_event_topics_drop_the_isaacbot_prefix(led_launch):
-    # Topic names carry no isaacbot_ prefix; the nodes keep theirs.
+def test_transition_event_topics_drop_the_isaacbot_amr_prefix(led_launch):
+    # Topic names carry no isaacbot_amr_ prefix; the nodes keep theirs.
     _, captured = led_launch
-    for name in ('isaacbot_led_driver', 'isaacbot_udp_led_channel_1_sender_node',
-                 'isaacbot_udp_led_channel_2_sender_node'):
+    for name in ('isaacbot_amr_led_driver', 'isaacbot_amr_udp_led_channel_1_sender_node',
+                 'isaacbot_amr_udp_led_channel_2_sender_node'):
         _, _, kwargs = captured['nodes'][name]
-        topic = name.removeprefix('isaacbot_') + '/transition_event'
+        topic = name.removeprefix('isaacbot_amr_') + '/transition_event'
         assert ('~/transition_event', topic) in kwargs['remappings']
 
 
@@ -88,7 +88,7 @@ def test_transition_event_topics_drop_the_isaacbot_prefix(led_launch):
 @pytest.mark.parametrize('use_sim', ['False', 'True'])
 def test_udp_sender_feeds_its_channel_on_hardware_only(led_launch, channel, use_sim):
     module, captured = led_launch
-    _, _, kwargs = captured['nodes'][f'isaacbot_udp_led_channel_{channel}_sender_node']
+    _, _, kwargs = captured['nodes'][f'isaacbot_amr_udp_led_channel_{channel}_sender_node']
 
     assert kwargs['package'] == 'isaacbot_amr_udp_driver'
     assert kwargs['plugin'] == 'isaacbot::transport::udp::UdpSenderNode'

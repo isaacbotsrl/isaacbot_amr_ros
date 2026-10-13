@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_BATTERY_DOMAIN_BATTERY_REPORT_HPP_
-#define ISAACBOT_BATTERY_DOMAIN_BATTERY_REPORT_HPP_
+#ifndef ISAACBOT_AMR_BATTERY_DOMAIN_BATTERY_REPORT_HPP_
+#define ISAACBOT_AMR_BATTERY_DOMAIN_BATTERY_REPORT_HPP_
 
 #include <string>
 #include <vector>
@@ -92,4 +92,4 @@ struct BatteryReport
 
 }  // namespace isaacbot_amr_battery::domain
 
-#endif  // ISAACBOT_BATTERY_DOMAIN_BATTERY_REPORT_HPP_
+#endif  // ISAACBOT_AMR_BATTERY_DOMAIN_BATTERY_REPORT_HPP_

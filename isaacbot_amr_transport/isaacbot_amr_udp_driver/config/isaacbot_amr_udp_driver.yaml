@@ -1,4 +1,4 @@
-# Example parameters for isaacbot_udp_receiver_node / isaacbot_udp_sender_node.
+# Example parameters for isaacbot_amr_udp_receiver_node / isaacbot_amr_udp_sender_node.
 #
 # Carried over from transport_drivers' udp_driver/params/udp_params.yml (v1.2.0).
 # Parameter names are unchanged from upstream.

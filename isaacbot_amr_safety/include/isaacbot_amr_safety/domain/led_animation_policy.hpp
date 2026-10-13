@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_SAFETY_DOMAIN_LED_ANIMATION_POLICY_HPP_
-#define ISAACBOT_SAFETY_DOMAIN_LED_ANIMATION_POLICY_HPP_
+#ifndef ISAACBOT_AMR_SAFETY_DOMAIN_LED_ANIMATION_POLICY_HPP_
+#define ISAACBOT_AMR_SAFETY_DOMAIN_LED_ANIMATION_POLICY_HPP_
 
 #include <cstdint>
 #include <string>
@@ -104,11 +104,11 @@ std::string roundChargingPercent(double battery_percent, float charging_anim_ste
  *    else None (FULL counts as charging for the battery channel only);
  *  - battery: charging or full -> Charging, discharging or not charging -> Discharging, else None;
  *  - levels compare the percentage as a float, so a NaN percentage selects none of them.
- * It reproduces the BehaviorTree.CPP script expressions isaacbot_led_safety.xml used to evaluate.
+ * It reproduces the BehaviorTree.CPP script expressions isaacbot_amr_led_safety.xml used to evaluate.
  */
 LedAnimationDecision evaluateLedAnimation(
     const LedSafetyInputs & inputs, const LedBatteryThresholds & thresholds);
 
 }  // namespace isaacbot_amr_safety::domain
 
-#endif  // ISAACBOT_SAFETY_DOMAIN_LED_ANIMATION_POLICY_HPP_
+#endif  // ISAACBOT_AMR_SAFETY_DOMAIN_LED_ANIMATION_POLICY_HPP_

@@ -118,7 +118,7 @@ safety:
     command:
       type: string
       default_value: ""
-      description: Bash command that powers off the ROS controller, run as the last step of the shutdown tree. Empty runs the installed shutdown_ros_controller.sh with --no-e-stop. The shutdown reason is exported as ISAACBOT_SHUTDOWN_REASON.
+      description: Bash command that powers off the ROS controller, run as the last step of the shutdown tree. Empty runs the installed shutdown_ros_controller.sh with --no-e-stop. The shutdown reason is exported as ISAACBOT_AMR_SHUTDOWN_REASON.
       read_only: true
 
     command_timeout:

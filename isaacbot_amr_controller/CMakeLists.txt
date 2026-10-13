@@ -25,7 +25,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
   pid_controller::pid_controller
   pluginlib::pluginlib
   realtime_tools::realtime_tools)
-pluginlib_export_plugin_description_file(controller_interface isaacbot_controller_plugins.xml)
+pluginlib_export_plugin_description_file(controller_interface isaacbot_amr_controller_plugins.xml)
 
 install(TARGETS ${PROJECT_NAME}
   EXPORT export_${PROJECT_NAME}

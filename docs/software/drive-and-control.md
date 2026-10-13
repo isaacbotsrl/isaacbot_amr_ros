@@ -10,21 +10,21 @@ ROS names on this page are relative to the robot namespace `isaacbot`. For examp
 flowchart LR
   RC["teleop_elrs_cmd_vel_stamped<br/>(RC, 110)"] --> MUX
   FG["teleop_foxglove_cmd_vel_stamped<br/>(Foxglove, 100)"] --> MUX
-  UI["teleop_driver_interface_cmd_vel_stamped"] --> FR["isaacbot_command_freshness_node"]
+  UI["teleop_driver_interface_cmd_vel_stamped"] --> FR["isaacbot_amr_command_freshness_node"]
   FR -->|"..._fresh_stamped (8)"| MUX
   NAV["nav_cmd_vel_stamped<br/>(Nav 2, 5)"] --> MUX
-  ML["isaacbot_motion_lock_node"] -->|"motion_lock (lock, 200)"| MUX
-  MUX["twist_mux<br/>isaacbot_twist_mux_node"] -->|"cmd_vel"| DD["isaacbot_drive_controller<br/>(diff_drive)"]
+  ML["isaacbot_amr_motion_lock_node"] -->|"motion_lock (lock, 200)"| MUX
+  MUX["twist_mux<br/>isaacbot_amr_twist_mux_node"] -->|"cmd_vel"| DD["isaacbot_amr_drive_controller<br/>(diff_drive)"]
   DD --> P1["4x SeededPidController<br/>(one per wheel)"]
   P1 --> HW["ArdennesSystem<br/>(4x DCC1000)"]
   HW -->|"wheel velocity"| P1
   P1 -->|"measured velocity"| DD
-  DD -->|"odometry/wheels"| EKF["isaacbot_ekf_node"]
+  DD -->|"odometry/wheels"| EKF["isaacbot_amr_ekf_node"]
 ```
 
-1. **`twist_mux`** (`isaacbot_twist_mux_node`) is the only publisher of `cmd_vel`. The highest-priority fresh input wins.
-2. **`isaacbot_motion_lock_node`** closes the mux on any E-Stop or stale safety state. **`isaacbot_command_freshness_node`** drops Driver UI commands that arrive late.
-3. **`isaacbot_drive_controller`** (`diff_drive_controller/DiffDriveController`) turns `cmd_vel` into left and right wheel speeds and publishes wheel odometry.
+1. **`twist_mux`** (`isaacbot_amr_twist_mux_node`) is the only publisher of `cmd_vel`. The highest-priority fresh input wins.
+2. **`isaacbot_amr_motion_lock_node`** closes the mux on any E-Stop or stale safety state. **`isaacbot_amr_command_freshness_node`** drops Driver UI commands that arrive late.
+3. **`isaacbot_amr_drive_controller`** (`diff_drive_controller/DiffDriveController`) turns `cmd_vel` into left and right wheel speeds and publishes wheel odometry.
 4. **Four `isaacbot_amr_controller/SeededPidController`s** close the speed loop on each wheel's encoder velocity.
 5. **`isaacbot_amr_hardware_interface/ArdennesSystem`** sends the velocity commands to four Phidget DCC1000 motor controllers and owns the safety PLC link.
 
@@ -38,12 +38,12 @@ All inputs are `geometry_msgs/TwistStamped` (`use_stamped: true`). The launch fi
 |---|---|---:|---:|---|
 | `cmd_elrs` | `teleop_elrs_cmd_vel_stamped` | 110 | 0.5 s | ELRS RC teleop (`isaacbot_amr_crsf_teleop`) |
 | `joystick` | `teleop_foxglove_cmd_vel_stamped` | 100 | 0.5 s | Foxglove virtual joystick, calibration tools |
-| `driver_interface` | `teleop_driver_interface_cmd_vel_fresh_stamped` | 8 | 0.3 s | Driver UI, via `isaacbot_command_freshness_node` |
+| `driver_interface` | `teleop_driver_interface_cmd_vel_fresh_stamped` | 8 | 0.3 s | Driver UI, via `isaacbot_amr_command_freshness_node` |
 | `nav` | `nav_cmd_vel_stamped` | 5 | 0.5 s | Nav 2 (orchestrator computer) |
 
 | Lock | Topic | Priority | Timeout | Source |
 |---|---|---:|---:|---|
-| `motion_lock` | `motion_lock` (`std_msgs/Bool`) | 200 | 0.5 s | `isaacbot_motion_lock_node` |
+| `motion_lock` | `motion_lock` (`std_msgs/Bool`) | 200 | 0.5 s | `isaacbot_amr_motion_lock_node` |
 
 An input is masked when its priority is below the lock's, so at 200 an active lock stops every source. A stale lock counts as locked. The RC transmitter has the highest input priority, so the operator with line of sight always has the last word. Nav 2 has the lowest, so any teleop source pre-empts autonomy.
 
@@ -53,7 +53,7 @@ Source: `isaacbot_amr_twist_mux/config/isaacbot_amr_twist_mux.yaml`, `isaacbot_a
 
 ### Motion lock
 
-`isaacbot_motion_lock_node` subscribes to `hardware_interface/safety_status` and `hardware_interface/safety_command_echo` and publishes `motion_lock` at 10 Hz. It is fail-safe closed: the lock is asserted before both topics have arrived, when either is older than `gpio_timeout` (1.0 s), when `link_healthy` is false, or when an enabled stop condition is active.
+`isaacbot_amr_motion_lock_node` subscribes to `hardware_interface/safety_status` and `hardware_interface/safety_command_echo` and publishes `motion_lock` at 10 Hz. It is fail-safe closed: the lock is asserted before both topics have arrived, when either is older than `gpio_timeout` (1.0 s), when `link_healthy` is false, or when an enabled stop condition is active.
 
 | Parameter | Value | Meaning |
 |---|---|---|
@@ -65,11 +65,11 @@ Source: `isaacbot_amr_twist_mux/config/isaacbot_amr_twist_mux.yaml`, `isaacbot_a
 | `use_sw_e_stop_latch_status` | `true` | Latched relay locks |
 | `require_motor_contactor_engaged` | `false` | Contactor open locks (unverified on hardware, off) |
 
-Source: `isaacbot_amr_twist_mux/config/isaacbot_motion_lock.yaml`. See [Safety](../safety.md#motion-gates) for the full gate list.
+Source: `isaacbot_amr_twist_mux/config/isaacbot_amr_motion_lock.yaml`. See [Safety](../safety.md#motion-gates) for the full gate list.
 
 ### Command freshness
 
-The Driver UI's commands cross a websocket, which can hold them during a Wi-Fi stall and deliver them in a burst. `isaacbot_command_freshness_node` tracks the best recent delivery delay (the baseline) and drops any command more than `max_delay` beyond it. Unstamped commands are dropped.
+The Driver UI's commands cross a websocket, which can hold them during a Wi-Fi stall and deliver them in a burst. `isaacbot_amr_command_freshness_node` tracks the best recent delivery delay (the baseline) and drops any command more than `max_delay` beyond it. Unstamped commands are dropped.
 
 | Parameter | Value |
 |---|---|
@@ -81,11 +81,11 @@ The Driver UI's commands cross a websocket, which can hold them during a Wi-Fi s
 
 It reports a `Command freshness` diagnostic, WARN while it is dropping commands.
 
-Source: `isaacbot_amr_twist_mux/config/isaacbot_command_freshness.yaml`, `isaacbot_amr_twist_mux/README.md`.
+Source: `isaacbot_amr_twist_mux/config/isaacbot_amr_command_freshness.yaml`, `isaacbot_amr_twist_mux/README.md`.
 
 ## Kinematic limits
 
-`isaacbot_drive_controller` limits linear and angular velocity independently.
+`isaacbot_amr_drive_controller` limits linear and angular velocity independently.
 
 | Limit | Value |
 |---|---|
@@ -112,12 +112,12 @@ Because the two axes are limited separately, the outer wheel's rim speed can rea
 | Component | Rate | Note |
 |---|---|---|
 | `controller_manager` | 25 Hz | `read()` / `write()` cycle. 25 Hz, not 50: at 50 Hz 22-24 % of the velocity commands were dropped (see the `command path` diagnostic) |
-| Wheel PIDs, `isaacbot_drive_controller` | 25 Hz | Odometry published every update |
-| `isaacbot_imu_broadcaster` | 25 Hz | The manager's rate; the EKF runs at 50 Hz and predicts between samples |
-| `isaacbot_joint_state_broadcaster` | 25 Hz | The manager's rate; the encoders are 10 Hz |
+| Wheel PIDs, `isaacbot_amr_drive_controller` | 25 Hz | Odometry published every update |
+| `isaacbot_amr_imu_broadcaster` | 25 Hz | The manager's rate; the EKF runs at 50 Hz and predicts between samples |
+| `isaacbot_amr_joint_state_broadcaster` | 25 Hz | The manager's rate; the encoders are 10 Hz |
 | Motor driver state, safety topics | 20 Hz | `driver_states_update_frequency` |
 | Encoder updates (DCC1000) | 10 Hz (every 100 ms at most) | |
-| EKF (`isaacbot_ekf_node`) | 50 Hz | |
+| EKF (`isaacbot_amr_ekf_node`) | 50 Hz | |
 
 Every controller rate must divide the manager's 50 Hz (`isaacbot_amr_controller/test/test_wheel_geometry.py`).
 
@@ -139,7 +139,7 @@ Source: `isaacbot_amr_controller/config/wheel_01_controller.yaml`, `isaacbot_amr
 
 ## Odometry
 
-`isaacbot_drive_controller` publishes wheel odometry on `odometry/wheels` (frame `odom` to `base_footprint`) and **does not publish TF** (`enable_odom_tf: false`). The EKF in `isaacbot_amr_localization` (`isaacbot_ekf_node`, `robot_localization`) fuses the wheel body velocities (vx, vy) with the IMU yaw rate, publishes the `odom` → `base_footprint` transform and the filtered odometry on `odom`.
+`isaacbot_amr_drive_controller` publishes wheel odometry on `odometry/wheels` (frame `odom` to `base_footprint`) and **does not publish TF** (`enable_odom_tf: false`). The EKF in `isaacbot_amr_localization` (`isaacbot_amr_ekf_node`, `robot_localization`) fuses the wheel body velocities (vx, vy) with the IMU yaw rate, publishes the `odom` → `base_footprint` transform and the filtered odometry on `odom`.
 
 | Item | Value |
 |---|---|
@@ -214,7 +214,7 @@ Details: [isaacbot_amr_controller README](https://github.com/isaacbotsrl/isaacbo
 
 ## Calibration tools
 
-Both tools publish on the Foxglove input `teleop_foxglove_cmd_vel_stamped` (priority 100), so the motion lock still gates them. They print their plan and only move the isaacbot with `-p enable_motion:=true`. Results go to `~/isaacbot_calibration/<tool>_<timestamp>/` (`summary.yaml` and raw samples).
+Both tools publish on the Foxglove input `teleop_foxglove_cmd_vel_stamped` (priority 100), so the motion lock still gates them. They print their plan and only move the isaacbot with `-p enable_motion:=true`. Results go to `~/isaacbot_amr_calibration/<tool>_<timestamp>/` (`summary.yaml` and raw samples).
 
 !!! danger
     These tools drive the isaacbot. Lift the wheels for the first run, keep the area clear, and keep the hardware E-Stop in reach.

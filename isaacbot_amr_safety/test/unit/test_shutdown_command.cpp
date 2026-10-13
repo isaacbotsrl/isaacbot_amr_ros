@@ -53,7 +53,7 @@ TEST(ShutdownCommand, QuotesPlainAndSpecialCharacters)
 TEST(ShutdownCommand, ReasonReachesTheCommandVerbatim)
 {
     const std::string reason = "Battery at 61.5 C; $(echo injected) `echo injected` \"quoted\" it's";
-    const auto command = buildShutdownCommand("printf '%s' \"$ISAACBOT_SHUTDOWN_REASON\"", reason);
+    const auto command = buildShutdownCommand("printf '%s' \"$ISAACBOT_AMR_SHUTDOWN_REASON\"", reason);
 
     EXPECT_EQ(runBash(command), reason);
 }

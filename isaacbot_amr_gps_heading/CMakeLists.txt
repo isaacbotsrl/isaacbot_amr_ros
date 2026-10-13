@@ -39,7 +39,7 @@ target_include_directories(${PROJECT_NAME}_core PUBLIC
 add_library(${PROJECT_NAME}_ros STATIC
             src/infrastructure/gps_msg_conversions.cpp
             src/infrastructure/ros2_heading_publisher.cpp
-            src/infrastructure/isaacbot_gps_heading_node.cpp
+            src/infrastructure/isaacbot_amr_gps_heading_node.cpp
 )
 target_link_libraries(${PROJECT_NAME}_ros ${PROJECT_NAME}_core)
 target_include_directories(${PROJECT_NAME}_ros PUBLIC ${isaacbot_amr_utils_INCLUDE_DIRS})
@@ -76,9 +76,9 @@ if(BUILD_TESTING)
   ament_add_gtest(test_gps_msg_conversions test/unit/test_gps_msg_conversions.cpp)
   target_link_libraries(test_gps_msg_conversions ${PROJECT_NAME}_ros)
 
-  ament_add_gtest(test_isaacbot_gps_heading_node test/integration/test_isaacbot_gps_heading_node.cpp
+  ament_add_gtest(test_isaacbot_amr_gps_heading_node test/integration/test_isaacbot_amr_gps_heading_node.cpp
                   TIMEOUT 60)
-  target_link_libraries(test_isaacbot_gps_heading_node ${PROJECT_NAME}_ros)
+  target_link_libraries(test_isaacbot_amr_gps_heading_node ${PROJECT_NAME}_ros)
 endif()
 
 ament_export_dependencies(${PACKAGE_DEPENDENCIES})

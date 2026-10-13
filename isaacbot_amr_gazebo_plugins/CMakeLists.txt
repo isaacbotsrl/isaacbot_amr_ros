@@ -28,9 +28,9 @@ set(CMAKE_AUTORCC ON)
 # gz-gui loads lib<Name>.so and its QML from qrc:/<Name>/<Name>.qml, so the library, the class
 # and the QML file share one name.
 add_library(IsaacbotSafetyPanel SHARED
-  src/isaacbot_safety_panel/IsaacbotSafetyPanel.cc
-  src/isaacbot_safety_panel/IsaacbotSafetyPanel.hh
-  src/isaacbot_safety_panel/IsaacbotSafetyPanel.qrc
+  src/isaacbot_amr_safety_panel/IsaacbotSafetyPanel.cc
+  src/isaacbot_amr_safety_panel/IsaacbotSafetyPanel.hh
+  src/isaacbot_amr_safety_panel/IsaacbotSafetyPanel.qrc
 )
 target_compile_features(IsaacbotSafetyPanel PRIVATE cxx_std_17)
 target_link_libraries(IsaacbotSafetyPanel PRIVATE

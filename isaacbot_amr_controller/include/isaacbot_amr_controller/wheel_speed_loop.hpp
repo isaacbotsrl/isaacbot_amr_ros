@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_CONTROLLER__WHEEL_SPEED_LOOP_HPP_
-#define ISAACBOT_CONTROLLER__WHEEL_SPEED_LOOP_HPP_
+#ifndef ISAACBOT_AMR_CONTROLLER__WHEEL_SPEED_LOOP_HPP_
+#define ISAACBOT_AMR_CONTROLLER__WHEEL_SPEED_LOOP_HPP_
 
 #include <cstddef>
 #include <limits>
@@ -137,4 +137,4 @@ private:
 
 }  // namespace isaacbot_amr_controller
 
-#endif  // ISAACBOT_CONTROLLER__WHEEL_SPEED_LOOP_HPP_
+#endif  // ISAACBOT_AMR_CONTROLLER__WHEEL_SPEED_LOOP_HPP_

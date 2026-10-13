@@ -287,7 +287,7 @@ if(BUILD_TESTING)
     ament_add_gtest(test_led_safety_tree test/unit/test_led_safety_tree.cpp
                     TIMEOUT 60)
     target_compile_definitions(test_led_safety_tree PRIVATE
-        ISAACBOT_SAFETY_LED_BT_PROJECT="${CMAKE_CURRENT_SOURCE_DIR}/behavior_trees/IsaacbotLedSafetyBT.btproj")
+        ISAACBOT_AMR_SAFETY_LED_BT_PROJECT="${CMAKE_CURRENT_SOURCE_DIR}/behavior_trees/IsaacbotLedSafetyBT.btproj")
     target_link_libraries(test_led_safety_tree
         tick_after_timeout_bt_node
         ${PROJECT_NAME}_core
@@ -335,9 +335,9 @@ if(BUILD_TESTING)
                     APPEND_LIBRARY_DIRS ${CMAKE_CURRENT_BINARY_DIR})
     add_dependencies(test_shutdown_tree ${plugin_libs})
     target_compile_definitions(test_shutdown_tree PRIVATE
-        ISAACBOT_SAFETY_BT_PROJECT="${CMAKE_CURRENT_SOURCE_DIR}/behavior_trees/IsaacbotSafetyBT.btproj"
-        ISAACBOT_SAFETY_CONFIG="${CMAKE_CURRENT_SOURCE_DIR}/config/isaacbot_amr_safety.yaml"
-        ISAACBOT_SAFETY_SHUTDOWN_HOSTS="${CMAKE_CURRENT_SOURCE_DIR}/config/shutdown_hosts.yaml")
+        ISAACBOT_AMR_SAFETY_BT_PROJECT="${CMAKE_CURRENT_SOURCE_DIR}/behavior_trees/IsaacbotSafetyBT.btproj"
+        ISAACBOT_AMR_SAFETY_CONFIG="${CMAKE_CURRENT_SOURCE_DIR}/config/isaacbot_amr_safety.yaml"
+        ISAACBOT_AMR_SAFETY_SHUTDOWN_HOSTS="${CMAKE_CURRENT_SOURCE_DIR}/config/shutdown_hosts.yaml")
     target_link_libraries(test_shutdown_tree
         ${behaviortree_cpp_TARGETS}
         ${nav2_behavior_tree_TARGETS}
@@ -348,7 +348,7 @@ if(BUILD_TESTING)
         yaml-cpp
     )
 
-    # The real isaacbot_safety_node, in-process, against a fake hardware interface.
+    # The real isaacbot_amr_safety_node, in-process, against a fake hardware interface.
     ament_add_gtest(test_safety_node_shutdown
                     test/integration/test_safety_node_shutdown.cpp
                     src/safety_node.cpp
@@ -356,7 +356,7 @@ if(BUILD_TESTING)
                     APPEND_LIBRARY_DIRS ${CMAKE_CURRENT_BINARY_DIR})
     add_dependencies(test_safety_node_shutdown ${plugin_libs})
     target_compile_definitions(test_safety_node_shutdown PRIVATE
-        ISAACBOT_SAFETY_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+        ISAACBOT_AMR_SAFETY_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
     target_include_directories(test_safety_node_shutdown PRIVATE ${isaacbot_amr_utils_INCLUDE_DIRS})
     target_link_libraries(test_safety_node_shutdown
         nav2_ros_common::nav2_ros_common
@@ -374,7 +374,7 @@ if(BUILD_TESTING)
         ${PROJECT_NAME}_shutdown_command
     )
 
-    # The real isaacbot_led_safety_node, in-process, started before its led/set_animation server.
+    # The real isaacbot_amr_led_safety_node, in-process, started before its led/set_animation server.
     ament_add_gtest(test_led_safety_configure_retry
                     test/integration/test_led_safety_configure_retry.cpp
                     src/led_safety_node.cpp
@@ -382,7 +382,7 @@ if(BUILD_TESTING)
                     APPEND_LIBRARY_DIRS ${CMAKE_CURRENT_BINARY_DIR})
     add_dependencies(test_led_safety_configure_retry ${plugin_libs})
     target_compile_definitions(test_led_safety_configure_retry PRIVATE
-        ISAACBOT_SAFETY_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+        ISAACBOT_AMR_SAFETY_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
     target_include_directories(test_led_safety_configure_retry PRIVATE ${isaacbot_amr_utils_INCLUDE_DIRS})
     target_link_libraries(test_led_safety_configure_retry
         nav2_ros_common::nav2_ros_common
@@ -398,7 +398,7 @@ if(BUILD_TESTING)
         ${PROJECT_NAME}_configure_retry
     )
 
-    # The real isaacbot_led_safety_node, in-process, against a fake LED controller.
+    # The real isaacbot_amr_led_safety_node, in-process, against a fake LED controller.
     ament_add_gtest(test_led_safety_node_animations
                     test/integration/test_led_safety_node_animations.cpp
                     src/led_safety_node.cpp
@@ -406,7 +406,7 @@ if(BUILD_TESTING)
                     APPEND_LIBRARY_DIRS ${CMAKE_CURRENT_BINARY_DIR})
     add_dependencies(test_led_safety_node_animations ${plugin_libs})
     target_compile_definitions(test_led_safety_node_animations PRIVATE
-        ISAACBOT_SAFETY_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+        ISAACBOT_AMR_SAFETY_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
     target_include_directories(test_led_safety_node_animations PRIVATE ${isaacbot_amr_utils_INCLUDE_DIRS})
     target_link_libraries(test_led_safety_node_animations
         nav2_ros_common::nav2_ros_common

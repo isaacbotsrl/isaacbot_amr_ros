@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_HARDWARE_INTERFACE_DOMAIN_VELOCITY_COMMAND_GUARD_HPP_
-#define ISAACBOT_HARDWARE_INTERFACE_DOMAIN_VELOCITY_COMMAND_GUARD_HPP_
+#ifndef ISAACBOT_AMR_HARDWARE_INTERFACE_DOMAIN_VELOCITY_COMMAND_GUARD_HPP_
+#define ISAACBOT_AMR_HARDWARE_INTERFACE_DOMAIN_VELOCITY_COMMAND_GUARD_HPP_
 
 #include <vector>
 
@@ -60,4 +60,4 @@ bool areVelocitiesWithinTolerance(const std::vector<double> & commands, const do
 
 }  // namespace isaacbot_amr_hardware_interface
 
-#endif  // ISAACBOT_HARDWARE_INTERFACE_DOMAIN_VELOCITY_COMMAND_GUARD_HPP_
+#endif  // ISAACBOT_AMR_HARDWARE_INTERFACE_DOMAIN_VELOCITY_COMMAND_GUARD_HPP_

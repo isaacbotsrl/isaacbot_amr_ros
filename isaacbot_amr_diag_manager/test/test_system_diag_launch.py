@@ -50,7 +50,7 @@ def _aggregator_files(module, nodes, use_gps, use_lidar):
     context = LaunchContext()
     context.launch_configurations.update(use_gps=use_gps, use_lidar=use_lidar)
     setup.execute(context)
-    parameters = nodes['isaacbot_diagnostic_aggregator']['parameters']
+    parameters = nodes['isaacbot_amr_diagnostic_aggregator']['parameters']
     # The first entry is the base file (a launch argument); the rest are the optional groups.
     return [p.substitutions[-1][0].text for p in parameters[1:]]
 

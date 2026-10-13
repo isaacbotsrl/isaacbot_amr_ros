@@ -29,7 +29,7 @@ int main(int argc, char ** argv)
     try {
         // Construction can throw on an invalid parameter override.
         auto command_freshness_node =
-            std::make_shared<isaacbot_amr_twist_mux::CommandFreshnessNode>("isaacbot_command_freshness_node");
+            std::make_shared<isaacbot_amr_twist_mux::CommandFreshnessNode>("isaacbot_amr_command_freshness_node");
 
         rclcpp::spin(command_freshness_node);
     } catch (const std::exception & e) {

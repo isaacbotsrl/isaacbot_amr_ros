@@ -76,7 +76,7 @@ These come from reading the code while writing the manual. They are not document
 - The software motor-driver-fault input (`COIL_3`) is only asserted during start-up; nothing
   asserts it at runtime.
 - The Foxglove layout (`isaacbot_amr_foxglove/`) uses topics the bridge whitelist in
-  `isaacbot_amr_bringup/launch/isaacbot_web_bridges.launch.py` leaves out, among them its joystick topic
+  `isaacbot_amr_bringup/launch/isaacbot_amr_web_bridges.launch.py` leaves out, among them its joystick topic
   `teleop_foxglove_cmd_vel_stamped`. The whitelist is deliberate: the web joystick goes through
   `teleop_web_cmd_vel_stamped` and `rover_drive_mode`. The layout should follow, or those panels
-  stay empty unless `ISAACBOT_PLATFORM_FOXGLOVE_TOPIC_WHITELIST` is opened.
+  stay empty unless `ISAACBOT_AMR_PLATFORM_FOXGLOVE_TOPIC_WHITELIST` is opened.

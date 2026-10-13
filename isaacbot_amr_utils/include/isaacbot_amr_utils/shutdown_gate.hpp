@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_UTILS_ISAACBOT_UTILS_SHUTDOWN_GATE_HPP_
-#define ISAACBOT_UTILS_ISAACBOT_UTILS_SHUTDOWN_GATE_HPP_
+#ifndef ISAACBOT_AMR_UTILS_ISAACBOT_AMR_UTILS_SHUTDOWN_GATE_HPP_
+#define ISAACBOT_AMR_UTILS_ISAACBOT_AMR_UTILS_SHUTDOWN_GATE_HPP_
 
 #include <atomic>
 #include <functional>
@@ -68,4 +68,4 @@ private:
 
 }  // namespace isaacbot_amr_utils::ros
 
-#endif  // ISAACBOT_UTILS_ISAACBOT_UTILS_SHUTDOWN_GATE_HPP_
+#endif  // ISAACBOT_AMR_UTILS_ISAACBOT_AMR_UTILS_SHUTDOWN_GATE_HPP_

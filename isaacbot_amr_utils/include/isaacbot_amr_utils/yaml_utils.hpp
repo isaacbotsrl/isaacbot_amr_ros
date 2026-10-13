@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_UTILS_YAML_UTILS_HPP_
-#define ISAACBOT_UTILS_YAML_UTILS_HPP_
+#ifndef ISAACBOT_AMR_UTILS_YAML_UTILS_HPP_
+#define ISAACBOT_AMR_UTILS_YAML_UTILS_HPP_
 
 #include <stdexcept>
 #include <string>
@@ -60,4 +60,4 @@ T getYAMLKeyValue(const YAML::Node & description, const std::string & key, const
 
 }  // namespace isaacbot_amr_utils
 
-#endif  // ISAACBOT_UTILS_YAML_UTILS_HPP_
+#endif  // ISAACBOT_AMR_UTILS_YAML_UTILS_HPP_

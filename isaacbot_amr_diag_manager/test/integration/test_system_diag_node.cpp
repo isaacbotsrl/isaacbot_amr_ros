@@ -63,7 +63,7 @@ protected:
         rclcpp::NodeOptions options;
         options.parameter_overrides(overrides);
         diag_node_ = std::make_shared<isaacbot_amr_diag_manager::SystemDiagNode>(
-            "isaacbot_diag_manager_node", std::make_shared<FakeMetricsSource>(), options);
+            "isaacbot_amr_diag_manager_node", std::make_shared<FakeMetricsSource>(), options);
 
         tester_ = std::make_shared<rclcpp::Node>("tester");
         status_sub_ = tester_->create_subscription<SystemStatusMsg>(
@@ -162,7 +162,7 @@ TEST(SystemDiagNodeParameters, RejectsOutOfRangeValues)
         options.parameter_overrides({parameter});
         EXPECT_THROW(
             isaacbot_amr_diag_manager::SystemDiagNode(
-                "isaacbot_diag_manager_node", std::make_shared<FakeMetricsSource>(), options),
+                "isaacbot_amr_diag_manager_node", std::make_shared<FakeMetricsSource>(), options),
             rclcpp::exceptions::InvalidParameterValueException) << parameter.get_name();
     }
 

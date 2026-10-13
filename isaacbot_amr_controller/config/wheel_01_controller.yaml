@@ -1,4 +1,4 @@
-# Wheel-speed loop: isaacbot_drive_controller -> pid_controller_<wheel> -> hardware.
+# Wheel-speed loop: isaacbot_amr_drive_controller -> pid_controller_<wheel> -> hardware.
 # diff_drive writes each PID's reference interface (its wheel names are
 # "<pid controller>/<joint>"), and each PID closes the loop on the encoder velocity.
 # The launch file spawns the PIDs named there together with the drive controller.
@@ -19,9 +19,9 @@
       # `<controller>.node_options_args` are that controller node's own --ros-args.
       # Remap targets are relative, so they follow the controller manager's namespace.
 
-      isaacbot_joint_state_broadcaster:
+      isaacbot_amr_joint_state_broadcaster:
         type: joint_state_broadcaster/JointStateBroadcaster
-        node_options_args: ["-r", "~/transition_event:=_isaacbot_joint_state_broadcaster/transition_event"]
+        node_options_args: ["-r", "~/transition_event:=_isaacbot_amr_joint_state_broadcaster/transition_event"]
    
       pid_controller_rl_wheel_base_to_rl_wheel_joint:
         type: isaacbot_amr_controller/SeededPidController
@@ -39,16 +39,16 @@
         type: isaacbot_amr_controller/SeededPidController
         node_options_args: ["-r", "~/transition_event:=_pid_controller_fr_wheel_base_to_fr_wheel_joint/transition_event"]
             
-      isaacbot_drive_controller:
+      isaacbot_amr_drive_controller:
         type: diff_drive_controller/DiffDriveController
         node_options_args: ["-r", "~/cmd_vel:=cmd_vel",
                             "-r", "~/odom:=odometry/wheels",
-                            "-r", "~/transition_event:=_isaacbot_drive_controller/transition_event"]
+                            "-r", "~/transition_event:=_isaacbot_amr_drive_controller/transition_event"]
       
-      isaacbot_imu_broadcaster:
+      isaacbot_amr_imu_broadcaster:
         type: imu_sensor_broadcaster/IMUSensorBroadcaster
         node_options_args: ["-r", "~/imu:=imu/data",
-                            "-r", "~/transition_event:=_isaacbot_imu_broadcaster/transition_event"]
+                            "-r", "~/transition_event:=_isaacbot_amr_imu_broadcaster/transition_event"]
 
   # Wheel PID gains. Units: rad/s in, rad/s out. Same values on all four wheels except the front-right
   # feedforward (see below). p/i/d were tuned
@@ -101,7 +101,7 @@
   #             spin, 0 straight). Open loop on the ground (2026-10-10) skid scrub eats a constant
   #             ~1.7 rad/s of wheel command in a spin, which the integral otherwise builds to ~1.8
   #             of its 2.1 clamp before the wheels break loose. The body command comes from
-  #             isaacbot_drive_controller's ~/cmd_vel_out (publish_limited_velocity); a command older
+  #             isaacbot_amr_drive_controller's ~/cmd_vel_out (publish_limited_velocity); a command older
   #             than turn_command_timeout (0.2 s) gives none. Never past u_clamp (full duty).
   #             turn_track_width = wheel_separation * wheel_separation_multiplier.
   #             Lane runs 2026-10-11 (ground, 6 s holds, one run each at 0 / 1.0 / 1.8): 1.0 cut the
@@ -263,11 +263,11 @@
   # Re-check after any change here: the debounce counts in the URDF (max_*_errors_count) are in
   # cycles, so 2 now means 80 ms instead of 40 ms, and the 20 Hz driver-state/safety publishing in
   # read() is time-gated, so it keeps its average but with up to 40 ms of jitter.
-  isaacbot_joint_state_broadcaster:
+  isaacbot_amr_joint_state_broadcaster:
     ros__parameters:
       update_rate: 25
 
-  isaacbot_imu_broadcaster:
+  isaacbot_amr_imu_broadcaster:
     ros__parameters:
       update_rate: 25
       sensor_name: "<namespace>/imu"
@@ -276,7 +276,7 @@
       static_covariance_angular_velocity: [1.0e-4, 0.0, 0.0, 0.0, 1.0e-4, 0.0, 0.0, 0.0, 1.0e-4]
       static_covariance_linear_acceleration: [7.6e-4, 0.0, 0.0, 0.0, 7.6e-4, 0.0, 0.0, 0.0, 7.6e-4]
 
-  isaacbot_drive_controller:
+  isaacbot_amr_drive_controller:
     ros__parameters:
       update_rate: 25
 

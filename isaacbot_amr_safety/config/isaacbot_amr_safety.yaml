@@ -1,5 +1,5 @@
 /**:
-  isaacbot_safety_node:
+  isaacbot_amr_safety_node:
     ros__parameters:
       timer_frequency: 10.0
       bt_server_port: 6666

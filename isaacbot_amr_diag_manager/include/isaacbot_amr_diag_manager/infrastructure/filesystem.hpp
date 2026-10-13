@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_DIAG_MANAGER_INFRASTRUCTURE_FILESYSTEM_HPP_
-#define ISAACBOT_DIAG_MANAGER_INFRASTRUCTURE_FILESYSTEM_HPP_
+#ifndef ISAACBOT_AMR_DIAG_MANAGER_INFRASTRUCTURE_FILESYSTEM_HPP_
+#define ISAACBOT_AMR_DIAG_MANAGER_INFRASTRUCTURE_FILESYSTEM_HPP_
 
 #include <cstdint>
 #include <filesystem>
@@ -77,4 +77,4 @@ public:
 
 }  // namespace isaacbot_amr_diag_manager::infrastructure
 
-#endif  // ISAACBOT_DIAG_MANAGER_INFRASTRUCTURE_FILESYSTEM_HPP_
+#endif  // ISAACBOT_AMR_DIAG_MANAGER_INFRASTRUCTURE_FILESYSTEM_HPP_

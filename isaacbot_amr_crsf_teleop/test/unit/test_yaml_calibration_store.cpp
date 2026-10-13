@@ -34,7 +34,7 @@ protected:
     void SetUp() override
     {
         directory_ = std::filesystem::temp_directory_path() /
-                     ("isaacbot_crsf_teleop_store_" +
+                     ("isaacbot_amr_crsf_teleop_store_" +
                       std::to_string(::testing::UnitTest::GetInstance()->random_seed()) + "_" +
                       ::testing::UnitTest::GetInstance()->current_test_info()->name());
         std::filesystem::remove_all(directory_);

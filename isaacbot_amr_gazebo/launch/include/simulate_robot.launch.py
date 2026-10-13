@@ -61,7 +61,7 @@ def generate_launch_description():
     namespace = LaunchConfiguration("namespace")
     declare_namespace_arg = DeclareLaunchArgument(
         "namespace",
-        default_value=EnvironmentVariable("ISAACBOT_SYSTEM_NAMESPACE", default_value=""),
+        default_value=EnvironmentVariable("ISAACBOT_AMR_SYSTEM_NAMESPACE", default_value=""),
         description="Add namespace to all launched nodes.",
     )
 
@@ -69,18 +69,18 @@ def generate_launch_description():
     use_gps = LaunchConfiguration("use_gps")
     declare_use_gps_arg = DeclareLaunchArgument(
         "use_gps",
-        default_value=EnvironmentVariable("ISAACBOT_SYSTEM_USE_GPS", default_value="false"),
+        default_value=EnvironmentVariable("ISAACBOT_AMR_SYSTEM_USE_GPS", default_value="false"),
         description=(
-            "Fuse the simulated GNSS (gps/fix): starts isaacbot_gps_heading_node, "
-            "isaacbot_navsat_transform_node and isaacbot_ekf_global_node, as on the isaacbot."
+            "Fuse the simulated GNSS (gps/fix): starts isaacbot_amr_gps_heading_node, "
+            "isaacbot_amr_navsat_transform_node and isaacbot_amr_ekf_global_node, as on the isaacbot."
         ),
     )
 
     publish_global_tf = LaunchConfiguration("publish_global_tf")
     declare_publish_global_tf_arg = DeclareLaunchArgument(
         "publish_global_tf",
-        default_value=EnvironmentVariable("ISAACBOT_SYSTEM_GPS_MAP_TF", default_value="false"),
-        description="Let isaacbot_ekf_global_node broadcast map -> odom (GPS fusion only).",
+        default_value=EnvironmentVariable("ISAACBOT_AMR_SYSTEM_GPS_MAP_TF", default_value="false"),
+        description="Let isaacbot_amr_ekf_global_node broadcast map -> odom (GPS fusion only).",
     )
 
     robot_model = LaunchConfiguration("robot_model")
@@ -106,7 +106,7 @@ def generate_launch_description():
     ]
     pose = {name: LaunchConfiguration(name) for name in pose_args}
 
-    isaacbot_spawn_robot_launch = IncludeLaunchDescription(
+    isaacbot_amr_spawn_robot_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
                 [FindPackageShare("isaacbot_amr_gazebo"), "launch", "include/spawn_robot.launch.py"]
@@ -120,7 +120,7 @@ def generate_launch_description():
         }.items(),
     )
 
-    isaacbot_controller_launch = IncludeLaunchDescription(
+    isaacbot_amr_controller_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
                 [
@@ -141,7 +141,7 @@ def generate_launch_description():
         }.items(),
     )
 
-    isaacbot_ekf_launch = IncludeLaunchDescription(
+    isaacbot_amr_ekf_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
                 [FindPackageShare("isaacbot_amr_localization"), "launch", "isaacbot_amr_localization.launch.py"]
@@ -159,7 +159,7 @@ def generate_launch_description():
 
     # Command path as on the isaacbot: Nav2 (nav_cmd_vel_stamped) and teleop go through twist_mux
     # to cmd_vel, gated by motion_lock, which the orchestrator's IsMotionLocked BT node needs.
-    isaacbot_twist_mux_launch = IncludeLaunchDescription(
+    isaacbot_amr_twist_mux_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
                 [FindPackageShare("isaacbot_amr_twist_mux"), "launch", "isaacbot_amr_twist_mux.launch.py"]
@@ -172,7 +172,7 @@ def generate_launch_description():
     )
 
     # Stands in for the safety PLC and the hardware interface's E-Stop topics and services, which
-    # isaacbot_motion_lock_node and the drive UI use; the Gazebo "Isaacbot Safety" panel drives it.
+    # isaacbot_amr_motion_lock_node and the drive UI use; the Gazebo "Isaacbot Safety" panel drives it.
     sim_safety_plc = Node(
         package="isaacbot_amr_gazebo",
         executable="sim_safety_plc.py",
@@ -187,7 +187,7 @@ def generate_launch_description():
         replacements={"<namespace>": namespace, "//": "/"},
     )
 
-    isaacbot_gz_bridge = Node(
+    isaacbot_amr_gz_bridge = Node(
         package="ros_gz_bridge",
         executable="parameter_bridge",
         name="gz_bridge",
@@ -201,7 +201,7 @@ def generate_launch_description():
     pointcloud_to_laserscan = Node(
         package="pointcloud_to_laserscan",
         executable="pointcloud_to_laserscan_node",
-        name="isaacbot_rs16_lidar_scan",
+        name="isaacbot_amr_rs16_lidar_scan",
         namespace=namespace,
         parameters=[
             {
@@ -225,7 +225,7 @@ def generate_launch_description():
 
     child_tf = PythonExpression(["'", namespace, "' + '/odom' if '", namespace, "' else 'odom'"])
 
-    isaacbot_world_transform = Node(
+    isaacbot_amr_world_transform = Node(
         package="tf2_ros",
         executable="static_transform_publisher",
         name="static_tf_publisher",
@@ -264,14 +264,14 @@ def generate_launch_description():
         declare_publish_global_tf_arg,
         *declare_pose_args,
         SetUseSimTime(True),
-        isaacbot_spawn_robot_launch,
-        isaacbot_controller_launch,
-        isaacbot_ekf_launch,
-        isaacbot_twist_mux_launch,
+        isaacbot_amr_spawn_robot_launch,
+        isaacbot_amr_controller_launch,
+        isaacbot_amr_ekf_launch,
+        isaacbot_amr_twist_mux_launch,
         sim_safety_plc,
-        isaacbot_gz_bridge,
+        isaacbot_amr_gz_bridge,
         pointcloud_to_laserscan,
-        isaacbot_world_transform,
+        isaacbot_amr_world_transform,
     ]
 
     return LaunchDescription(actions)

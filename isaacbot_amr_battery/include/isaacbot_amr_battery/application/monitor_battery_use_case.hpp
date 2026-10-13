@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_BATTERY_APPLICATION_MONITOR_BATTERY_USE_CASE_HPP_
-#define ISAACBOT_BATTERY_APPLICATION_MONITOR_BATTERY_USE_CASE_HPP_
+#ifndef ISAACBOT_AMR_BATTERY_APPLICATION_MONITOR_BATTERY_USE_CASE_HPP_
+#define ISAACBOT_AMR_BATTERY_APPLICATION_MONITOR_BATTERY_USE_CASE_HPP_
 
 #include <cstddef>
 #include <memory>
@@ -51,4 +51,4 @@ private:
 
 }  // namespace isaacbot_amr_battery::application
 
-#endif  // ISAACBOT_BATTERY_APPLICATION_MONITOR_BATTERY_USE_CASE_HPP_
+#endif  // ISAACBOT_AMR_BATTERY_APPLICATION_MONITOR_BATTERY_USE_CASE_HPP_

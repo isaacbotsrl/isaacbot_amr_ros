@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_BATTERY_DOMAIN_BMS_FRAME_HPP_
-#define ISAACBOT_BATTERY_DOMAIN_BMS_FRAME_HPP_
+#ifndef ISAACBOT_AMR_BATTERY_DOMAIN_BMS_FRAME_HPP_
+#define ISAACBOT_AMR_BATTERY_DOMAIN_BMS_FRAME_HPP_
 
 #include <cstddef>
 #include <cstdint>
@@ -27,7 +27,7 @@ constexpr std::size_t kBmsMaxTempSensors = 16;
 /**
  * @brief BMS telemetry exactly as laid out in the UDP payload.
  * @details The layout is a wire contract with the BMS bridge — the ESP32 firmware
- *          isaacbot_led_bms_ble_controller (Daly100Bms::BmsData, serialised by
+ *          isaacbot_amr_led_bms_ble_controller (Daly100Bms::BmsData, serialised by
  *          BmsTelemetryCodec) — so do not reorder, resize or retype fields without changing
  *          both. The bridge polls the Daly BMS over BLE and has already decoded its raw units
  *          (0.1 V, 0.1 A with 30000 offset, 0.1 %, +40 °C offset — see
@@ -163,4 +163,4 @@ constexpr std::size_t kBmsPayloadSize = sizeof(BmsData) + sizeof(BmsAlarms);
 
 }  // namespace isaacbot_amr_battery::domain
 
-#endif  // ISAACBOT_BATTERY_DOMAIN_BMS_FRAME_HPP_
+#endif  // ISAACBOT_AMR_BATTERY_DOMAIN_BMS_FRAME_HPP_

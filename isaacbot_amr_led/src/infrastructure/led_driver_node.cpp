@@ -44,7 +44,7 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 
 LedDriverNode::LedDriverNode(const rclcpp::NodeOptions & options)
-: LifecycleNode("isaacbot_led_driver", options)
+: LifecycleNode("isaacbot_amr_led_driver", options)
 , shutdown_gate_(this->get_node_base_interface()->get_context(), [this]() { finalizeOnExecutor(); })
 , diagnostic_updater_(this)
 {

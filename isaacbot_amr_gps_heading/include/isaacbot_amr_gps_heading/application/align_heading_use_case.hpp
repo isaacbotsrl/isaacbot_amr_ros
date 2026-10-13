@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_GPS_HEADING_APPLICATION_ALIGN_HEADING_USE_CASE_HPP_
-#define ISAACBOT_GPS_HEADING_APPLICATION_ALIGN_HEADING_USE_CASE_HPP_
+#ifndef ISAACBOT_AMR_GPS_HEADING_APPLICATION_ALIGN_HEADING_USE_CASE_HPP_
+#define ISAACBOT_AMR_GPS_HEADING_APPLICATION_ALIGN_HEADING_USE_CASE_HPP_
 
 #include <memory>
 
@@ -62,4 +62,4 @@ private:
 
 }  // namespace isaacbot_amr_gps_heading::application
 
-#endif  // ISAACBOT_GPS_HEADING_APPLICATION_ALIGN_HEADING_USE_CASE_HPP_
+#endif  // ISAACBOT_AMR_GPS_HEADING_APPLICATION_ALIGN_HEADING_USE_CASE_HPP_

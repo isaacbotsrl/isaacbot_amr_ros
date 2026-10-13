@@ -10,8 +10,8 @@ Custom messages and services of the Ardennes stack.
 | `SafetyStatus` | plant state of the safety chain: HW E-Stop button, motor contactor aux-contact feedback, latch, latch cause, link health | `isaacbot_amr_hardware_interface` → `hardware_interface/safety_status` |
 | `SafetyCommandEcho` | read-backs of the safety coils software drives: SW E-Stop, driver-fault stop, latch-reset pulse, CPU watchdog heartbeat. Diagnostic; may only ever inhibit, never permit | `isaacbot_amr_hardware_interface` → `hardware_interface/safety_command_echo` |
 | `AuxIoState` | general-purpose aux IO on the safety PLC (DIO06..11 inputs, read-back of DIO00..05 outputs), with sample time and link health. Not safety - never gate motion on it | `isaacbot_amr_hardware_interface` → `hardware_interface/aux_io_state` |
-| `IsaacbotDriverState` | header, `DriverStateNamed[]`, overall `error` | `isaacbot_amr_hardware_interface` → `hardware_interface/driver_state` |
-| `DriverStateNamed` | driver name + `DriverState`. The hardware interface fills `rear_left`/`rear_right`/`front_left`/`front_right`; the `NAME_DEFAULT`/`NAME_FRONT`/`NAME_REAR` constants in the message are unused | inside `IsaacbotDriverState` |
+| `IsaacbotAmrDriverState` | header, `DriverStateNamed[]`, overall `error` | `isaacbot_amr_hardware_interface` → `hardware_interface/driver_state` |
+| `DriverStateNamed` | driver name + `DriverState`. The hardware interface fills `rear_left`/`rear_right`/`front_left`/`front_right`; the `NAME_DEFAULT`/`NAME_FRONT`/`NAME_REAR` constants in the message are unused | inside `IsaacbotAmrDriverState` |
 | `DriverState` | current, temperature, `FaultFlag`, `RuntimeError`, data timeout flags | inside `DriverStateNamed` |
 | `FaultFlag` | driver fault bits `emergency_stop`, `motor_setup_fault` | inside `DriverState` |
 | `RuntimeError` | driver runtime error bit `safety_stop_active` | inside `DriverState` |

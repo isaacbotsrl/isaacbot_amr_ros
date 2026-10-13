@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_LED_TEST_UNIT_TEST_HELPERS_HPP_
-#define ISAACBOT_LED_TEST_UNIT_TEST_HELPERS_HPP_
+#ifndef ISAACBOT_AMR_LED_TEST_UNIT_TEST_HELPERS_HPP_
+#define ISAACBOT_AMR_LED_TEST_UNIT_TEST_HELPERS_HPP_
 
 #include <array>
 #include <cstddef>
@@ -120,4 +120,4 @@ inline Rgba pixel(const std::vector<std::uint8_t> & frame, const std::size_t led
 
 }  // namespace isaacbot_amr_led::test
 
-#endif  // ISAACBOT_LED_TEST_UNIT_TEST_HELPERS_HPP_
+#endif  // ISAACBOT_AMR_LED_TEST_UNIT_TEST_HELPERS_HPP_

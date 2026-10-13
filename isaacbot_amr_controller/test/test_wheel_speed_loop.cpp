@@ -33,7 +33,7 @@ using isaacbot_amr_controller::WheelSpeedLoop;
 constexpr double kDt = 0.02;  // the isaacbot's 50 Hz controller rate
 
 // The shipped isaacbot gains (config/wheel_01_controller.yaml, front wheels).
-WheelLoopGains isaacbot_gains(double i_clamp = 0.25)
+WheelLoopGains isaacbot_amr_gains(double i_clamp = 0.25)
 {
   WheelLoopGains g;
   g.p = 0.05;
@@ -113,7 +113,7 @@ WheelLoopOptions delayed_integral()
 TEST(WheelSpeedLoop, DefaultOptionsMatchControlToolboxPid)
 {
   // The upstream loop the isaacbot used until now: feed-forward + control_toolbox::Pid.
-  const auto gains = isaacbot_gains();
+  const auto gains = isaacbot_amr_gains();
   control_toolbox::AntiWindupStrategy strategy;
   strategy.set_type("back_calculation");
   strategy.i_min = gains.i_min;
@@ -138,7 +138,7 @@ TEST(WheelSpeedLoop, LeftoverIntegralKeepsTheOutputOffZeroWithoutTheStopOption)
   // The isaacbot's ground runs: at a zero reference the output stayed at the old integral, so the
   // DCC1000 target was never exactly 0 and the brake never engaged.
   WheelSpeedLoop loop;
-  const auto gains = isaacbot_gains();
+  const auto gains = isaacbot_amr_gains();
   for (int k = 0; k < 100; ++k) {
     loop.update(2.0, 1.5, kDt, gains, WheelLoopOptions{});
   }
@@ -148,7 +148,7 @@ TEST(WheelSpeedLoop, LeftoverIntegralKeepsTheOutputOffZeroWithoutTheStopOption)
 TEST(WheelSpeedLoop, ZeroReferenceGivesExactlyZeroAndClearsTheIntegral)
 {
   WheelSpeedLoop loop;
-  const auto gains = isaacbot_gains(2.0);
+  const auto gains = isaacbot_amr_gains(2.0);
   WheelLoopOptions options;
   options.stop_at_zero_reference = true;
   for (int k = 0; k < 100; ++k) {
@@ -170,7 +170,7 @@ TEST(WheelSpeedLoop, DelayedIntegralCutsStepOvershootWithAWideClamp)
 {
   // A clamp wide enough for skid turns (~2 rad/s) is what made straight steps overshoot on the
   // isaacbot: the raw error integrates through the dead time.
-  const auto gains = isaacbot_gains(2.0);
+  const auto gains = isaacbot_amr_gains(2.0);
   const auto raw = run_step(1.8, 1.0, gains, WheelLoopOptions{});
   const auto delayed = run_step(1.8, 1.0, gains, delayed_integral());
   EXPECT_GT(raw.overshoot, 0.10);
@@ -183,12 +183,12 @@ TEST(WheelSpeedLoop, DelayedIntegralStillRemovesAPersistentLoadError)
 {
   // Skid turn at 1.5 rad/s: only ~70 % of the duty becomes wheel speed (isaacbot, 2026-09-29), so
   // 4.65 rad/s needs ~2 rad/s of integral on top of the feed-forward.
-  const auto gains = isaacbot_gains(2.5);
+  const auto gains = isaacbot_amr_gains(2.5);
   const auto delayed = run_step(4.65, 0.7, gains, delayed_integral(), 6.0);
   EXPECT_NEAR(delayed.final_speed, 4.65, 0.03 * 4.65);
 
   // With the shipped clamp the same turn stays far short, as on the isaacbot.
-  const auto shipped = run_step(4.65, 0.7, isaacbot_gains(0.25), delayed_integral(), 6.0);
+  const auto shipped = run_step(4.65, 0.7, isaacbot_amr_gains(0.25), delayed_integral(), 6.0);
   EXPECT_LT(shipped.final_speed, 0.8 * 4.65);
 }
 
@@ -198,7 +198,7 @@ double speed_when_the_turn_reference_reaches_zero(const WheelLoopOptions & optio
 {
   WheelSpeedLoop loop;
   WheelPlant plant(0.7, 0.15, 0.08);
-  const auto gains = isaacbot_gains(2.0);
+  const auto gains = isaacbot_amr_gains(2.0);
   for (int k = 0; k < static_cast<int>(4.0 / kDt); ++k) {
     plant.step(loop.update(4.65, plant.speed(), kDt, gains, options));
   }
@@ -232,11 +232,11 @@ TEST(WheelSpeedLoop, ScaledIntegralComesBackWhenTheReferenceRecovers)
   WheelLoopOptions options;
   options.scale_integral_with_reference = true;
   for (int k = 0; k < 100; ++k) {
-    loop.update(4.65, 3.5, kDt, isaacbot_gains(2.0), options);
+    loop.update(4.65, 3.5, kDt, isaacbot_amr_gains(2.0), options);
   }
   const double built = loop.integral();
   ASSERT_GT(built, 1.0);
-  auto frozen = isaacbot_gains(2.0);
+  auto frozen = isaacbot_amr_gains(2.0);
   frozen.i = 0.0;  // isolate the scaling from further integration
   for (double reference : {4.5, 4.65, 4.3, 4.1, 4.65, 2.0, 4.65}) {
     loop.update(reference, 3.5, kDt, frozen, options);
@@ -253,10 +253,10 @@ TEST(WheelSpeedLoop, ScaledIntegralIsClearedWhenTheReferenceReverses)
   WheelLoopOptions options;
   options.scale_integral_with_reference = true;
   for (int k = 0; k < 100; ++k) {
-    loop.update(3.0, 2.0, kDt, isaacbot_gains(2.0), options);
+    loop.update(3.0, 2.0, kDt, isaacbot_amr_gains(2.0), options);
   }
   ASSERT_GT(loop.integral(), 1.0);
-  auto frozen = isaacbot_gains(2.0);
+  auto frozen = isaacbot_amr_gains(2.0);
   frozen.i = 0.0;
   loop.update(-0.2, 0.0, kDt, frozen, options);  // through 0 between two cycles
   EXPECT_EQ(loop.integral(), 0.0);
@@ -267,7 +267,7 @@ TEST(WheelSpeedLoop, IntegralReferenceFollowsTheDelayedReference)
   WheelSpeedLoop loop;
   WheelLoopOptions options;
   options.integral_reference_delay = 0.1;  // 5 cycles
-  const auto gains = isaacbot_gains();
+  const auto gains = isaacbot_amr_gains();
   for (int k = 0; k < 5; ++k) {
     loop.update(1.0, 0.0, kDt, gains, options);
     EXPECT_EQ(loop.integral_reference(), 0.0) << "cycle " << k;
@@ -281,7 +281,7 @@ TEST(WheelSpeedLoop, ShortHistoryFallsBackToTheOldestEvictedReference)
   WheelSpeedLoop loop(3);
   WheelLoopOptions options;
   options.integral_reference_delay = 1.0;  // far longer than 3 samples
-  const auto gains = isaacbot_gains();
+  const auto gains = isaacbot_amr_gains();
   loop.update(1.0, 0.0, kDt, gains, options);
   loop.update(2.0, 0.0, kDt, gains, options);
   loop.update(3.0, 0.0, kDt, gains, options);
@@ -293,7 +293,7 @@ TEST(WheelSpeedLoop, ShortHistoryFallsBackToTheOldestEvictedReference)
 TEST(WheelSpeedLoop, NonPositivePeriodRepeatsTheLastCommand)
 {
   WheelSpeedLoop loop;
-  const auto gains = isaacbot_gains();
+  const auto gains = isaacbot_amr_gains();
   const double first = loop.update(1.0, 0.2, kDt, gains, WheelLoopOptions{});
   EXPECT_EQ(loop.update(3.0, 0.0, 0.0, gains, WheelLoopOptions{}), first);
 }
@@ -301,7 +301,7 @@ TEST(WheelSpeedLoop, NonPositivePeriodRepeatsTheLastCommand)
 TEST(WheelSpeedLoop, ResetClearsEverything)
 {
   WheelSpeedLoop loop;
-  const auto gains = isaacbot_gains();
+  const auto gains = isaacbot_amr_gains();
   for (int k = 0; k < 50; ++k) {
     loop.update(1.0, 0.5, kDt, gains, delayed_integral());
   }
@@ -376,7 +376,7 @@ TEST(TurnFeedforward, OffLeavesTheLoopOutputUnchanged)
   // turn_feedforward 0 must be bit-identical to the loop without a body command.
   WheelSpeedLoop with_body;
   WheelSpeedLoop without;
-  const auto gains = isaacbot_gains(2.1);
+  const auto gains = isaacbot_amr_gains(2.1);
   auto options = delayed_integral();
   options.turn_side = 1.0;  // a side, but no feed-forward
   double measured = 0.0;
@@ -391,7 +391,7 @@ TEST(TurnFeedforward, OffLeavesTheLoopOutputUnchanged)
 
 TEST(TurnFeedforward, AddsToTheLoopOutputUpToFullDuty)
 {
-  const auto gains = isaacbot_gains(2.1);
+  const auto gains = isaacbot_amr_gains(2.1);
   {
     WheelSpeedLoop plain;
     WheelSpeedLoop turned;
@@ -456,7 +456,7 @@ SpinResult spin(const WheelLoopOptions & options)
   SpinResult result{std::numeric_limits<double>::infinity(), 0.0, 0.0};
   for (int k = 0; k < static_cast<int>(6.0 / kDt); ++k) {
     const double speed = wheel.step(
-      loop.update(reference, wheel.speed(), kDt, isaacbot_gains(2.1), options, body(0.0, 0.6)));
+      loop.update(reference, wheel.speed(), kDt, isaacbot_amr_gains(2.1), options, body(0.0, 0.6)));
     if (speed >= reference / 2.0 && k * kDt < result.time_to_half) {
       result.time_to_half = k * kDt;
     }

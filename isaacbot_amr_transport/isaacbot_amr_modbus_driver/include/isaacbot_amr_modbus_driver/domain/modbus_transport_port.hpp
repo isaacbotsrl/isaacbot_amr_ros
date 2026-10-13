@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_MODBUS_DRIVER_DOMAIN_MODBUS_TRANSPORT_PORT_HPP_
-#define ISAACBOT_MODBUS_DRIVER_DOMAIN_MODBUS_TRANSPORT_PORT_HPP_
+#ifndef ISAACBOT_AMR_MODBUS_DRIVER_DOMAIN_MODBUS_TRANSPORT_PORT_HPP_
+#define ISAACBOT_AMR_MODBUS_DRIVER_DOMAIN_MODBUS_TRANSPORT_PORT_HPP_
 
 #include "isaacbot_amr_modbus_driver/domain/discrete_transaction.hpp"
 
@@ -55,4 +55,4 @@ public:
 
 }  // namespace isaacbot::transport::modbus
 
-#endif  // ISAACBOT_MODBUS_DRIVER_DOMAIN_MODBUS_TRANSPORT_PORT_HPP_
+#endif  // ISAACBOT_AMR_MODBUS_DRIVER_DOMAIN_MODBUS_TRANSPORT_PORT_HPP_

@@ -31,21 +31,21 @@ from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
     robot_model = LaunchConfiguration("robot_model")
-    isaacbot_led_pkg = FindPackageShare("isaacbot_amr_led")
+    isaacbot_amr_led_pkg = FindPackageShare("isaacbot_amr_led")
     common_dir_path = LaunchConfiguration("common_dir_path")
     declare_common_dir_path_arg = DeclareLaunchArgument(
         "common_dir_path",
         default_value="",
         description="Path to the common configuration directory.",
     )
-    isaacbot_led_common_dir = PythonExpression(
+    isaacbot_amr_led_common_dir = PythonExpression(
         [
             "'",
             common_dir_path,
             "/isaacbot_amr_led' if '",
             common_dir_path,
             "' else '",
-            isaacbot_led_pkg,
+            isaacbot_amr_led_pkg,
             "'",
         ]
     )
@@ -56,7 +56,7 @@ def generate_launch_description():
     declare_animations_config_path_arg = DeclareLaunchArgument(
         "animations_config_path",
         default_value=PathJoinSubstitution(
-            [isaacbot_led_common_dir, "config", animations_config]
+            [isaacbot_amr_led_common_dir, "config", animations_config]
         ),
         description="Path to a YAML file with a description of led configuration.",
     )
@@ -72,7 +72,7 @@ def generate_launch_description():
     namespace = LaunchConfiguration("namespace")
     declare_namespace_arg = DeclareLaunchArgument(
         "namespace",
-        default_value=EnvironmentVariable("ISAACBOT_SYSTEM_NAMESPACE", default_value=""),
+        default_value=EnvironmentVariable("ISAACBOT_AMR_SYSTEM_NAMESPACE", default_value=""),
         description="Add namespace to all launched nodes.",
     )
 
@@ -91,7 +91,7 @@ def generate_launch_description():
     )
 
     driver_config = PythonExpression(["'", robot_model, "_driver.yaml'"])
-    driver_config_path = PathJoinSubstitution([isaacbot_led_pkg, "config", driver_config])
+    driver_config_path = PathJoinSubstitution([isaacbot_amr_led_pkg, "config", driver_config])
 
     # The UDP senders that carry each panel's SK9822 frame to its LED board, one per channel.
     # They run in the LED container, next to the driver that feeds them 50 frames a second each,
@@ -102,12 +102,12 @@ def generate_launch_description():
         ComposableNode(
             package="isaacbot_amr_udp_driver",
             plugin="isaacbot::transport::udp::UdpSenderNode",
-            name=f"isaacbot_udp_led_channel_{channel}_sender_node",
+            name=f"isaacbot_amr_udp_led_channel_{channel}_sender_node",
             namespace=namespace,
             parameters=[
                 PathJoinSubstitution(
                     [
-                        isaacbot_led_pkg,
+                        isaacbot_amr_led_pkg,
                         "config",
                         PythonExpression(
                             ["'", robot_model, f"_udp_led_channel_{channel}.yaml'"]
@@ -116,7 +116,7 @@ def generate_launch_description():
                 ),
                 {"autostart": True},
             ],
-            # Topic names carry no isaacbot_ prefix, so the lifecycle transition_event topic is
+            # Topic names carry no isaacbot_amr_ prefix, so the lifecycle transition_event topic is
             # remapped off the node name (the node keeps it).
             remappings=[
                 ("udp_write", f"udp_write/led_channel_{channel}"),
@@ -134,14 +134,14 @@ def generate_launch_description():
     ]
     led_container = ComposableNodeContainer(
         package="rclcpp_components",
-        name="isaacbot_led_container",
+        name="isaacbot_amr_led_container",
         namespace=namespace,
         executable="component_container",
         composable_node_descriptions=[
             ComposableNode(
                 package="isaacbot_amr_led",
                 plugin="isaacbot_amr_led::LedDriverNode",
-                name="isaacbot_led_driver",
+                name="isaacbot_amr_led_driver",
                 namespace=namespace,
                 remappings=[
                     ("/diagnostics", "diagnostics"),
@@ -156,7 +156,7 @@ def generate_launch_description():
             ComposableNode(
                 package="isaacbot_amr_led",
                 plugin="isaacbot_amr_led::LedControllerNode",
-                name="isaacbot_led_controller",
+                name="isaacbot_amr_led_controller",
                 namespace=namespace,
                 remappings=[("/diagnostics", "diagnostics")],
                 parameters=[
@@ -178,7 +178,7 @@ def generate_launch_description():
             limit_log_level_to_info("pluginlib.ClassLoader", log_level),
         ],
         emulate_tty=True,
-        on_exit=shutdown_unless_shutting_down("isaacbot_led_container"),
+        on_exit=shutdown_unless_shutting_down("isaacbot_amr_led_container"),
     )
 
     actions = [

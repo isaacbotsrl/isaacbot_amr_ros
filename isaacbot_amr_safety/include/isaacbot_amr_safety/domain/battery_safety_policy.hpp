@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_SAFETY_DOMAIN_BATTERY_SAFETY_POLICY_HPP_
-#define ISAACBOT_SAFETY_DOMAIN_BATTERY_SAFETY_POLICY_HPP_
+#ifndef ISAACBOT_AMR_SAFETY_DOMAIN_BATTERY_SAFETY_POLICY_HPP_
+#define ISAACBOT_AMR_SAFETY_DOMAIN_BATTERY_SAFETY_POLICY_HPP_
 
 #include <string>
 
@@ -75,4 +75,4 @@ BatterySafetyDecision evaluateBatterySafety(
 
 }  // namespace isaacbot_amr_safety::domain
 
-#endif  // ISAACBOT_SAFETY_DOMAIN_BATTERY_SAFETY_POLICY_HPP_
+#endif  // ISAACBOT_AMR_SAFETY_DOMAIN_BATTERY_SAFETY_POLICY_HPP_

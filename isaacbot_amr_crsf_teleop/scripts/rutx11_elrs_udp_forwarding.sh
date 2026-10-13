@@ -28,7 +28,7 @@
 #   Services -> Serial Utilities -> add, type "Over IP":
 #     Device: USB RS232 interface      Baud rate: 460800   Data bits: 8   Parity: None
 #     Stop bits: 1                     Flow control: None
-#     Protocol: UDP    Mode: Client    Destination address: ${ISAACBOT_HOST} : ${RC_PORT}
+#     Protocol: UDP    Mode: Client    Destination address: ${ISAACBOT_AMR_HOST} : ${RC_PORT}
 #     Advanced: Raw mode on, Serial timeout 1-2 ms (lowest that still fills datagrams sensibly),
 #               Inactivity timeout 0
 #
@@ -36,7 +36,7 @@
 # driver for the adapter's chip; FTDI or CP210x adapters are the safest choice.
 #
 # Why the firewall rule: CRSF is unauthenticated and the RC input is twist_mux's highest-priority
-# velocity source. isaacbot_crsf_udp_receiver already drops every datagram whose source is not the
+# velocity source. isaacbot_amr_crsf_udp_receiver already drops every datagram whose source is not the
 # router (its source_ip parameter), but the AP network (WWAN, 192.168.77.0/24) shares the router's
 # `lan` zone, so its clients are routed to the isaacbot unhindered; this rule drops them at the
 # router as a second layer. WireGuard peers are already rejected by `VPN-reject-everything-else`
@@ -49,7 +49,7 @@
 # type it at the ssh prompt. Written against RutOS 7.25.2.
 #
 # Environment (defaults):
-#   RUTX11_HOST=192.168.1.1  RUTX11_USER=root  ISAACBOT_HOST=192.168.1.201
+#   RUTX11_HOST=192.168.1.1  RUTX11_USER=root  ISAACBOT_AMR_HOST=192.168.1.201
 #   RC_PORT=10111            AP_SUBNET=192.168.77.0/24
 
 set -euo pipefail
@@ -57,7 +57,7 @@ set -euo pipefail
 MODE="${1:-show}"
 RUTX11_HOST="${RUTX11_HOST:-10.8.0.5}"
 RUTX11_USER="${RUTX11_USER:-root}"
-ISAACBOT_HOST="${ISAACBOT_HOST:-192.168.1.201}"
+ISAACBOT_AMR_HOST="${ISAACBOT_AMR_HOST:-192.168.1.201}"
 RC_PORT="${RC_PORT:-10111}"
 AP_SUBNET="${AP_SUBNET:-192.168.77.0/24}"
 
@@ -74,8 +74,8 @@ usage() {
   echo "RC_PORT must be an integer." >&2
   exit 2
 }
-[[ "$ISAACBOT_HOST" =~ ^[A-Za-z0-9.:-]+$ && "$AP_SUBNET" =~ ^[0-9./]+$ ]] || {
-  echo "ISAACBOT_HOST or AP_SUBNET contains invalid characters." >&2
+[[ "$ISAACBOT_AMR_HOST" =~ ^[A-Za-z0-9.:-]+$ && "$AP_SUBNET" =~ ^[0-9./]+$ ]] || {
+  echo "ISAACBOT_AMR_HOST or AP_SUBNET contains invalid characters." >&2
   exit 2
 }
 
@@ -118,7 +118,7 @@ uci set firewall.${RULE}.name='ELRS-RC-UDP-drop-from-AP'
 uci set firewall.${RULE}.src='lan'
 uci set firewall.${RULE}.src_ip='${AP_SUBNET}'
 uci set firewall.${RULE}.dest='lan'
-uci set firewall.${RULE}.dest_ip='${ISAACBOT_HOST}'
+uci set firewall.${RULE}.dest_ip='${ISAACBOT_AMR_HOST}'
 uci set firewall.${RULE}.dest_port='${RC_PORT}'
 uci set firewall.${RULE}.proto='udp'
 uci set firewall.${RULE}.target='DROP'
@@ -128,7 +128,7 @@ echo 'Applied.'
 "
 
 if [[ "$MODE" == "apply" ]]; then
-  echo "Configuring ${RUTX11_HOST}: drop UDP ${AP_SUBNET} -> ${ISAACBOT_HOST}:${RC_PORT}"
+  echo "Configuring ${RUTX11_HOST}: drop UDP ${AP_SUBNET} -> ${ISAACBOT_AMR_HOST}:${RC_PORT}"
   run_remote "$APPLY_CMD"
 fi
 

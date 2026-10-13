@@ -73,9 +73,9 @@ rclcpp_components_register_nodes(${PROJECT_NAME}_components
     "isaacbot::transport::udp::UdpSenderNode")
 
 foreach(EXE IN ITEMS
-        isaacbot_udp_receiver_node
-        isaacbot_udp_sender_node
-        isaacbot_udp_bridge_node)
+        isaacbot_amr_udp_receiver_node
+        isaacbot_amr_udp_sender_node
+        isaacbot_amr_udp_bridge_node)
   add_executable(${EXE} src/${EXE}_main.cpp)
   target_link_libraries(${EXE} ${PROJECT_NAME}_ros)
 endforeach()
@@ -88,9 +88,9 @@ install(TARGETS ${PROJECT_NAME}_components
         RUNTIME DESTINATION bin)
 
 install(TARGETS
-        isaacbot_udp_receiver_node
-        isaacbot_udp_sender_node
-        isaacbot_udp_bridge_node
+        isaacbot_amr_udp_receiver_node
+        isaacbot_amr_udp_sender_node
+        isaacbot_amr_udp_bridge_node
         DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY config DESTINATION share/${PROJECT_NAME})

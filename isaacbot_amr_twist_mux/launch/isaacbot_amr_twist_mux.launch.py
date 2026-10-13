@@ -38,7 +38,7 @@ def generate_launch_description():
     namespace = LaunchConfiguration("namespace")
     declare_namespace_arg = DeclareLaunchArgument(
         "namespace",
-        default_value=EnvironmentVariable("ISAACBOT_SYSTEM_NAMESPACE", default_value=""),
+        default_value=EnvironmentVariable("ISAACBOT_AMR_SYSTEM_NAMESPACE", default_value=""),
         description="Add namespace to all launched nodes",
     )
 
@@ -62,7 +62,7 @@ def generate_launch_description():
             [
                 FindPackageShare("isaacbot_amr_twist_mux"),
                 "config",
-                "isaacbot_motion_lock.yaml",
+                "isaacbot_amr_motion_lock.yaml",
             ]
         ),
         description="Specify the path to the motion lock configuration file.",
@@ -75,7 +75,7 @@ def generate_launch_description():
             [
                 FindPackageShare("isaacbot_amr_twist_mux"),
                 "config",
-                "isaacbot_command_freshness.yaml",
+                "isaacbot_amr_command_freshness.yaml",
             ]
         ),
         description="Specify the path to the Driver UI command freshness configuration file.",
@@ -86,7 +86,7 @@ def generate_launch_description():
     motion_lock_node = Node(
         package="isaacbot_amr_twist_mux",
         executable="motion_lock_node",
-        name="isaacbot_motion_lock_node",
+        name="isaacbot_amr_motion_lock_node",
         namespace=namespace,
         output="screen",
         parameters=[motion_lock_config_path],
@@ -99,7 +99,7 @@ def generate_launch_description():
     command_freshness_node = Node(
         package="isaacbot_amr_twist_mux",
         executable="command_freshness_node",
-        name="isaacbot_command_freshness_node",
+        name="isaacbot_amr_command_freshness_node",
         namespace=namespace,
         output="screen",
         parameters=[command_freshness_config_path],
@@ -107,10 +107,10 @@ def generate_launch_description():
         arguments=["--ros-args", "--log-level", log_level],
     )
 
-    isaacbot_twist_mux_node = Node(
+    isaacbot_amr_twist_mux_node = Node(
         package='twist_mux',
         executable='twist_mux',
-        name="isaacbot_twist_mux_node",
+        name="isaacbot_amr_twist_mux_node",
         namespace=namespace,
         output='screen',
         parameters=[twist_mux_config_path],
@@ -126,7 +126,7 @@ def generate_launch_description():
         declare_command_freshness_config_path_arg,
         motion_lock_node,
         command_freshness_node,
-        isaacbot_twist_mux_node,
+        isaacbot_amr_twist_mux_node,
     ]
 
     return LaunchDescription(actions)

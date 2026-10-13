@@ -101,7 +101,7 @@ controller_interface::CallbackReturn SeededPidController::on_init()
     auto_declare<double>(kTurnFullRate, turn_feedforward_full_rate_.load());
     auto_declare<double>(kTurnTrackWidth, turn_track_width_.load());
     auto_declare<double>(kTurnCommandTimeout, turn_command_timeout_.load());
-    auto_declare<std::string>(kTurnCommandTopic, "isaacbot_drive_controller/cmd_vel_out");
+    auto_declare<std::string>(kTurnCommandTopic, "isaacbot_amr_drive_controller/cmd_vel_out");
   } catch (const std::exception & e) {
     RCLCPP_ERROR(
       get_node()->get_logger(), "Declaring the wheel loop parameters failed: %s", e.what());

@@ -79,11 +79,11 @@ def generate_launch_description():
     namespace = LaunchConfiguration("namespace")
     declare_namespace_arg = DeclareLaunchArgument(
         "namespace",
-        default_value=EnvironmentVariable("ISAACBOT_SYSTEM_NAMESPACE", default_value=""),
+        default_value=EnvironmentVariable("ISAACBOT_AMR_SYSTEM_NAMESPACE", default_value=""),
         description="Add namespace to all launched nodes.",
     )
 
-    # ISAACBOT_SYSTEM_USE_GPS (balenaCloud variable, normalized to true/false by the platform
+    # ISAACBOT_AMR_SYSTEM_USE_GPS (balenaCloud variable, normalized to true/false by the platform
     # start.sh)
     # selects the localization: false = wheels + IMU; true = wheels + IMU + GPS (dual EKF).
     # The GPS and lidar drivers are not started here: they are the sensor payload
@@ -91,7 +91,7 @@ def generate_launch_description():
     use_gps = LaunchConfiguration("use_gps")
     declare_use_gps_arg = DeclareLaunchArgument(
         "use_gps",
-        default_value=EnvironmentVariable("ISAACBOT_SYSTEM_USE_GPS", default_value="false"),
+        default_value=EnvironmentVariable("ISAACBOT_AMR_SYSTEM_USE_GPS", default_value="false"),
         description="Fuse the RUTX11 GPS into localization (true/false).",
     )
 
@@ -105,12 +105,12 @@ def generate_launch_description():
         ),
     )
 
-    isaacbot_model_name = EnvironmentVariable(name="ROBOT_MODEL_NAME", default_value="ardennes")
-    isaacbot_serial_no = EnvironmentVariable(name="ROBOT_SERIAL_NO", default_value="A1-2026-01")
-    isaacbot_version = EnvironmentVariable(name="ROBOT_VERSION", default_value="1.0")
-    welcome_info = welcome_msg(isaacbot_model_name, isaacbot_serial_no, isaacbot_version)
+    isaacbot_amr_model_name = EnvironmentVariable(name="ROBOT_MODEL_NAME", default_value="ardennes")
+    isaacbot_amr_serial_no = EnvironmentVariable(name="ROBOT_SERIAL_NO", default_value="A1-2026-01")
+    isaacbot_amr_version = EnvironmentVariable(name="ROBOT_VERSION", default_value="1.0")
+    welcome_info = welcome_msg(isaacbot_amr_model_name, isaacbot_amr_serial_no, isaacbot_amr_version)
 
-    isaacbot_controller_launch = IncludeLaunchDescription(
+    isaacbot_amr_controller_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
                 [
@@ -127,7 +127,7 @@ def generate_launch_description():
         }.items(),
     )
 
-    isaacbot_system_diag_launch = IncludeLaunchDescription(
+    isaacbot_amr_system_diag_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
                 [
@@ -143,12 +143,12 @@ def generate_launch_description():
             "use_sim": "False",
             "common_dir_path": common_dir_path,
             # Drops the GPS analyzer group when GPS is off (the Lidar one follows
-            # ISAACBOT_SYSTEM_USE_LIDAR in that launch file).
+            # ISAACBOT_AMR_SYSTEM_USE_LIDAR in that launch file).
             "use_gps": use_gps,
         }.items(),
     )
 
-    isaacbot_ekf_launch = IncludeLaunchDescription(
+    isaacbot_amr_ekf_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
                 [FindPackageShare("isaacbot_amr_localization"), "launch", "isaacbot_amr_localization.launch.py"]
@@ -164,7 +164,7 @@ def generate_launch_description():
         }.items(),
     )
 
-    isaacbot_safety_launch = IncludeLaunchDescription(
+    isaacbot_amr_safety_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
                 [FindPackageShare("isaacbot_amr_safety"), "launch", "isaacbot_amr_safety.launch.py"]
@@ -178,7 +178,7 @@ def generate_launch_description():
         }.items(),
     )
 
-    isaacbot_crsf_teleop_launch = IncludeLaunchDescription(
+    isaacbot_amr_crsf_teleop_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
                 [FindPackageShare("isaacbot_amr_crsf_teleop"), "launch", "isaacbot_amr_crsf_teleop.launch.py"]
@@ -192,7 +192,7 @@ def generate_launch_description():
         }.items(),
     )
 
-    isaacbot_led_launch = IncludeLaunchDescription(
+    isaacbot_amr_led_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
                 [FindPackageShare("isaacbot_amr_led"), "launch", "isaacbot_amr_led.launch.py"]
@@ -205,7 +205,7 @@ def generate_launch_description():
         }.items(),
     )
 
-    isaacbot_battery_launch = IncludeLaunchDescription(
+    isaacbot_amr_battery_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
                 [FindPackageShare("isaacbot_amr_battery"), "launch", "isaacbot_amr_battery.launch.py"]
@@ -219,7 +219,7 @@ def generate_launch_description():
         }.items(),
     )
 
-    isaacbot_twist_mux_launch = IncludeLaunchDescription(
+    isaacbot_amr_twist_mux_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
                 [FindPackageShare("isaacbot_amr_twist_mux"), "launch", "isaacbot_amr_twist_mux.launch.py"]
@@ -267,26 +267,26 @@ def generate_launch_description():
     # Started once isaacbot_amr_controller reports its controllers active (the last spawner
     # succeeded). A failed spawner shuts the whole launch down, so the timeout only covers a
     # spawner that hangs.
-    isaacbot_delayed_actions = start_once_on(
+    isaacbot_amr_delayed_actions = start_once_on(
         ControllersActive,
         controllers_ready_timeout,
         [
-            isaacbot_battery_launch,
-            isaacbot_led_launch,
-            isaacbot_safety_launch,
-            isaacbot_ekf_launch,
-            isaacbot_crsf_teleop_launch,
-            isaacbot_twist_mux_launch,
+            isaacbot_amr_battery_launch,
+            isaacbot_amr_led_launch,
+            isaacbot_amr_safety_launch,
+            isaacbot_amr_ekf_launch,
+            isaacbot_amr_crsf_teleop_launch,
+            isaacbot_amr_twist_mux_launch,
         ],
         "isaacbot_amr_controller did not report its controllers active within "
         "controllers_ready_timeout; starting the rest of the stack anyway.",
     )
 
-    isaacbot_driver_actions = GroupAction(
+    isaacbot_amr_driver_actions = GroupAction(
         [
-            isaacbot_controller_launch,
-            isaacbot_system_diag_launch,
-            *isaacbot_delayed_actions,
+            isaacbot_amr_controller_launch,
+            isaacbot_amr_system_diag_launch,
+            *isaacbot_amr_delayed_actions,
         ],
         condition=IfCondition(hw_config_correct),
     )
@@ -302,7 +302,7 @@ def generate_launch_description():
         welcome_info,
         incorrect_hw_config_action,
         incorrect_os_version_action,
-        isaacbot_driver_actions,
+        isaacbot_amr_driver_actions,
     ]
 
     return LaunchDescription(actions)

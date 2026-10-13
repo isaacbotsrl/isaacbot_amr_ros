@@ -13,8 +13,8 @@
 // limitations under the License.
 
 
-#ifndef ISAACBOT_TWIST_MUX_DOMAIN_MOTION_LOCK_HEALTH_HPP_
-#define ISAACBOT_TWIST_MUX_DOMAIN_MOTION_LOCK_HEALTH_HPP_
+#ifndef ISAACBOT_AMR_TWIST_MUX_DOMAIN_MOTION_LOCK_HEALTH_HPP_
+#define ISAACBOT_AMR_TWIST_MUX_DOMAIN_MOTION_LOCK_HEALTH_HPP_
 
 #include <optional>
 #include <string>
@@ -82,4 +82,4 @@ MotionLockHealth evaluateMotionLockHealth(
 
 }  // namespace isaacbot_amr_twist_mux::domain
 
-#endif  // ISAACBOT_TWIST_MUX_DOMAIN_MOTION_LOCK_HEALTH_HPP_
+#endif  // ISAACBOT_AMR_TWIST_MUX_DOMAIN_MOTION_LOCK_HEALTH_HPP_

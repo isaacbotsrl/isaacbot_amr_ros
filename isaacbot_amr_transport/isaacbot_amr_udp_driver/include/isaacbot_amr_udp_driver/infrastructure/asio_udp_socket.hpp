@@ -18,8 +18,8 @@
 // isaacbot::transport::ByteStreamPort (ros-drivers/transport_drivers v1.2.0). UdpDriver, a
 // two-member shared_ptr holder, was dropped in favour of the factories below.
 
-#ifndef ISAACBOT_UDP_DRIVER_INFRASTRUCTURE_ASIO_UDP_SOCKET_HPP_
-#define ISAACBOT_UDP_DRIVER_INFRASTRUCTURE_ASIO_UDP_SOCKET_HPP_
+#ifndef ISAACBOT_AMR_UDP_DRIVER_INFRASTRUCTURE_ASIO_UDP_SOCKET_HPP_
+#define ISAACBOT_AMR_UDP_DRIVER_INFRASTRUCTURE_ASIO_UDP_SOCKET_HPP_
 
 #include <atomic>
 #include <cstddef>
@@ -132,4 +132,4 @@ std::unique_ptr<ByteStreamPort> makeUdpSender(
 
 }  // namespace isaacbot::transport::udp
 
-#endif  // ISAACBOT_UDP_DRIVER_INFRASTRUCTURE_ASIO_UDP_SOCKET_HPP_
+#endif  // ISAACBOT_AMR_UDP_DRIVER_INFRASTRUCTURE_ASIO_UDP_SOCKET_HPP_

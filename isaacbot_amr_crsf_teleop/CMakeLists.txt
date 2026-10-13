@@ -56,7 +56,7 @@ set_target_properties(${PROJECT_NAME}_core PROPERTIES POSITION_INDEPENDENT_CODE 
 # the adapter tests below can link this without dragging the whole lifecycle node in with them.
 #
 # No isaacbot_amr_udp_driver / isaacbot_amr_io_context / asio anywhere in this package - the socket belongs to
-# isaacbot_amr_udp_driver's receiver node (isaacbot_crsf_udp_receiver), which the launch file starts, so
+# isaacbot_amr_udp_driver's receiver node (isaacbot_amr_crsf_udp_receiver), which the launch file starts, so
 # this package links none of its code; it only consumes the udp_msgs/UdpPacket it publishes.
 add_library(${PROJECT_NAME}_adapters STATIC
             src/infrastructure/rc_message_conversions.cpp
@@ -82,7 +82,7 @@ set_target_properties(${PROJECT_NAME}_adapters PROPERTIES POSITION_INDEPENDENT_C
 
 # Infrastructure, part two: the lifecycle node that composes all of the above.
 add_library(${PROJECT_NAME}_ros STATIC
-            src/infrastructure/isaacbot_crsf_teleop_node.cpp
+            src/infrastructure/isaacbot_amr_crsf_teleop_node.cpp
 )
 target_link_libraries(${PROJECT_NAME}_ros PUBLIC ${PROJECT_NAME}_adapters)
 # Linked into the SHARED component library below.
@@ -92,11 +92,11 @@ set_target_properties(${PROJECT_NAME}_ros PROPERTIES POSITION_INDEPENDENT_CODE O
 # the launch file loads into one container with the UDP receiver. The registration source must
 # be compiled into this SHARED library itself - see the file. Plural macro: it registers without
 # generating an executable, which would clash with the hand-written main below.
-add_library(${PROJECT_NAME}_component SHARED src/infrastructure/isaacbot_crsf_teleop_component.cpp)
+add_library(${PROJECT_NAME}_component SHARED src/infrastructure/isaacbot_amr_crsf_teleop_component.cpp)
 target_link_libraries(${PROJECT_NAME}_component ${PROJECT_NAME}_ros ${rclcpp_components_TARGETS})
 rclcpp_components_register_nodes(${PROJECT_NAME}_component "isaacbot_amr_crsf_teleop::IsaacbotCrsfTeleopNode")
 
-add_executable(${PROJECT_NAME}_node src/isaacbot_crsf_teleop_node_main.cpp)
+add_executable(${PROJECT_NAME}_node src/isaacbot_amr_crsf_teleop_node_main.cpp)
 target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME}_ros)
 
 # No install(DIRECTORY include/ ...) on purpose: _core / _adapters / _ros are STATIC and are

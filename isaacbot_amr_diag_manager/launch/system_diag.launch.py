@@ -56,7 +56,7 @@ def generate_launch_description():
     namespace = LaunchConfiguration("namespace")
     declare_namespace_arg = DeclareLaunchArgument(
         "namespace",
-        default_value=EnvironmentVariable("ISAACBOT_SYSTEM_NAMESPACE", default_value=""),
+        default_value=EnvironmentVariable("ISAACBOT_AMR_SYSTEM_NAMESPACE", default_value=""),
         description="Add namespace to all launched nodes",
     )
 
@@ -73,10 +73,10 @@ def generate_launch_description():
         description="Specify the path to the diagnostic manager configuration file.",
     )
 
-    isaacbot_diag_manager_node = Node(
+    isaacbot_amr_diag_manager_node = Node(
         package="isaacbot_amr_diag_manager",
         executable="isaacbot_amr_diag_manager_node",
-        name="isaacbot_diag_manager_node",
+        name="isaacbot_amr_diag_manager_node",
         parameters=[system_diag_config_path],
         namespace=namespace,
         remappings=[("/diagnostics", "diagnostics")],
@@ -106,15 +106,15 @@ def generate_launch_description():
     use_gps = LaunchConfiguration("use_gps")
     declare_use_gps_arg = DeclareLaunchArgument(
         "use_gps",
-        default_value=EnvironmentVariable("ISAACBOT_SYSTEM_USE_GPS", default_value="false"),
-        description="Add the GPS analyzer group (isaacbot_gps_node, isaacbot_gps_heading_node).",
+        default_value=EnvironmentVariable("ISAACBOT_AMR_SYSTEM_USE_GPS", default_value="false"),
+        description="Add the GPS analyzer group (isaacbot_amr_gps_node, isaacbot_amr_gps_heading_node).",
     )
 
     use_lidar = LaunchConfiguration("use_lidar")
     declare_use_lidar_arg = DeclareLaunchArgument(
         "use_lidar",
-        default_value=EnvironmentVariable("ISAACBOT_SYSTEM_USE_LIDAR", default_value="false"),
-        description="Add the Lidar analyzer group (isaacbot_rs16_lidar_node).",
+        default_value=EnvironmentVariable("ISAACBOT_AMR_SYSTEM_USE_LIDAR", default_value="false"),
+        description="Add the Lidar analyzer group (isaacbot_amr_rs16_lidar_node).",
     )
 
     # Aggregates every node's diagnostics into diagnostics_agg, the topic the drive UI
@@ -132,7 +132,7 @@ def generate_launch_description():
             Node(
                 package="diagnostic_aggregator",
                 executable="aggregator_node",
-                name="isaacbot_diagnostic_aggregator",
+                name="isaacbot_amr_diagnostic_aggregator",
                 parameters=parameters,
                 namespace=namespace,
                 remappings=[
@@ -158,7 +158,7 @@ def generate_launch_description():
         declare_diagnostic_aggregator_config_path_arg,
         declare_use_gps_arg,
         declare_use_lidar_arg,
-        isaacbot_diag_manager_node,
+        isaacbot_amr_diag_manager_node,
         OpaqueFunction(function=aggregator_setup),
     ]
 

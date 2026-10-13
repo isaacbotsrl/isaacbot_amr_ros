@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_SAFETY_DOMAIN_SHUTDOWN_SEQUENCE_HPP_
-#define ISAACBOT_SAFETY_DOMAIN_SHUTDOWN_SEQUENCE_HPP_
+#ifndef ISAACBOT_AMR_SAFETY_DOMAIN_SHUTDOWN_SEQUENCE_HPP_
+#define ISAACBOT_AMR_SAFETY_DOMAIN_SHUTDOWN_SEQUENCE_HPP_
 
 #include <chrono>
 #include <optional>
@@ -88,4 +88,4 @@ const char * toString(ShutdownRequestResult result);
 
 }  // namespace isaacbot_amr_safety::domain
 
-#endif  // ISAACBOT_SAFETY_DOMAIN_SHUTDOWN_SEQUENCE_HPP_
+#endif  // ISAACBOT_AMR_SAFETY_DOMAIN_SHUTDOWN_SEQUENCE_HPP_

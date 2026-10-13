@@ -16,7 +16,7 @@ rosidl_generate_interfaces(
     ${PROJECT_NAME}
     "msg/DriverState.msg"
     "msg/DriverStateNamed.msg"
-    "msg/IsaacbotDriverState.msg"
+    "msg/IsaacbotAmrDriverState.msg"
     "msg/FaultFlag.msg"
     "msg/RuntimeError.msg"
     "msg/SystemStatus.msg"

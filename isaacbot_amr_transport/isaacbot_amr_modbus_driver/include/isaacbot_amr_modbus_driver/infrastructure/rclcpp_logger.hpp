@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_MODBUS_DRIVER_INFRASTRUCTURE_RCLCPP_LOGGER_HPP_
-#define ISAACBOT_MODBUS_DRIVER_INFRASTRUCTURE_RCLCPP_LOGGER_HPP_
+#ifndef ISAACBOT_AMR_MODBUS_DRIVER_INFRASTRUCTURE_RCLCPP_LOGGER_HPP_
+#define ISAACBOT_AMR_MODBUS_DRIVER_INFRASTRUCTURE_RCLCPP_LOGGER_HPP_
 
 #include <string>
 
@@ -44,4 +44,4 @@ private:
 
 }  // namespace isaacbot::transport::modbus
 
-#endif  // ISAACBOT_MODBUS_DRIVER_INFRASTRUCTURE_RCLCPP_LOGGER_HPP_
+#endif  // ISAACBOT_AMR_MODBUS_DRIVER_INFRASTRUCTURE_RCLCPP_LOGGER_HPP_

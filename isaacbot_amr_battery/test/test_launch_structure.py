@@ -24,7 +24,7 @@ import yaml
 @pytest.fixture
 def battery_launch(monkeypatch):
     path = Path(__file__).resolve().parents[1] / 'launch' / 'isaacbot_amr_battery.launch.py'
-    spec = importlib.util.spec_from_file_location('isaacbot_battery_launch', path)
+    spec = importlib.util.spec_from_file_location('isaacbot_amr_battery_launch', path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
 
@@ -51,18 +51,18 @@ def battery_launch(monkeypatch):
 def test_receiver_and_battery_node_share_one_container(battery_launch):
     assert len(battery_launch['containers']) == 1
     container = battery_launch['containers'][0]
-    assert container['name'] == 'isaacbot_battery_container'
+    assert container['name'] == 'isaacbot_amr_battery_container'
     assert container['executable'] == 'component_container'
 
     nodes = battery_launch['nodes']
     # Names unchanged: config/isaacbot_amr_battery.yaml and the diagnostic aggregator key on them.
-    assert set(nodes) == {'isaacbot_udp_battery_receiver_node', 'isaacbot_battery_node'}
+    assert set(nodes) == {'isaacbot_amr_udp_battery_receiver_node', 'isaacbot_amr_battery_node'}
     assert ({id(node) for _, node, _ in nodes.values()}
             == {id(node) for node in container['composable_node_descriptions']})
     for _, _, kwargs in nodes.values():
         assert {'use_intra_process_comms': True} in kwargs['extra_arguments']
 
-    _, _, receiver = nodes['isaacbot_udp_battery_receiver_node']
+    _, _, receiver = nodes['isaacbot_amr_udp_battery_receiver_node']
     assert receiver['plugin'] == 'isaacbot::transport::udp::UdpReceiverNode'
     # A lifecycle node activated by its own `autostart` parameter: launch_ros'
     # ComposableLifecycleNode autostart never reaches a namespaced component.
@@ -72,7 +72,7 @@ def test_receiver_and_battery_node_share_one_container(battery_launch):
         ('~/transition_event', 'udp_battery_receiver_node/transition_event'),
     ]
 
-    _, _, battery = nodes['isaacbot_battery_node']
+    _, _, battery = nodes['isaacbot_amr_battery_node']
     assert battery['plugin'] == 'isaacbot_amr_battery::IsaacbotBatteryNode'
 
 

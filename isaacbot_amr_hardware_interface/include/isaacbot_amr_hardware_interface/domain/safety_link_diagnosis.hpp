@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_HARDWARE_INTERFACE_DOMAIN_SAFETY_LINK_DIAGNOSIS_HPP_
-#define ISAACBOT_HARDWARE_INTERFACE_DOMAIN_SAFETY_LINK_DIAGNOSIS_HPP_
+#ifndef ISAACBOT_AMR_HARDWARE_INTERFACE_DOMAIN_SAFETY_LINK_DIAGNOSIS_HPP_
+#define ISAACBOT_AMR_HARDWARE_INTERFACE_DOMAIN_SAFETY_LINK_DIAGNOSIS_HPP_
 
 #include <string>
 
@@ -46,4 +46,4 @@ SafetyLinkDiagnosis evaluateSafetyLinkHealth(
 
 }  // namespace isaacbot_amr_hardware_interface
 
-#endif  // ISAACBOT_HARDWARE_INTERFACE_DOMAIN_SAFETY_LINK_DIAGNOSIS_HPP_
+#endif  // ISAACBOT_AMR_HARDWARE_INTERFACE_DOMAIN_SAFETY_LINK_DIAGNOSIS_HPP_

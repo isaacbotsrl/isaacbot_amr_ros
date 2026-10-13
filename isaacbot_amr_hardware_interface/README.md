@@ -14,9 +14,9 @@ config of its own:
 | `isaacbot_amr_hardware_interface/PhidgetImuSensor` | `hardware_interface::SensorInterface` | Phidgets Spatial MOT0110, Madgwick orientation filter | `imu/orientation.{x,y,z,w}`, `imu/angular_velocity.*`, `imu/linear_acceleration.*` |
 
 The URDF that wires them lives in `isaacbot_amr_description`:
-- `urdf/ardennes/ardennes_macro.urdf.xacro`: component `isaacbot_system_node`, with the Modbus
+- `urdf/ardennes/ardennes_macro.urdf.xacro`: component `isaacbot_amr_system_node`, with the Modbus
   endpoint, timeouts and motor/gearbox/encoder parameters as `<param>` tags.
-- `urdf/common/imu.urdf.xacro`: component `isaacbot_imu`.
+- `urdf/common/imu.urdf.xacro`: component `isaacbot_amr_imu`.
 
 The IMU parameters are declared in `src/phidgets_spatial_parameters.yaml`. `isaacbot_amr_controller`
 starts `controller_manager` and the controllers on top of these plugins.
@@ -24,14 +24,14 @@ starts `controller_manager` and the controllers on top of these plugins.
 Reference datasheets: `docs/DCC1000_reference.pdf` (motor controller),
 `docs/MOT0110_reference.pdf` (IMU).
 
-## ROS interface (`isaacbot_hardware_controller` node)
+## ROS interface (`isaacbot_amr_hardware_controller` node)
 
-`ArdennesSystem` creates a helper node, `isaacbot_hardware_controller`, inside the
+`ArdennesSystem` creates a helper node, `isaacbot_amr_hardware_controller`, inside the
 `controller_manager` process. It inherits that process's namespace and `diagnostics` remap.
 
 | Direction | Name | Type |
 |-----------|------|------|
-| pub | `hardware_interface/driver_state` | `isaacbot_amr_msgs/IsaacbotDriverState` |
+| pub | `hardware_interface/driver_state` | `isaacbot_amr_msgs/IsaacbotAmrDriverState` |
 | pub | `hardware_interface/safety_status` | `isaacbot_amr_msgs/SafetyStatus` - plant state: HW E-Stop button, contactor feedback, latch, link health |
 | pub | `hardware_interface/safety_command_echo` | `isaacbot_amr_msgs/SafetyCommandEcho` - read-backs of the coils *we* drive; diagnostic, may only ever inhibit |
 | pub | `hardware_interface/aux_io_state` | `isaacbot_amr_msgs/AuxIoState` - general-purpose aux IO (PLC DIO06..11 inputs, DIO00..05 output read-backs). Not safety |
@@ -45,7 +45,7 @@ The aux IO topic and services exist only on real hardware: in simulation `gz_ros
 replaces `ArdennesSystem`, so nothing talks to the PLC.
 
 Consumers: `isaacbot_amr_safety` (driver state, the SW E-Stop echo, e-stop set), `isaacbot_amr_twist_mux`'s
-`isaacbot_motion_lock_node` (both safety topics), `isaacbot_amr_crsf_teleop` (safety status + e-stop
+`isaacbot_amr_motion_lock_node` (both safety topics), `isaacbot_amr_crsf_teleop` (safety status + e-stop
 services) and the Foxglove dashboard.
 
 The two safety topics replaced a single `gpio_state` of seven undifferentiated bools. Plant state
@@ -64,11 +64,11 @@ ros2 control list_hardware_components
 domain/                    emergency stop, velocity command guard, error filter, IMU calibration,
                            driver/GPIO ports - no ROS, hardware_interface or vendor SDK
 application/               IsaacbotControlLoopUseCase - the read()/write() cycle decisions
-isaacbot_driver/              Phidget motor driver adapters (Phidget22)
-isaacbot_safety_controller/   safety controller E-Stop / GPIO adapter over Modbus
-isaacbot_sensors/             PhidgetImuSensor
-isaacbot_system/              IsaacbotSystem base + ArdennesSystem (the ros2_control plugin)
-system_ros_interface/      isaacbot_hardware_controller node: topics, services, diagnostics
+isaacbot_amr_driver/              Phidget motor driver adapters (Phidget22)
+isaacbot_amr_safety_controller/   safety controller E-Stop / GPIO adapter over Modbus
+isaacbot_amr_sensors/             PhidgetImuSensor
+isaacbot_amr_system/              IsaacbotSystem base + ArdennesSystem (the ros2_control plugin)
+system_ros_interface/      isaacbot_amr_hardware_controller node: topics, services, diagnostics
 ```
 
 The Modbus TCP client itself lives in `isaacbot_amr_transport/isaacbot_amr_modbus_driver` - it was

@@ -38,7 +38,7 @@ set_target_properties(${PROJECT_NAME}_core PROPERTIES POSITION_INDEPENDENT_CODE 
 add_library(${PROJECT_NAME}_ros STATIC
             src/infrastructure/battery_msg_conversions.cpp
             src/infrastructure/ros2_battery_state_publisher.cpp
-            src/infrastructure/isaacbot_battery_node.cpp
+            src/infrastructure/isaacbot_amr_battery_node.cpp
 )
 target_link_libraries(${PROJECT_NAME}_ros ${PROJECT_NAME}_core)
 target_include_directories(${PROJECT_NAME}_ros PUBLIC ${isaacbot_amr_utils_INCLUDE_DIRS})
@@ -56,8 +56,8 @@ set_target_properties(${PROJECT_NAME}_ros PROPERTIES POSITION_INDEPENDENT_CODE O
 # The same node as an rclcpp_components plugin (isaacbot_amr_battery::IsaacbotBatteryNode), which the
 # launch file loads into one container with the BMS UDP receiver. The registration source must be
 # compiled into this SHARED library itself - see the file. Plural macro: it registers without
-# generating an executable, which would clash with isaacbot_battery_node below.
-add_library(${PROJECT_NAME}_component SHARED src/infrastructure/isaacbot_battery_component.cpp)
+# generating an executable, which would clash with isaacbot_amr_battery_node below.
+add_library(${PROJECT_NAME}_component SHARED src/infrastructure/isaacbot_amr_battery_component.cpp)
 target_link_libraries(${PROJECT_NAME}_component ${PROJECT_NAME}_ros ${rclcpp_components_TARGETS})
 rclcpp_components_register_nodes(${PROJECT_NAME}_component "isaacbot_amr_battery::IsaacbotBatteryNode")
 
@@ -86,9 +86,9 @@ if(BUILD_TESTING)
   ament_add_gtest(test_battery_msg_conversions test/unit/test_battery_msg_conversions.cpp)
   target_link_libraries(test_battery_msg_conversions ${PROJECT_NAME}_ros)
 
-  ament_add_gtest(test_isaacbot_battery_node test/integration/test_isaacbot_battery_node.cpp
+  ament_add_gtest(test_isaacbot_amr_battery_node test/integration/test_isaacbot_amr_battery_node.cpp
                   TIMEOUT 60)
-  target_link_libraries(test_isaacbot_battery_node ${PROJECT_NAME}_ros)
+  target_link_libraries(test_isaacbot_amr_battery_node ${PROJECT_NAME}_ros)
 
   # The launch file's composition: one container, receiver + battery node intra-process.
   find_package(ament_cmake_pytest REQUIRED)

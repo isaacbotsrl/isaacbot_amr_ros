@@ -16,8 +16,8 @@
 // 2-Clause BSD License. They are restated here rather than copied from a GPL-licensed
 // flight-controller header, so that this Apache-2.0 package carries no GPL code.
 
-#ifndef ISAACBOT_CRSF_TELEOP_DOMAIN_CRSF_CRSF_PROTOCOL_HPP_
-#define ISAACBOT_CRSF_TELEOP_DOMAIN_CRSF_CRSF_PROTOCOL_HPP_
+#ifndef ISAACBOT_AMR_CRSF_TELEOP_DOMAIN_CRSF_CRSF_PROTOCOL_HPP_
+#define ISAACBOT_AMR_CRSF_TELEOP_DOMAIN_CRSF_CRSF_PROTOCOL_HPP_
 
 #include <cstddef>
 #include <cstdint>
@@ -74,4 +74,4 @@ constexpr int kChannelValueMax = 1811;
 
 }  // namespace isaacbot_amr_crsf_teleop::crsf
 
-#endif  // ISAACBOT_CRSF_TELEOP_DOMAIN_CRSF_CRSF_PROTOCOL_HPP_
+#endif  // ISAACBOT_AMR_CRSF_TELEOP_DOMAIN_CRSF_CRSF_PROTOCOL_HPP_

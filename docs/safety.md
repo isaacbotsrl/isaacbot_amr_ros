@@ -57,7 +57,7 @@ stateDiagram-v2
 
 On start-up the safety controller writes the default state of each writable coil. The two software E-Stop inputs default to asserted. The hardware interface then releases them during configure, but the latch they set stays set until a reset.
 
-Source: `isaacbot_amr_hardware_interface/src/isaacbot_safety_controller/isaacbot_safety_controller.cpp` (coil table, `initCoils()`), `isaacbot_amr_hardware_interface/include/isaacbot_amr_hardware_interface/domain/emergency_stop.hpp` (`releaseStartupTriggers()`).
+Source: `isaacbot_amr_hardware_interface/src/isaacbot_amr_safety_controller/isaacbot_amr_safety_controller.cpp` (coil table, `initCoils()`), `isaacbot_amr_hardware_interface/include/isaacbot_amr_hardware_interface/domain/emergency_stop.hpp` (`releaseStartupTriggers()`).
 
 ### Safety PLC signals
 
@@ -96,7 +96,7 @@ Source: `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro`, `isa
 
 ### Software E-Stops
 
-The hardware interface node `isaacbot_hardware_controller` offers three `std_srvs/Trigger` services:
+The hardware interface node `isaacbot_amr_hardware_controller` offers three `std_srvs/Trigger` services:
 
 | Service | Effect | Refused when |
 |---|---|---|
@@ -104,7 +104,7 @@ The hardware interface node `isaacbot_hardware_controller` offers three `std_srv
 | `hardware_interface/sw_user_e_stop_reset` | Releases the SW user E-Stop | Hardware interface not ACTIVE; any wheel velocity command above `velocity_command_zero_tolerance` (0.4 rad/s); any measured wheel velocity above `velocity_state_zero_tolerance` (0.05 rad/s) |
 | `hardware_interface/sw_e_stop_latch_reset` | Pulses `COIL_4` for `safety_latch_reset_pulse_ms` (100 ms). Also clears latched motor-failsafe and welded-contactor faults and re-arms the motor drivers' watchdog | Hardware interface not ACTIVE |
 
-Source: `isaacbot_amr_hardware_interface/src/isaacbot_system/isaacbot_system.cpp` (`resetEStop()`, `resetEStopLatch()`, `areVelocityCommandsNearZero()`), `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro`.
+Source: `isaacbot_amr_hardware_interface/src/isaacbot_amr_system/isaacbot_amr_system.cpp` (`resetEStop()`, `resetEStopLatch()`, `areVelocityCommandsNearZero()`), `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro`.
 
 The state is published on two topics at 20 Hz (reliable, volatile, keep last 1):
 
@@ -117,7 +117,7 @@ Source: `isaacbot_amr_arch/SAFETY_CHAIN.md` §4, `isaacbot_amr_msgs/msg/SafetySt
 
 ### RC switches and RC link failsafe
 
-The ELRS RC teleop node (`isaacbot_crsf_teleop_node`) calls the same services from two transmitter switches. Only a change of switch position fires a call.
+The ELRS RC teleop node (`isaacbot_amr_crsf_teleop_node`) calls the same services from two transmitter switches. Only a change of switch position fires a call.
 
 | Channel | Switch position | Action |
 |---|---|---|
@@ -129,13 +129,13 @@ The ELRS RC teleop node (`isaacbot_crsf_teleop_node`) calls the same services fr
 
 **RC link failsafe.** The link counts as lost when no frame arrives within `channel_timeout_ms` (200 ms), when link statistics are older than `link_stats_timeout_ms` (1000 ms), or when uplink link quality drops below `link_quality_lost_below` (30 %, recovers at 50 %). The node then publishes zeros for `zero_burst_duration_ms` (300 ms) and goes silent. The isaacbot stops and `twist_mux` falls through to its next input. **A lost RC link does not trip the E-Stop.**
 
-The receiver's CRSF reaches the controller through the RUTX11 router over UDP, so a router reboot, a Serial Utilities reload or a pulled controller–router cable is handled the same way: a lost RC link, not an E-Stop. CRSF carries no authentication; `isaacbot_crsf_udp_receiver` therefore accepts datagrams from the router's address (`192.168.1.1`) only, and the router drops AP clients' datagrams to the RC port. Neither stops a LAN host that forges the router's address.
+The receiver's CRSF reaches the controller through the RUTX11 router over UDP, so a router reboot, a Serial Utilities reload or a pulled controller–router cable is handled the same way: a lost RC link, not an E-Stop. CRSF carries no authentication; `isaacbot_amr_crsf_udp_receiver` therefore accepts datagrams from the router's address (`192.168.1.1`) only, and the router drops AP clients' datagrams to the RC port. Neither stops a LAN host that forges the router's address.
 
 Source: `isaacbot_amr_crsf_teleop/config/isaacbot_amr_crsf_teleop.yaml`, `isaacbot_amr_crsf_teleop/README.md`. More in [Teleop and LEDs](software/teleop-and-leds.md).
 
 ### Battery-driven E-Stop and shutdown
 
-`isaacbot_safety_node` (package `isaacbot_amr_safety`) watches `battery/battery_status` and acts through a behavior tree at 10 Hz:
+`isaacbot_amr_safety_node` (package `isaacbot_amr_safety`) watches `battery/battery_status` and acts through a behavior tree at 10 Hz:
 
 | Battery reading | Action |
 |---|---|
@@ -147,10 +147,10 @@ Source: `isaacbot_amr_crsf_teleop/config/isaacbot_amr_crsf_teleop.yaml`, `isaacb
 The shutdown sequence trips the E-Stop, asks the hosts in `config/shutdown_hosts.yaml` to power off (the shipped file lists none), then runs `shutdown_ros_controller.sh`. You can also start it by hand:
 
 ```bash
-ros2 service call /isaacbot/isaacbot_safety_node/shutdown std_srvs/srv/Trigger {}
+ros2 service call /isaacbot/isaacbot_amr_safety_node/shutdown std_srvs/srv/Trigger {}
 ```
 
-`isaacbot_safety_node` is not started in simulation (`use_sim:=True`).
+`isaacbot_amr_safety_node` is not started in simulation (`use_sim:=True`).
 
 Source: `isaacbot_amr_safety/include/isaacbot_amr_safety/domain/battery_safety_policy.hpp`, `isaacbot_amr_safety/src/domain/battery_safety_policy.cpp`, `isaacbot_amr_safety/behavior_trees/isaacbot_amr_safety.xml`, `isaacbot_amr_safety/config/isaacbot_amr_safety.yaml`, `isaacbot_amr_safety/README.md`.
 
@@ -161,14 +161,14 @@ Five independent gates stand between a velocity command and a turning wheel, fro
 | # | Gate | Where | Behaviour |
 |---|---|---|---|
 | 1 | Motor contactor | Hardware | Cuts motor power when the latch is set. |
-| 2 | Motion lock | `isaacbot_amr_twist_mux` / `isaacbot_motion_lock_node` | Publishes `motion_lock` (`std_msgs/Bool`) at 10 Hz. `twist_mux` lock priority 200 masks every input. Locked before the first message, when either safety topic is older than `gpio_timeout` (1.0 s), when `link_healthy` is false, or when any enabled stop condition is active. A stale lock (0.5 s) also counts as locked. |
+| 2 | Motion lock | `isaacbot_amr_twist_mux` / `isaacbot_amr_motion_lock_node` | Publishes `motion_lock` (`std_msgs/Bool`) at 10 Hz. `twist_mux` lock priority 200 masks every input. Locked before the first message, when either safety topic is older than `gpio_timeout` (1.0 s), when `link_healthy` is false, or when any enabled stop condition is active. A stale lock (0.5 s) also counts as locked. |
 | 3 | Hardware interface `write()` | `isaacbot_amr_hardware_interface` | On any E-Stop or latched hardware fault it sends **zeros** to the motor drivers rather than going silent, so the drivers' own failsafe (`motor_failsafe_timeout_ms`, 500 ms) keeps being fed. |
 | 4 | Contactor plausibility check | `ContactorMonitor` | Latch active and contactor still engaged for more than 500 ms is a latched, fatal "welded contactor" fault. Cleared only by `sw_e_stop_latch_reset`. |
 | 5 | `IsMotionLocked` BT condition | Navigation stack (another repo) | Aborts a navigation tree rather than driving into a closed mux. |
 
 Stop conditions enabled in the motion lock: HW E-Stop button, SW user E-Stop, SW motor-driver fault, latch status. `require_motor_contactor_engaged` is off (unverified on hardware).
 
-Source: `isaacbot_amr_arch/SAFETY_CHAIN.md` §5, `isaacbot_amr_twist_mux/config/isaacbot_motion_lock.yaml`, `isaacbot_amr_twist_mux/config/isaacbot_amr_twist_mux.yaml`, `isaacbot_amr_hardware_interface/include/isaacbot_amr_hardware_interface/domain/contactor_monitor.hpp` (`kDefaultContactorDropOutToleranceMs`), `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro`.
+Source: `isaacbot_amr_arch/SAFETY_CHAIN.md` §5, `isaacbot_amr_twist_mux/config/isaacbot_amr_motion_lock.yaml`, `isaacbot_amr_twist_mux/config/isaacbot_amr_twist_mux.yaml`, `isaacbot_amr_hardware_interface/include/isaacbot_amr_hardware_interface/domain/contactor_monitor.hpp` (`kDefaultContactorDropOutToleranceMs`), `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro`.
 
 !!! note
     With no hardware interface running there is no safety state, so the motion lock stays closed and the isaacbot accepts no velocity commands. This is intended.
@@ -258,11 +258,11 @@ The latch is set after every start of the hardware interface. Wait until the har
 | `... not in ACTIVE state` | Hardware interface not active | Check `ros2 control list_hardware_components`. |
 | Service succeeds but the latch stays set | A trip source is still asserted (set-dominant) | Release the HW button and the SW user E-Stop first. |
 
-Source: `isaacbot_amr_hardware_interface/src/isaacbot_system/isaacbot_system.cpp`.
+Source: `isaacbot_amr_hardware_interface/src/isaacbot_amr_system/isaacbot_amr_system.cpp`.
 
 ## LED status
 
-`isaacbot_led_safety_node` (package `isaacbot_amr_safety`) picks the LED animations from the battery state and the hardware E-Stop button, and requests them from `isaacbot_amr_led`. Each bumper has four layers; a higher layer covers the ones below where its pixels are not transparent. Layer order from top: `ERROR` (0), `ALERT` (1), `INFO` (2), `STATE` (3).
+`isaacbot_amr_led_safety_node` (package `isaacbot_amr_safety`) picks the LED animations from the battery state and the hardware E-Stop button, and requests them from `isaacbot_amr_led`. Each bumper has four layers; a higher layer covers the ones below where its pixels are not transparent. Layer order from top: `ERROR` (0), `ALERT` (1), `INFO` (2), `STATE` (3).
 
 !!! warning
     The `E_STOP` animation follows only `hw_e_stop_user_button`. A software E-Stop, an RC E-Stop, a watchdog trip or a held latch leaves the LEDs on `READY`. Check `hardware_interface/safety_status` or the Foxglove indicators to know whether the latch is set.
@@ -285,7 +285,7 @@ Each image below is a timeline: the top row is the first frame and each column i
 
 Thresholds: `battery.percent.threshold.critical` 0.1, `battery.percent.threshold.low` 0.4, `battery.anim_period.low` 30 s.
 
-Source: `isaacbot_amr_safety/include/isaacbot_amr_safety/domain/led_animation_policy.hpp`, `isaacbot_amr_safety/behavior_trees/isaacbot_led_safety.xml`, `isaacbot_amr_safety/config/led_safety.yaml`, `isaacbot_amr_led/config/ardennes_animations.yaml`, images from `isaacbot_amr_led/animations/ardennes/`.
+Source: `isaacbot_amr_safety/include/isaacbot_amr_safety/domain/led_animation_policy.hpp`, `isaacbot_amr_safety/behavior_trees/isaacbot_amr_led_safety.xml`, `isaacbot_amr_safety/config/led_safety.yaml`, `isaacbot_amr_led/config/ardennes_animations.yaml`, images from `isaacbot_amr_led/animations/ardennes/`.
 
 !!! note
     Nothing in this repository publishes `joy`, so `MANUAL_ACTION` is not shown unless a joystick driver is added. Driving with the RC transmitter shows `READY`.

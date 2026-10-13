@@ -17,8 +17,8 @@
 // Modified 2026 by Mechatronics Academy: relayouted from udp_driver/udp_sender_node.hpp
 // (ros-drivers/transport_drivers v1.2.0).
 
-#ifndef ISAACBOT_UDP_DRIVER_INFRASTRUCTURE_UDP_SENDER_NODE_HPP_
-#define ISAACBOT_UDP_DRIVER_INFRASTRUCTURE_UDP_SENDER_NODE_HPP_
+#ifndef ISAACBOT_AMR_UDP_DRIVER_INFRASTRUCTURE_UDP_SENDER_NODE_HPP_
+#define ISAACBOT_AMR_UDP_DRIVER_INFRASTRUCTURE_UDP_SENDER_NODE_HPP_
 
 #include <memory>
 #include <optional>
@@ -86,4 +86,4 @@ private:
 
 }  // namespace isaacbot::transport::udp
 
-#endif  // ISAACBOT_UDP_DRIVER_INFRASTRUCTURE_UDP_SENDER_NODE_HPP_
+#endif  // ISAACBOT_AMR_UDP_DRIVER_INFRASTRUCTURE_UDP_SENDER_NODE_HPP_

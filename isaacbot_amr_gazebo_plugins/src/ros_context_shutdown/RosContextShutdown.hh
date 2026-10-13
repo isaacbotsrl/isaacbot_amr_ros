@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_GAZEBO_PLUGINS__ROS_CONTEXT_SHUTDOWN_HH_
-#define ISAACBOT_GAZEBO_PLUGINS__ROS_CONTEXT_SHUTDOWN_HH_
+#ifndef ISAACBOT_AMR_GAZEBO_PLUGINS__ROS_CONTEXT_SHUTDOWN_HH_
+#define ISAACBOT_AMR_GAZEBO_PLUGINS__ROS_CONTEXT_SHUTDOWN_HH_
 
 #include <memory>
 
@@ -46,4 +46,4 @@ public:
 
 }  // namespace isaacbot_amr_gazebo_plugins
 
-#endif  // ISAACBOT_GAZEBO_PLUGINS__ROS_CONTEXT_SHUTDOWN_HH_
+#endif  // ISAACBOT_AMR_GAZEBO_PLUGINS__ROS_CONTEXT_SHUTDOWN_HH_

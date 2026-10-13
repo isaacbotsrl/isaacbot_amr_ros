@@ -25,7 +25,7 @@ import pytest
 @pytest.fixture
 def teleop_launch():
     path = Path(__file__).resolve().parents[1] / 'launch' / 'isaacbot_amr_crsf_teleop.launch.py'
-    spec = importlib.util.spec_from_file_location('isaacbot_crsf_teleop_launch', path)
+    spec = importlib.util.spec_from_file_location('isaacbot_amr_crsf_teleop_launch', path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -56,7 +56,7 @@ def _setup(teleop_launch, monkeypatch, tmp_path, use_sim):
     context = LaunchContext()
     context.launch_configurations.update(
         namespace='isaacbot', log_level='INFO', use_sim=use_sim,
-        isaacbot_crsf_config_path=str(config))
+        isaacbot_amr_crsf_config_path=str(config))
     actions = teleop_launch._launch_setup(context)
     assert len(actions) == 1
     assert len(containers) == 1
@@ -71,15 +71,15 @@ def test_receiver_and_teleop_share_one_single_threaded_container(
     assert container['package'] == 'rclcpp_components'
     # Not _mt: the teleop node is single-threaded by design.
     assert container['executable'] == 'component_container'
-    assert container['name'] == 'isaacbot_crsf_container'
+    assert container['name'] == 'isaacbot_amr_crsf_container'
 
     # Node names are unchanged from the standalone processes: RC UI clients and the
     # diagnostic aggregator key on them.
-    assert set(nodes) == {'isaacbot_crsf_udp_receiver', 'isaacbot_crsf_teleop_node'}
+    assert set(nodes) == {'isaacbot_amr_crsf_udp_receiver', 'isaacbot_amr_crsf_teleop_node'}
     assert [node for node, _ in nodes.values()] == container['composable_node_descriptions']
 
-    receiver = nodes['isaacbot_crsf_udp_receiver'][1]
-    teleop = nodes['isaacbot_crsf_teleop_node'][1]
+    receiver = nodes['isaacbot_amr_crsf_udp_receiver'][1]
+    teleop = nodes['isaacbot_amr_crsf_teleop_node'][1]
     assert receiver['plugin'] == 'isaacbot::transport::udp::UdpReceiverNode'
     assert teleop['plugin'] == 'isaacbot_amr_crsf_teleop::IsaacbotCrsfTeleopNode'
     for node in (receiver, teleop):
@@ -96,7 +96,7 @@ def test_receiver_and_teleop_share_one_single_threaded_container(
 
 def test_receiver_publishes_where_the_teleop_listens(teleop_launch, monkeypatch, tmp_path):
     _, nodes, _ = _setup(teleop_launch, monkeypatch, tmp_path, 'False')
-    receiver = nodes['isaacbot_crsf_udp_receiver'][1]
+    receiver = nodes['isaacbot_amr_crsf_udp_receiver'][1]
     assert ('udp_read', 'rc/raw_udp') in receiver['remappings']
     # UDP settings come from the teleop config (single source of truth).
     parameters = receiver['parameters'][0]
@@ -105,11 +105,11 @@ def test_receiver_publishes_where_the_teleop_listens(teleop_launch, monkeypatch,
     assert parameters['source_ip'] == '10.0.0.1'
 
 
-def test_transition_event_topics_drop_the_isaacbot_prefix(teleop_launch, monkeypatch, tmp_path):
-    # Topic names carry no isaacbot_ prefix; the nodes keep theirs.
+def test_transition_event_topics_drop_the_isaacbot_amr_prefix(teleop_launch, monkeypatch, tmp_path):
+    # Topic names carry no isaacbot_amr_ prefix; the nodes keep theirs.
     _, nodes, _ = _setup(teleop_launch, monkeypatch, tmp_path, 'False')
-    for name in ('isaacbot_crsf_udp_receiver', 'isaacbot_crsf_teleop_node'):
-        topic = name.removeprefix('isaacbot_') + '/transition_event'
+    for name in ('isaacbot_amr_crsf_udp_receiver', 'isaacbot_amr_crsf_teleop_node'):
+        topic = name.removeprefix('isaacbot_amr_') + '/transition_event'
         assert ('~/transition_event', topic) in nodes[name][1]['remappings']
 
 

@@ -41,7 +41,7 @@ from lifecycle_msgs.srv import GetState
 import pytest
 import rclpy
 
-NODE_NAME = 'isaacbot_crsf_teleop_node'
+NODE_NAME = 'isaacbot_amr_crsf_teleop_node'
 NAMESPACE = 'teleop_e2e'
 
 ROUTER_IP = '127.0.0.1'
@@ -110,8 +110,8 @@ def generate_test_description():
     # Configured exactly as the launch file does it, from the same three values.
     receiver = Node(
         package='isaacbot_amr_udp_driver',
-        executable='isaacbot_udp_receiver_node',
-        name='isaacbot_crsf_udp_receiver',
+        executable='isaacbot_amr_udp_receiver_node',
+        name='isaacbot_amr_crsf_udp_receiver',
         namespace=NAMESPACE,
         parameters=[{
             'ip': udp['udp_bind_ip'],
@@ -187,7 +187,7 @@ class TestTeleopLaunch(unittest.TestCase):
         self.assertEqual(received, [])
 
     def _receiver_active(self):
-        client = self.node.create_client(GetState, 'isaacbot_crsf_udp_receiver/get_state')
+        client = self.node.create_client(GetState, 'isaacbot_amr_crsf_udp_receiver/get_state')
         if not client.wait_for_service(timeout_sec=15.0):
             return False
 
@@ -206,7 +206,7 @@ class TestTeleopLaunch(unittest.TestCase):
 
         # A negative test is only worth something if the receiver was listening: otherwise
         # silence proves nothing. test_c (same receiver, accepted source) is the positive control.
-        self.assertTrue(self._receiver_active(), 'isaacbot_crsf_udp_receiver never became active')
+        self.assertTrue(self._receiver_active(), 'isaacbot_amr_crsf_udp_receiver never became active')
 
         # Longer than switch_settle_frames (2 s) plus margin: had the receiver let these through,
         # teleop would be commanding by now.

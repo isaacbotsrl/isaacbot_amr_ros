@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_GPS_HEADING_INFRASTRUCTURE_GPS_MSG_CONVERSIONS_HPP_
-#define ISAACBOT_GPS_HEADING_INFRASTRUCTURE_GPS_MSG_CONVERSIONS_HPP_
+#ifndef ISAACBOT_AMR_GPS_HEADING_INFRASTRUCTURE_GPS_MSG_CONVERSIONS_HPP_
+#define ISAACBOT_AMR_GPS_HEADING_INFRASTRUCTURE_GPS_MSG_CONVERSIONS_HPP_
 
 #include <string>
 
@@ -51,4 +51,4 @@ const char * alignmentStateText(domain::AlignmentState state);
 
 }  // namespace isaacbot_amr_gps_heading::infrastructure
 
-#endif  // ISAACBOT_GPS_HEADING_INFRASTRUCTURE_GPS_MSG_CONVERSIONS_HPP_
+#endif  // ISAACBOT_AMR_GPS_HEADING_INFRASTRUCTURE_GPS_MSG_CONVERSIONS_HPP_

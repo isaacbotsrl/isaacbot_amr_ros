@@ -10,7 +10,7 @@ install(DIRECTORY config launch
         DESTINATION share/${PROJECT_NAME}
 )
 
-install(PROGRAMS scripts/sim_safety_plc.py scripts/isaacbot_sim.sh
+install(PROGRAMS scripts/sim_safety_plc.py scripts/isaacbot_amr_sim.sh
         DESTINATION lib/${PROJECT_NAME}
 )
 

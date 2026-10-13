@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <root BTCPP_format="4" project_name="IsaacbotSafetyBT">
     <include path="isaacbot_amr_safety.xml"/>
-    <include path="isaacbot_shutdown.xml"/>
+    <include path="isaacbot_amr_shutdown.xml"/>
     <!-- Description of Node Models (used by Groot) -->
     <TreeNodesModel>
         <Action ID="CallSetBoolService" editable="true">

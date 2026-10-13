@@ -51,7 +51,7 @@ class WheelStepResponse(DriveSession):
         self.declare_parameter('pid_controllers', WHEEL_PIDS)
         self.declare_parameter('linear_steps', [0.2, 0.4, 0.6, 0.8, -0.4])
         self.declare_parameter('angular_steps', [0.5, 1.0, -1.0])
-        # Must match isaacbot_drive_controller; only used to turn wheel accel into body limits.
+        # Must match isaacbot_amr_drive_controller; only used to turn wheel accel into body limits.
         self.declare_parameter('wheel_radius', 0.1651)
         self.declare_parameter('wheel_separation', 0.617)
         self.declare_parameter('wheel_separation_multiplier', 1.659)

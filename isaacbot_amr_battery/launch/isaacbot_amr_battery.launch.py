@@ -39,13 +39,13 @@ def generate_launch_description():
     namespace = LaunchConfiguration("namespace")
     declare_namespace_arg = DeclareLaunchArgument(
         "namespace",
-        default_value=EnvironmentVariable("ISAACBOT_SYSTEM_NAMESPACE", default_value=""),
+        default_value=EnvironmentVariable("ISAACBOT_AMR_SYSTEM_NAMESPACE", default_value=""),
         description="Add namespace to all launched nodes",
     )
 
-    isaacbot_battery_config_path = LaunchConfiguration("isaacbot_battery_config_path")
-    declare_isaacbot_battery_config_path_arg = DeclareLaunchArgument(
-        "isaacbot_battery_config_path",
+    isaacbot_amr_battery_config_path = LaunchConfiguration("isaacbot_amr_battery_config_path")
+    declare_isaacbot_amr_battery_config_path_arg = DeclareLaunchArgument(
+        "isaacbot_amr_battery_config_path",
         default_value=PathJoinSubstitution(
             [
                 FindPackageShare("isaacbot_amr_battery"),
@@ -60,13 +60,13 @@ def generate_launch_description():
     # intra-process communication, so the packets never cross the Zenoh router. The receiver is a
     # lifecycle node brought to active by its own `autostart` parameter: launch_ros'
     # ComposableLifecycleNode autostart misses the namespace and never reaches it.
-    isaacbot_udp_battery_receiver_node = ComposableNode(
+    isaacbot_amr_udp_battery_receiver_node = ComposableNode(
         package="isaacbot_amr_udp_driver",
         plugin="isaacbot::transport::udp::UdpReceiverNode",
-        name="isaacbot_udp_battery_receiver_node",
+        name="isaacbot_amr_udp_battery_receiver_node",
         namespace=namespace,
-        parameters=[isaacbot_battery_config_path, {"autostart": True}],
-        # Topic names carry no isaacbot_ prefix, so the lifecycle transition_event topic is remapped
+        parameters=[isaacbot_amr_battery_config_path, {"autostart": True}],
+        # Topic names carry no isaacbot_amr_ prefix, so the lifecycle transition_event topic is remapped
         # off the node name (the node keeps it).
         remappings=[
             ("udp_read", "battery_udp_data"),
@@ -75,22 +75,22 @@ def generate_launch_description():
         extra_arguments=[{"use_intra_process_comms": True}],
     )
 
-    isaacbot_battery_node = ComposableNode(
+    isaacbot_amr_battery_node = ComposableNode(
         package="isaacbot_amr_battery",
         plugin="isaacbot_amr_battery::IsaacbotBatteryNode",
-        name="isaacbot_battery_node",
+        name="isaacbot_amr_battery_node",
         namespace=namespace,
-        parameters=[isaacbot_battery_config_path],
+        parameters=[isaacbot_amr_battery_config_path],
         remappings=[("/diagnostics", "diagnostics")],
         extra_arguments=[{"use_intra_process_comms": True}],
     )
 
-    isaacbot_battery_container = ComposableNodeContainer(
+    isaacbot_amr_battery_container = ComposableNodeContainer(
         package="rclcpp_components",
         executable="component_container",
-        name="isaacbot_battery_container",
+        name="isaacbot_amr_battery_container",
         namespace=namespace,
-        composable_node_descriptions=[isaacbot_udp_battery_receiver_node, isaacbot_battery_node],
+        composable_node_descriptions=[isaacbot_amr_udp_battery_receiver_node, isaacbot_amr_battery_node],
         arguments=[
             "--ros-args",
             "--log-level",
@@ -104,8 +104,8 @@ def generate_launch_description():
     actions = [
         declare_log_level_arg,
         declare_namespace_arg,
-        declare_isaacbot_battery_config_path_arg,
-        isaacbot_battery_container,
+        declare_isaacbot_amr_battery_config_path_arg,
+        isaacbot_amr_battery_container,
     ]
 
     return LaunchDescription(actions)

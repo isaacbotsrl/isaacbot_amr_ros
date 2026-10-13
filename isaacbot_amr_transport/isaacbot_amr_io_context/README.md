@@ -29,14 +29,14 @@ never run and are not waited for, but a handler still running on another io thre
 
 ## Targets
 
-`isaacbot_io_context_core` (domain + application) and `isaacbot_io_context_asio`
+`isaacbot_amr_io_context_core` (domain + application) and `isaacbot_amr_io_context_asio`
 (infrastructure). The second is **not** called `_ros` - the house suffix - because this
 package deliberately has no ROS dependency and the name would be a lie.
 
 ## Changes from upstream beyond the relayout
 
 - The `msg_converters/` directory is gone: the two live `UInt8MultiArray` converters moved
-  to `isaacbot_serial_driver` (since removed), the two `UdpPacket` ones to `isaacbot_amr_udp_driver`. That is what
+  to `isaacbot_amr_serial_driver` (since removed), the two `UdpPacket` ones to `isaacbot_amr_udp_driver`. That is what
   removes the `std_msgs` / `udp_msgs` dependencies from this package.
 - `src/msg_converters/std_msgs.cpp` was deleted outright. It was unreferenced, one
   definition matched no declaration, and every body did
@@ -52,7 +52,7 @@ package deliberately has no ROS dependency and the name would be a lie.
 Forked from [ros-drivers/transport_drivers](https://github.com/ros-drivers/transport_drivers)
 **v1.2.0** (Apache-2.0; LeoDrive, The Autoware Foundation, Apex.AI, Trimble, TierIV,
 Evan Flynn). Relayouted into this workspace's Clean Architecture layout, renamed to the
-`isaacbot_` prefix and re-namespaced from `drivers::` to `isaacbot::transport::`.
+`isaacbot_amr_` prefix and re-namespaced from `drivers::` to `isaacbot::transport::`.
 
 **Upstream is no longer merged - this is a hard fork.** Upstream has no release for ROS 2
 `lyrical`, which is why it was vendored in the first place; port fixes by hand.

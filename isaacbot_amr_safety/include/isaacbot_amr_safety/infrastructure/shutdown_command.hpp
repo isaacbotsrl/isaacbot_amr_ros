@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_SAFETY_INFRASTRUCTURE_SHUTDOWN_COMMAND_HPP_
-#define ISAACBOT_SAFETY_INFRASTRUCTURE_SHUTDOWN_COMMAND_HPP_
+#ifndef ISAACBOT_AMR_SAFETY_INFRASTRUCTURE_SHUTDOWN_COMMAND_HPP_
+#define ISAACBOT_AMR_SAFETY_INFRASTRUCTURE_SHUTDOWN_COMMAND_HPP_
 
 #include <string>
 
@@ -21,17 +21,17 @@ namespace isaacbot_amr_safety::infrastructure
 {
 
 /** Environment variable carrying the shutdown reason; read by shutdown_ros_controller.sh. */
-inline constexpr char kShutdownReasonEnv[] = "ISAACBOT_SHUTDOWN_REASON";
+inline constexpr char kShutdownReasonEnv[] = "ISAACBOT_AMR_SHUTDOWN_REASON";
 
 /** Quotes `value` as one single-quoted bash word, e.g. it's -> 'it'\''s'. */
 std::string shellQuote(const std::string & value);
 
 /**
  * The bash command the shutdown tree's ExecuteCommand runs: exports the reason as
- * ISAACBOT_SHUTDOWN_REASON, then runs `command` verbatim.
+ * ISAACBOT_AMR_SHUTDOWN_REASON, then runs `command` verbatim.
  */
 std::string buildShutdownCommand(const std::string & command, const std::string & reason);
 
 }  // namespace isaacbot_amr_safety::infrastructure
 
-#endif  // ISAACBOT_SAFETY_INFRASTRUCTURE_SHUTDOWN_COMMAND_HPP_
+#endif  // ISAACBOT_AMR_SAFETY_INFRASTRUCTURE_SHUTDOWN_COMMAND_HPP_

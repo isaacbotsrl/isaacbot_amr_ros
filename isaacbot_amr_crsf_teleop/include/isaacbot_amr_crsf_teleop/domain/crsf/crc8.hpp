@@ -15,8 +15,8 @@
 // Derived from crsf_receiver - https://github.com/AndreyTulyakov/ros2_crsf_receiver
 // Portions Copyright (c) Andrey Tulyakov, MIT License - see THIRD_PARTY_LICENSES.
 
-#ifndef ISAACBOT_CRSF_TELEOP_DOMAIN_CRSF_CRC8_HPP_
-#define ISAACBOT_CRSF_TELEOP_DOMAIN_CRSF_CRC8_HPP_
+#ifndef ISAACBOT_AMR_CRSF_TELEOP_DOMAIN_CRSF_CRC8_HPP_
+#define ISAACBOT_AMR_CRSF_TELEOP_DOMAIN_CRSF_CRC8_HPP_
 
 #include <array>
 #include <cstddef>
@@ -46,4 +46,4 @@ private:
 
 }  // namespace isaacbot_amr_crsf_teleop::crsf
 
-#endif  // ISAACBOT_CRSF_TELEOP_DOMAIN_CRSF_CRC8_HPP_
+#endif  // ISAACBOT_AMR_CRSF_TELEOP_DOMAIN_CRSF_CRC8_HPP_

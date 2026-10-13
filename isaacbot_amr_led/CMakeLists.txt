@@ -32,7 +32,7 @@ include_directories(include)
 
 # --- Domain: entities, animations, SK9822 encoder, ports. No ROS, no I/O. --
 
-add_library(isaacbot_led_domain SHARED
+add_library(isaacbot_amr_led_domain SHARED
     src/domain/animation/image_animation.cpp
     src/domain/animation/moving_image_animation.cpp
     src/domain/led_components/led_panel.cpp
@@ -43,19 +43,19 @@ add_library(isaacbot_led_domain SHARED
     src/domain/sk9822_frame_encoder.cpp
 )
 
-target_include_directories(isaacbot_led_domain PUBLIC
+target_include_directories(isaacbot_amr_led_domain PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include/${PROJECT_NAME}>
 )
 
 # isaacbot_amr_utils is only used for its header-only YAML helpers.
-target_include_directories(isaacbot_led_domain PUBLIC ${isaacbot_amr_utils_INCLUDE_DIRS})
+target_include_directories(isaacbot_amr_led_domain PUBLIC ${isaacbot_amr_utils_INCLUDE_DIRS})
 
-target_link_libraries(isaacbot_led_domain yaml-cpp)
+target_link_libraries(isaacbot_amr_led_domain yaml-cpp)
 
 # --- Application: use cases. No ROS. ----------------------------------------
 
-add_library(isaacbot_led_application SHARED
+add_library(isaacbot_amr_led_application SHARED
     src/application/encode_frame_use_case.cpp
     src/application/get_led_state_use_case.cpp
     src/application/led_control_handshake.cpp
@@ -66,26 +66,26 @@ add_library(isaacbot_led_application SHARED
     src/application/validate_animation_catalog_use_case.cpp
 )
 
-target_link_libraries(isaacbot_led_application isaacbot_led_domain)
+target_link_libraries(isaacbot_amr_led_application isaacbot_amr_led_domain)
 
 # --- Infrastructure: pluginlib, YAML config, ROS nodes. ----------------------
 
 # PngImageFileSource (the domain's IImageSource). An object library: built into the plugin library
 # and into the tests that read real images, so the installed plugin needs no extra shared library
 # at run time (colcon test doesn't put isaacbot_amr_led's own lib/ on LD_LIBRARY_PATH).
-add_library(isaacbot_led_png_image_source OBJECT src/infrastructure/png_image_file_source.cpp)
-set_target_properties(isaacbot_led_png_image_source PROPERTIES POSITION_INDEPENDENT_CODE ON)
+add_library(isaacbot_amr_led_png_image_source OBJECT src/infrastructure/png_image_file_source.cpp)
+set_target_properties(isaacbot_amr_led_png_image_source PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 pluginlib_export_plugin_description_file(${PROJECT_NAME} plugins.xml)
 
 add_library(animation_plugins SHARED src/infrastructure/animation_plugins.cpp
-            $<TARGET_OBJECTS:isaacbot_led_png_image_source>)
+            $<TARGET_OBJECTS:isaacbot_amr_led_png_image_source>)
 
 target_link_libraries(animation_plugins
     ${pluginlib_TARGETS}
 )
 
-target_link_libraries(animation_plugins isaacbot_led_domain png)
+target_link_libraries(animation_plugins isaacbot_amr_led_domain png)
 
 generate_parameter_library(led_driver_parameters
                            src/led_driver_parameters.yaml
@@ -109,7 +109,7 @@ target_link_libraries(led_driver_node_component
 )
 
 target_link_libraries(led_driver_node_component
-                      isaacbot_led_application
+                      isaacbot_amr_led_application
                       led_driver_parameters
 )
 target_include_directories(led_driver_node_component PUBLIC ${isaacbot_amr_utils_INCLUDE_DIRS})
@@ -137,14 +137,14 @@ target_link_libraries(led_controller_node_component
 target_include_directories(led_controller_node_component PUBLIC ${isaacbot_amr_utils_INCLUDE_DIRS})
 
 target_link_libraries(led_controller_node_component
-                      isaacbot_led_application
+                      isaacbot_amr_led_application
                       led_controller_parameters
                       yaml-cpp
 )
 
 # Declare the include path on every exported target, not only via the
 # domain library it happens to link.
-foreach(TARGET_NAME IN ITEMS isaacbot_led_application animation_plugins
+foreach(TARGET_NAME IN ITEMS isaacbot_amr_led_application animation_plugins
                              led_driver_node_component led_controller_node_component)
   target_include_directories(${TARGET_NAME} PUBLIC
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -168,56 +168,56 @@ if(BUILD_TESTING)
   find_package(ament_cmake_gmock REQUIRED)
 
   # Unit tests of the domain and application layers link no ROS library.
-  function(isaacbot_led_add_test name source)
+  function(isaacbot_amr_led_add_test name source)
     ament_add_gmock(${name} ${source})
     target_link_libraries(${name} ${ARGN})
   endfunction()
 
-  isaacbot_led_add_test(test_animation test/unit/domain/test_animation.cpp isaacbot_led_domain)
-  isaacbot_led_add_test(test_image_animation test/unit/domain/test_image_animation.cpp isaacbot_led_domain)
-  isaacbot_led_add_test(test_led_panel test/unit/domain/test_led_panel.cpp isaacbot_led_domain)
-  isaacbot_led_add_test(test_led_segment test/unit/domain/test_led_segment.cpp isaacbot_led_domain)
-  isaacbot_led_add_test(test_segment_layers test/unit/domain/test_segment_layers.cpp isaacbot_led_domain)
-  isaacbot_led_add_test(test_segment_converter test/unit/domain/test_segment_converter.cpp isaacbot_led_domain)
-  isaacbot_led_add_test(test_sk9822_frame_encoder test/unit/domain/test_sk9822_frame_encoder.cpp isaacbot_led_domain)
+  isaacbot_amr_led_add_test(test_animation test/unit/domain/test_animation.cpp isaacbot_amr_led_domain)
+  isaacbot_amr_led_add_test(test_image_animation test/unit/domain/test_image_animation.cpp isaacbot_amr_led_domain)
+  isaacbot_amr_led_add_test(test_led_panel test/unit/domain/test_led_panel.cpp isaacbot_amr_led_domain)
+  isaacbot_amr_led_add_test(test_led_segment test/unit/domain/test_led_segment.cpp isaacbot_amr_led_domain)
+  isaacbot_amr_led_add_test(test_segment_layers test/unit/domain/test_segment_layers.cpp isaacbot_amr_led_domain)
+  isaacbot_amr_led_add_test(test_segment_converter test/unit/domain/test_segment_converter.cpp isaacbot_amr_led_domain)
+  isaacbot_amr_led_add_test(test_sk9822_frame_encoder test/unit/domain/test_sk9822_frame_encoder.cpp isaacbot_amr_led_domain)
 
-  isaacbot_led_add_test(test_set_animation_use_case
-                     test/unit/application/test_set_animation_use_case.cpp isaacbot_led_application)
-  isaacbot_led_add_test(test_render_tick_use_case
-                     test/unit/application/test_render_tick_use_case.cpp isaacbot_led_application)
-  isaacbot_led_add_test(test_encode_frame_use_case
-                     test/unit/application/test_encode_frame_use_case.cpp isaacbot_led_application)
-  isaacbot_led_add_test(test_stop_animation_use_case
-                     test/unit/application/test_stop_animation_use_case.cpp isaacbot_led_application)
-  isaacbot_led_add_test(test_set_brightness_use_case
-                     test/unit/application/test_set_brightness_use_case.cpp isaacbot_led_application)
-  isaacbot_led_add_test(test_get_led_state_use_case
-                     test/unit/application/test_get_led_state_use_case.cpp isaacbot_led_application)
-  isaacbot_led_add_test(test_validate_animation_catalog_use_case
-                     test/unit/application/test_validate_animation_catalog_use_case.cpp isaacbot_led_application)
-  isaacbot_led_add_test(test_led_control_handshake
-                     test/unit/application/test_led_control_handshake.cpp isaacbot_led_application)
+  isaacbot_amr_led_add_test(test_set_animation_use_case
+                     test/unit/application/test_set_animation_use_case.cpp isaacbot_amr_led_application)
+  isaacbot_amr_led_add_test(test_render_tick_use_case
+                     test/unit/application/test_render_tick_use_case.cpp isaacbot_amr_led_application)
+  isaacbot_amr_led_add_test(test_encode_frame_use_case
+                     test/unit/application/test_encode_frame_use_case.cpp isaacbot_amr_led_application)
+  isaacbot_amr_led_add_test(test_stop_animation_use_case
+                     test/unit/application/test_stop_animation_use_case.cpp isaacbot_amr_led_application)
+  isaacbot_amr_led_add_test(test_set_brightness_use_case
+                     test/unit/application/test_set_brightness_use_case.cpp isaacbot_amr_led_application)
+  isaacbot_amr_led_add_test(test_get_led_state_use_case
+                     test/unit/application/test_get_led_state_use_case.cpp isaacbot_amr_led_application)
+  isaacbot_amr_led_add_test(test_validate_animation_catalog_use_case
+                     test/unit/application/test_validate_animation_catalog_use_case.cpp isaacbot_amr_led_application)
+  isaacbot_amr_led_add_test(test_led_control_handshake
+                     test/unit/application/test_led_control_handshake.cpp isaacbot_amr_led_application)
 
-  isaacbot_led_add_test(test_yaml_led_config
+  isaacbot_amr_led_add_test(test_yaml_led_config
                      test/unit/infrastructure/test_yaml_led_config.cpp led_controller_node_component)
-  target_compile_definitions(test_yaml_led_config PRIVATE ISAACBOT_LED_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+  target_compile_definitions(test_yaml_led_config PRIVATE ISAACBOT_AMR_LED_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 
-  isaacbot_led_add_test(test_shipped_blinkers
+  isaacbot_amr_led_add_test(test_shipped_blinkers
                      test/unit/infrastructure/test_shipped_blinkers.cpp led_controller_node_component)
-  target_compile_definitions(test_shipped_blinkers PRIVATE ISAACBOT_LED_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
-  target_sources(test_shipped_blinkers PRIVATE $<TARGET_OBJECTS:isaacbot_led_png_image_source>)
+  target_compile_definitions(test_shipped_blinkers PRIVATE ISAACBOT_AMR_LED_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+  target_sources(test_shipped_blinkers PRIVATE $<TARGET_OBJECTS:isaacbot_amr_led_png_image_source>)
   target_link_libraries(test_shipped_blinkers png)
 
-  isaacbot_led_add_test(test_png_image_file_source
-                     test/unit/infrastructure/test_png_image_file_source.cpp isaacbot_led_domain png)
-  target_sources(test_png_image_file_source PRIVATE $<TARGET_OBJECTS:isaacbot_led_png_image_source>)
-  target_compile_definitions(test_png_image_file_source PRIVATE ISAACBOT_LED_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+  isaacbot_amr_led_add_test(test_png_image_file_source
+                     test/unit/infrastructure/test_png_image_file_source.cpp isaacbot_amr_led_domain png)
+  target_sources(test_png_image_file_source PRIVATE $<TARGET_OBJECTS:isaacbot_amr_led_png_image_source>)
+  target_compile_definitions(test_png_image_file_source PRIVATE ISAACBOT_AMR_LED_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 
-  isaacbot_led_add_test(test_led_controller_diagnostics
+  isaacbot_amr_led_add_test(test_led_controller_diagnostics
                      test/unit/infrastructure/test_led_controller_diagnostics.cpp
                      led_controller_node_component)
 
-  isaacbot_led_add_test(test_led_driver_node
+  isaacbot_amr_led_add_test(test_led_driver_node
                      test/integration/test_led_driver_node.cpp led_driver_node_component)
 
   # pluginlib finds the animation plugins through the ament index: point it at this package's
@@ -225,7 +225,7 @@ if(BUILD_TESTING)
   ament_add_gmock(test_led_controller_node test/integration/test_led_controller_node.cpp
                   TIMEOUT 120 APPEND_ENV AMENT_PREFIX_PATH=${CMAKE_INSTALL_PREFIX})
   target_link_libraries(test_led_controller_node led_controller_node_component)
-  target_compile_definitions(test_led_controller_node PRIVATE ISAACBOT_LED_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+  target_compile_definitions(test_led_controller_node PRIVATE ISAACBOT_AMR_LED_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 
   # The launch file's composition: one container, driver + controller + UDP senders intra-process.
   # FindPackageShare('isaacbot_amr_led') needs this package's own install prefix on the ament index.
@@ -235,7 +235,7 @@ if(BUILD_TESTING)
 endif()
 
 install(
-    TARGETS isaacbot_led_domain isaacbot_led_application animation_plugins
+    TARGETS isaacbot_amr_led_domain isaacbot_amr_led_application animation_plugins
             led_driver_node_component led_driver_parameters
             led_controller_node_component led_controller_parameters
     EXPORT export_${PROJECT_NAME}

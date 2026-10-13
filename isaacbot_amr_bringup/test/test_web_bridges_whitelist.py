@@ -24,8 +24,8 @@ import yaml
 
 @pytest.fixture(scope='module')
 def launch_module():
-    path = Path(__file__).resolve().parents[1] / 'launch' / 'isaacbot_web_bridges.launch.py'
-    spec = importlib.util.spec_from_file_location('isaacbot_web_bridges_launch', path)
+    path = Path(__file__).resolve().parents[1] / 'launch' / 'isaacbot_amr_web_bridges.launch.py'
+    spec = importlib.util.spec_from_file_location('isaacbot_amr_web_bridges_launch', path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -70,7 +70,7 @@ def test_topics_the_uis_subscribe_to_are_advertised(patterns, topic):
 
 
 def test_namespace_is_not_hard_coded(patterns):
-    assert _allowed(patterns, '/isaacbot_a2/scan')
+    assert _allowed(patterns, '/isaacbot_amr_a2/scan')
     assert _allowed(patterns, '/scan')
 
 
@@ -98,7 +98,7 @@ def test_internal_topics_stay_off_the_bridge(patterns, topic):
     '/isaacbot/save_place', '/isaacbot/delete_place',
     '/isaacbot/reinitialize_global_localization', '/isaacbot/request_nomotion_update',
     '/isaacbot/rc/calibration/start', '/isaacbot/rc/calibration/apply',
-    '/isaacbot/isaacbot_crsf_teleop_node/change_state', '/isaacbot/isaacbot_crsf_teleop_node/get_state',
+    '/isaacbot/isaacbot_amr_crsf_teleop_node/change_state', '/isaacbot/isaacbot_amr_crsf_teleop_node/get_state',
     '/isaacbot/led/set_animation', '/isaacbot/led/stop_animation', '/isaacbot/led/set_brightness',
     '/isaacbot/follow_me/start', '/isaacbot/follow_me/stop',
     # Unnamespaced isaacbot.
@@ -114,7 +114,7 @@ def test_services_the_uis_call_are_advertised(service_patterns, service):
     '/isaacbot/slam_toolbox/save_map', '/isaacbot/map_saver/save_map',
     '/isaacbot/global_costmap/save_grid',
     # Everything else on the graph.
-    '/isaacbot/controller_server/get_parameters', '/isaacbot/isaacbot_led_driver/change_state',
+    '/isaacbot/controller_server/get_parameters', '/isaacbot/isaacbot_amr_led_driver/change_state',
     '/rosapi/topics',
 ])
 def test_other_services_stay_off_the_bridge(service_patterns, service):

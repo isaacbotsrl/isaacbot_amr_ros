@@ -13,8 +13,8 @@
 // limitations under the License.
 
 
-#ifndef ISAACBOT_SAFETY_DOMAIN_SAFETY_HEALTH_HPP_
-#define ISAACBOT_SAFETY_DOMAIN_SAFETY_HEALTH_HPP_
+#ifndef ISAACBOT_AMR_SAFETY_DOMAIN_SAFETY_HEALTH_HPP_
+#define ISAACBOT_AMR_SAFETY_DOMAIN_SAFETY_HEALTH_HPP_
 
 #include <optional>
 #include <string>
@@ -71,4 +71,4 @@ const char * toString(SafetyVerdict verdict);
 
 }  // namespace isaacbot_amr_safety::domain
 
-#endif  // ISAACBOT_SAFETY_DOMAIN_SAFETY_HEALTH_HPP_
+#endif  // ISAACBOT_AMR_SAFETY_DOMAIN_SAFETY_HEALTH_HPP_

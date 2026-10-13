@@ -84,7 +84,7 @@ def chained_wheel_controllers(config_path):
     """
     with open(config_path, encoding='utf-8') as config_file:
         config = yaml.safe_load(config_file) or {}
-    drive = (config.get('/**', config).get('isaacbot_drive_controller', {})
+    drive = (config.get('/**', config).get('isaacbot_amr_drive_controller', {})
              .get('ros__parameters', {}))
     wheels = list(drive.get('left_wheel_names', [])) + list(drive.get('right_wheel_names', []))
     chained = []
@@ -104,7 +104,7 @@ def generate_launch_description():
         default_value="",
         description="Path to the common configuration directory.",
     )
-    isaacbot_controller_dir = PythonExpression(
+    isaacbot_amr_controller_dir = PythonExpression(
         [
             "'",
             common_dir_path,
@@ -130,7 +130,7 @@ def generate_launch_description():
         "controller_config_path",
         default_value=PathJoinSubstitution(
             [
-                isaacbot_controller_dir,
+                isaacbot_amr_controller_dir,
                 "config",
                 PythonExpression(["'", wheel_type, "_controller.yaml'"]),
             ]
@@ -161,7 +161,7 @@ def generate_launch_description():
     namespace = LaunchConfiguration("namespace")
     declare_namespace_arg = DeclareLaunchArgument(
         "namespace",
-        default_value=EnvironmentVariable("ISAACBOT_SYSTEM_NAMESPACE", default_value=""),
+        default_value=EnvironmentVariable("ISAACBOT_AMR_SYSTEM_NAMESPACE", default_value=""),
         description="Add namespace to all launched nodes.",
     )
 
@@ -184,9 +184,9 @@ def generate_launch_description():
     )
 
     ns = PythonExpression(["'", namespace, "' + '/' if '", namespace, "' else ''"])
-    resolved_config = LaunchConfiguration("isaacbot_controller_resolved_config")
+    resolved_config = LaunchConfiguration("isaacbot_amr_controller_resolved_config")
     resolve_config = SetLaunchConfiguration(
-        "isaacbot_controller_resolved_config",
+        "isaacbot_amr_controller_resolved_config",
         ReplaceString(controller_config_path, {"<namespace>/": ns}),
     )
 
@@ -196,7 +196,7 @@ def generate_launch_description():
                 [
                     FindPackageShare("isaacbot_amr_description"),
                     "launch",
-                    "isaacbot_load_urdf.launch.py"]
+                    "isaacbot_amr_load_urdf.launch.py"]
             )
         ),
         launch_arguments={
@@ -213,9 +213,9 @@ def generate_launch_description():
         [
             "'",
             namespace,
-            "' + '.isaacbot_joint_state_broadcaster' if '",
+            "' + '.isaacbot_amr_joint_state_broadcaster' if '",
             namespace,
-            "' else 'isaacbot_joint_state_broadcaster'",
+            "' else 'isaacbot_amr_joint_state_broadcaster'",
         ]
     )
     controller_manager_log_unit = PythonExpression(
@@ -228,13 +228,13 @@ def generate_launch_description():
         ]
     )
 
-    isaacbot_control_node = Node(
+    isaacbot_amr_control_node = Node(
         package="controller_manager",
         executable="ros2_control_node",
         parameters=[resolved_config],
         namespace=namespace,
         # Only the /diagnostics remap belongs here: it reaches controller_manager and the
-        # isaacbot_hardware_controller node the hardware interface creates in this process, but never
+        # isaacbot_amr_hardware_controller node the hardware interface creates in this process, but never
         # the controllers. Controller topic remaps are `node_options_args` in the controller
         # config file.
         remappings=[("/diagnostics", "diagnostics")],
@@ -309,14 +309,14 @@ def generate_launch_description():
             )
 
         drive_controller_spawner = make_spawner(
-            'isaacbot_drive_controller', include_log_args=True,
+            'isaacbot_amr_drive_controller', include_log_args=True,
             group=chained_wheel_controllers(config_path),
         )
         joint_state_broadcaster_spawner = make_spawner(
-            'isaacbot_joint_state_broadcaster'
+            'isaacbot_amr_joint_state_broadcaster'
         )
         imu_broadcaster_spawner = make_spawner(
-            'isaacbot_imu_broadcaster', include_log_args=True
+            'isaacbot_amr_imu_broadcaster', include_log_args=True
         )
         joint_state_broadcaster_activated = {'seen': False}
         drive_controller_activated = {'seen': False}
@@ -332,7 +332,7 @@ def generate_launch_description():
                 event_handler=OnProcessExit(
                     target_action=joint_state_broadcaster_spawner,
                     on_exit=spawner_exit_handler(
-                        'isaacbot_joint_state_broadcaster',
+                        'isaacbot_amr_joint_state_broadcaster',
                         drive_controller_spawner,
                         joint_state_broadcaster_activated,
                     ),
@@ -342,7 +342,7 @@ def generate_launch_description():
                 event_handler=OnProcessExit(
                     target_action=drive_controller_spawner,
                     on_exit=spawner_exit_handler(
-                        'isaacbot_drive_controller', imu_broadcaster_spawner,
+                        'isaacbot_amr_drive_controller', imu_broadcaster_spawner,
                         drive_controller_activated,
                     ),
                 ),
@@ -353,7 +353,7 @@ def generate_launch_description():
                     # The last mandatory controller: isaacbot_amr_bringup starts the rest of the
                     # stack on this event.
                     on_exit=spawner_exit_handler(
-                        'isaacbot_imu_broadcaster', EmitEvent(event=ControllersActive()),
+                        'isaacbot_amr_imu_broadcaster', EmitEvent(event=ControllersActive()),
                         imu_broadcaster_activated,
                     ),
                 )
@@ -373,7 +373,7 @@ def generate_launch_description():
         SetParameter(name="use_sim_time", value=use_sim),
         resolve_config,
         load_urdf,
-        isaacbot_control_node,
+        isaacbot_amr_control_node,
         OpaqueFunction(function=configure_spawners),
     ]
 

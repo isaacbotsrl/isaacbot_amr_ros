@@ -65,13 +65,13 @@ set(ENV{PKG_CONFIG_PATH}
 add_library(
     ${PROJECT_NAME}_core STATIC
     src/domain/driver_data_snapshot.cpp
-    src/domain/isaacbot_error_filter.cpp
+    src/domain/isaacbot_amr_error_filter.cpp
     src/domain/imu_calibration.cpp
     src/domain/emergency_stop.cpp
     src/domain/velocity_command_guard.cpp
     src/domain/contactor_monitor.cpp
     src/domain/safety_link_diagnosis.cpp
-    src/application/isaacbot_control_loop_use_case.cpp
+    src/application/isaacbot_amr_control_loop_use_case.cpp
     src/utils.cpp
 )
 
@@ -85,28 +85,28 @@ target_include_directories(
 
 add_library(
     ${PROJECT_NAME} SHARED
-    src/isaacbot_sensors/phidget_imu_sensor.cpp
-    src/isaacbot_driver/phidget_driver/phidget_utils.cpp
-    src/isaacbot_driver/phidget_driver/phidget_motor_driver.cpp
-    src/isaacbot_driver/phidget_driver/phidget_isaacbot_driver.cpp
-    src/isaacbot_driver/phidget_driver/phidget_data_transformer.cpp
-    src/isaacbot_driver/ardennes_driver.cpp
-    src/isaacbot_system/ardennes_system.cpp
-    src/isaacbot_system/isaacbot_system.cpp
+    src/isaacbot_amr_sensors/phidget_imu_sensor.cpp
+    src/isaacbot_amr_driver/phidget_driver/phidget_utils.cpp
+    src/isaacbot_amr_driver/phidget_driver/phidget_motor_driver.cpp
+    src/isaacbot_amr_driver/phidget_driver/phidget_isaacbot_amr_driver.cpp
+    src/isaacbot_amr_driver/phidget_driver/phidget_data_transformer.cpp
+    src/isaacbot_amr_driver/ardennes_driver.cpp
+    src/isaacbot_amr_system/ardennes_system.cpp
+    src/isaacbot_amr_system/isaacbot_amr_system.cpp
     src/system_ros_interface/system_ros_interface.cpp
-    src/isaacbot_safety_controller/isaacbot_safety_controller.cpp
-    src/isaacbot_safety_controller/isaacbot_safety_controller_e_stop_io.cpp
-    src/isaacbot_safety_controller/isaacbot_safety_controller_gpio_adapter.cpp
+    src/isaacbot_amr_safety_controller/isaacbot_amr_safety_controller.cpp
+    src/isaacbot_amr_safety_controller/isaacbot_amr_safety_controller_e_stop_io.cpp
+    src/isaacbot_amr_safety_controller/isaacbot_amr_safety_controller_gpio_adapter.cpp
 )
 
 # Keyword signatures on both calls (CMake forbids mixing plain and keyword target_link_libraries
 # on one target). ${PROJECT_NAME}_core and phidgets_spatial_parameters are PUBLIC: public headers
-# include their headers (e.g. isaacbot_system.hpp -> application/, phidget_imu_sensor.hpp ->
+# include their headers (e.g. isaacbot_amr_system.hpp -> application/, phidget_imu_sensor.hpp ->
 # phidgets_spatial_parameters.hpp), and both are in this package's own export set, so exporting
 # them is safe. isaacbot_amr_modbus_driver is PUBLIC, and must be: it is now a proper
 # ament_export_dependencies() entry (the Modbus client moved to
 # isaacbot_amr_transport/isaacbot_amr_modbus_driver), and this package's public headers reach into it -
-# ardennes_system.hpp includes client_settings.hpp, isaacbot_safety_controller.hpp includes
+# ardennes_system.hpp includes client_settings.hpp, isaacbot_amr_safety_controller.hpp includes
 # discrete_io_port.hpp. Downstream consumers therefore get its headers and libraries from the
 # export set rather than having to find them on a default search path, which is exactly what
 # the old PRIVATE Modbus_Core link could not offer.
@@ -135,7 +135,7 @@ target_link_libraries(
 )
 
 target_compile_definitions(
-    ${PROJECT_NAME} PRIVATE "ISAACBOT_HARDWARE_INTERFACES_BUILDING_DLL"
+    ${PROJECT_NAME} PRIVATE "ISAACBOT_AMR_HARDWARE_INTERFACES_BUILDING_DLL"
 )
 
 install(
@@ -155,7 +155,7 @@ ament_export_include_directories(include/${PROJECT_NAME})
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 
 pluginlib_export_plugin_description_file(hardware_interface
-  isaacbot_hardware_interfaces.xml
+  isaacbot_amr_hardware_interfaces.xml
 )
 
 if(BUILD_TESTING)
@@ -204,8 +204,8 @@ if(BUILD_TESTING)
   # add_library() above).
   find_package(ament_cmake_gtest REQUIRED)
 
-  ament_add_gtest(test_isaacbot_error_filter test/domain/test_isaacbot_error_filter.cpp)
-  target_link_libraries(test_isaacbot_error_filter ${PROJECT_NAME}_core)
+  ament_add_gtest(test_isaacbot_amr_error_filter test/domain/test_isaacbot_amr_error_filter.cpp)
+  target_link_libraries(test_isaacbot_amr_error_filter ${PROJECT_NAME}_core)
 
   ament_add_gtest(test_driver_data_snapshot test/domain/test_driver_data_snapshot.cpp)
   target_link_libraries(test_driver_data_snapshot ${PROJECT_NAME}_core)
@@ -245,23 +245,23 @@ if(BUILD_TESTING)
   # fault-flag reset, write-command gating/serialization), driven with fake domain ports the same
   # way test_emergency_stop above is - no ROS, no real hardware.
   ament_add_gtest(
-    test_isaacbot_control_loop_use_case test/application/test_isaacbot_control_loop_use_case.cpp)
-  target_link_libraries(test_isaacbot_control_loop_use_case ${PROJECT_NAME}_core)
+    test_isaacbot_amr_control_loop_use_case test/application/test_isaacbot_amr_control_loop_use_case.cpp)
+  target_link_libraries(test_isaacbot_amr_control_loop_use_case ${PROJECT_NAME}_core)
   # Shared test doubles (FakeIsaacbotDriver/FakeEmergencyStop) live in test/fakes/.
-  target_include_directories(test_isaacbot_control_loop_use_case PRIVATE test)
+  target_include_directories(test_isaacbot_amr_control_loop_use_case PRIVATE test)
 
   ament_add_gtest(test_utils test/test_utils.cpp)
   target_link_libraries(test_utils ${PROJECT_NAME}_core)
 
   ament_add_gtest(
-    test_phidget_data_transformer test/isaacbot_driver/test_phidget_data_transformer.cpp)
+    test_phidget_data_transformer test/isaacbot_amr_driver/test_phidget_data_transformer.cpp)
   target_link_libraries(test_phidget_data_transformer ${PROJECT_NAME})
 
   # Pure-logic unit test for PhidgetMotorDriver::isFailsafeTrippedReturnCode() - no live Phidget
   # handle needed (see the failsafe-watchdog design note in domain/driver.hpp's
   # MotorDriverInterface).
   ament_add_gtest(
-    test_phidget_motor_driver test/isaacbot_driver/test_phidget_motor_driver.cpp)
+    test_phidget_motor_driver test/isaacbot_amr_driver/test_phidget_motor_driver.cpp)
   target_link_libraries(test_phidget_motor_driver ${PROJECT_NAME})
 
   # Integration test: drives SystemROSInterface (services + publishers) over the real rclcpp
@@ -282,9 +282,9 @@ if(BUILD_TESTING)
   # HardwareInfo/HardwareComponentInterfaceParams, the same types ros2_control's ResourceManager
   # populates from a parsed URDF. Deliberately does not exercise on_configure()/on_activate()/
   # read()/write(), which require real Modbus/Phidget hardware - see the file-level comment in
-  # test/isaacbot_system/test_ardennes_system_on_init.cpp.
+  # test/isaacbot_amr_system/test_ardennes_system_on_init.cpp.
   ament_add_gtest(
-    test_ardennes_system_on_init test/isaacbot_system/test_ardennes_system_on_init.cpp)
+    test_ardennes_system_on_init test/isaacbot_amr_system/test_ardennes_system_on_init.cpp)
   target_link_libraries(test_ardennes_system_on_init ${PROJECT_NAME})
   target_link_libraries(test_ardennes_system_on_init
       ${hardware_interface_TARGETS}
@@ -294,10 +294,10 @@ if(BUILD_TESTING)
   # defineIsaacbotDriver()/defineIsaacbotController() return in-memory fakes - no Modbus/Phidget
   # hardware, unlike test_ardennes_system_on_init above (see the test's file-level comment).
   ament_add_gtest(
-    test_isaacbot_system_write test/isaacbot_system/test_isaacbot_system_write.cpp)
-  target_link_libraries(test_isaacbot_system_write ${PROJECT_NAME})
-  target_include_directories(test_isaacbot_system_write PRIVATE test)
-  target_link_libraries(test_isaacbot_system_write
+    test_isaacbot_amr_system_write test/isaacbot_amr_system/test_isaacbot_amr_system_write.cpp)
+  target_link_libraries(test_isaacbot_amr_system_write ${PROJECT_NAME})
+  target_include_directories(test_isaacbot_amr_system_write PRIVATE test)
+  target_link_libraries(test_isaacbot_amr_system_write
       ${hardware_interface_TARGETS}
       ${rclcpp_TARGETS}
       ${rclcpp_lifecycle_TARGETS}
@@ -307,31 +307,31 @@ if(BUILD_TESTING)
   # (on_init() + export_state_interfaces()), the same pattern as
   # test_ardennes_system_on_init above. Deliberately does not exercise on_configure()/
   # on_activate()/read(), which require real Phidget Spatial USB hardware - see the file-level
-  # comment in test/isaacbot_sensors/test_phidget_imu_sensor_on_init.cpp.
+  # comment in test/isaacbot_amr_sensors/test_phidget_imu_sensor_on_init.cpp.
   ament_add_gtest(
-    test_phidget_imu_sensor_on_init test/isaacbot_sensors/test_phidget_imu_sensor_on_init.cpp)
+    test_phidget_imu_sensor_on_init test/isaacbot_amr_sensors/test_phidget_imu_sensor_on_init.cpp)
   target_link_libraries(test_phidget_imu_sensor_on_init ${PROJECT_NAME})
   target_link_libraries(test_phidget_imu_sensor_on_init
       ${hardware_interface_TARGETS}
   )
 
   # Unit tests for ContactCoilHandler/IsaacbotSafetyController against FakeIsaacbotModbus (test/
-  # isaacbot_safety_controller/fake_isaacbot_modbus.hpp) - no real Modbus TCP connection involved. These
+  # isaacbot_amr_safety_controller/fake_isaacbot_amr_modbus.hpp) - no real Modbus TCP connection involved. These
   # were previously the one infrastructure adapter in this package with no direct test coverage.
   ament_add_gtest(
-    test_contact_coil_handler test/isaacbot_safety_controller/test_contact_coil_handler.cpp)
+    test_contact_coil_handler test/isaacbot_amr_safety_controller/test_contact_coil_handler.cpp)
   target_link_libraries(test_contact_coil_handler ${PROJECT_NAME})
 
   ament_add_gtest(
-    test_isaacbot_safety_controller test/isaacbot_safety_controller/test_isaacbot_safety_controller.cpp)
-  target_link_libraries(test_isaacbot_safety_controller ${PROJECT_NAME})
+    test_isaacbot_amr_safety_controller test/isaacbot_amr_safety_controller/test_isaacbot_amr_safety_controller.cpp)
+  target_link_libraries(test_isaacbot_amr_safety_controller ${PROJECT_NAME})
 
   # Isolation tests for the two port adapters between the domain and IsaacbotSafetyController. Each
   # is a hand-written mapping from a named domain concept to one GPIO enumerator; a wrong mapping
   # there is invisible everywhere else in this package.
   ament_add_gtest(
     test_safety_controller_adapters
-    test/isaacbot_safety_controller/test_safety_controller_adapters.cpp)
+    test/isaacbot_amr_safety_controller/test_safety_controller_adapters.cpp)
   target_link_libraries(test_safety_controller_adapters ${PROJECT_NAME})
 
   # The Modbus client's own tests (connection retry, wire encoding, and a real round trip

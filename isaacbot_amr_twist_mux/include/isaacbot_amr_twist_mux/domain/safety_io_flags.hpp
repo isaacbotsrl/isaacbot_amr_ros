@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_TWIST_MUX_DOMAIN_SAFETY_IO_FLAGS_HPP_
-#define ISAACBOT_TWIST_MUX_DOMAIN_SAFETY_IO_FLAGS_HPP_
+#ifndef ISAACBOT_AMR_TWIST_MUX_DOMAIN_SAFETY_IO_FLAGS_HPP_
+#define ISAACBOT_AMR_TWIST_MUX_DOMAIN_SAFETY_IO_FLAGS_HPP_
 
 namespace isaacbot_amr_twist_mux::domain
 {
@@ -64,4 +64,4 @@ struct SafetyIoFlags
 
 }  // namespace isaacbot_amr_twist_mux::domain
 
-#endif  // ISAACBOT_TWIST_MUX_DOMAIN_SAFETY_IO_FLAGS_HPP_
+#endif  // ISAACBOT_AMR_TWIST_MUX_DOMAIN_SAFETY_IO_FLAGS_HPP_

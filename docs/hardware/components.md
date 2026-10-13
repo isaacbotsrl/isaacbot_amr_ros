@@ -15,7 +15,7 @@ This page lists the main hardware blocks of the Ardennes platform, how they conn
 | 7 | Drive motors (4×) | DOBTIAN "250W 24V 120RPM Low Speed Brush Motor" (brushed DC gear motor, 250 W, 24 V, 120 RPM at the output shaft; see the note below the wheel table for the model identifiers), with an MT6835 magnetic encoder | Wheel drive, one per wheel | Motor leads and encoder to its DCC1000 |
 | 8 | IMU | Phidgets Spatial MOT0110 | Orientation, angular velocity, linear acceleration (Madgwick filter, magnetometer off) | USB |
 | 9 | Battery management system | Daly BMS (model **TBD**) | Cell monitoring, protection, telemetry | BLE to the ESP32 bridge |
-| 10 | BMS bridge / rear LED controller | ESP32, firmware `isaacbot_led_bms_ble_controller` | Polls the BMS over BLE and forwards it over UDP. Also drives the rear LED panel | Wi-Fi, `192.168.77.201` |
+| 10 | BMS bridge / rear LED controller | ESP32, firmware `isaacbot_amr_led_bms_ble_controller` | Polls the BMS over BLE and forwards it over UDP. Also drives the rear LED panel | Wi-Fi, `192.168.77.201` |
 | 11 | Battery pack | LiFePO4, 40 Ah, 24 V system (pack model and nominal voltage **TBD**) | Main power source | Through the BMS to the power board |
 | 12 | LED panels (2×) | SK9822, 2 rows × 20 LEDs each | Front and rear bumper status lights | Wired to its LED controller |
 | 13 | Front LED controller | **TBD** | Drives the front LED panel | Wi-Fi, UDP `192.168.77.202:3334` |
@@ -23,7 +23,7 @@ This page lists the main hardware blocks of the Ardennes platform, how they conn
 | 15 | Router | RUTX11 Wi-Fi / GSM / GPS router | Platform LAN and Wi-Fi access point | Ethernet to the ROS controller, Wi-Fi to the LED/BMS controllers |
 | 16 | Power board and Power Guard | **TBD** | 24 V distribution. The Power Guard feeds the motor drivers | 24 V |
 
-Sources: `isaacbot_amr_arch/ardennes_arch.drawio`, `isaacbot_amr_safety/README.md`, `isaacbot_amr_msgs/msg/AuxIoState.msg`, `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro`, `isaacbot_amr_arch/SAFETY_CHAIN.md`, `isaacbot_amr_hardware_interface/src/isaacbot_driver/ardennes_driver.cpp`, `isaacbot_amr_hardware_interface/README.md`, `isaacbot_amr_description/urdf/common/imu.urdf.xacro`, `isaacbot_amr_battery/README.md`, `isaacbot_amr_led/config/ardennes_udp_led_channel_2.yaml`, `isaacbot_amr_battery/config/isaacbot_amr_battery.yaml`, `isaacbot_amr_led/README.md`, `isaacbot_amr_led/config/ardennes_driver.yaml`, `isaacbot_amr_led/config/ardennes_udp_led_channel_1.yaml`, `isaacbot_amr_crsf_teleop/config/isaacbot_amr_crsf_teleop.yaml`.
+Sources: `isaacbot_amr_arch/ardennes_arch.drawio`, `isaacbot_amr_safety/README.md`, `isaacbot_amr_msgs/msg/AuxIoState.msg`, `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro`, `isaacbot_amr_arch/SAFETY_CHAIN.md`, `isaacbot_amr_hardware_interface/src/isaacbot_amr_driver/ardennes_driver.cpp`, `isaacbot_amr_hardware_interface/README.md`, `isaacbot_amr_description/urdf/common/imu.urdf.xacro`, `isaacbot_amr_battery/README.md`, `isaacbot_amr_led/config/ardennes_udp_led_channel_2.yaml`, `isaacbot_amr_battery/config/isaacbot_amr_battery.yaml`, `isaacbot_amr_led/README.md`, `isaacbot_amr_led/config/ardennes_driver.yaml`, `isaacbot_amr_led/config/ardennes_udp_led_channel_1.yaml`, `isaacbot_amr_crsf_teleop/config/isaacbot_amr_crsf_teleop.yaml`.
 
 The lidar and GNSS receiver are part of the sensor payload. They are documented in the `rover_sensors` repository, not here.
 
@@ -55,7 +55,7 @@ The tyre radius and the odometry radius differ on purpose. The CAD radius places
 
 | Wheel | Joint | VINT hub port | Direction reversed | Source |
 |-------|-------|---------------|--------------------|--------|
-| Front left | `fl_wheel_base_to_fl_wheel_joint` | 0 | yes | `isaacbot_amr_hardware_interface/src/isaacbot_driver/ardennes_driver.cpp` |
+| Front left | `fl_wheel_base_to_fl_wheel_joint` | 0 | yes | `isaacbot_amr_hardware_interface/src/isaacbot_amr_driver/ardennes_driver.cpp` |
 | Front right | `fr_wheel_base_to_fr_wheel_joint` | 1 | no | same |
 | Rear left | `rl_wheel_base_to_rl_wheel_joint` | 4 | yes | same |
 | Rear right | `rr_wheel_base_to_rr_wheel_joint` | 5 | no | same |

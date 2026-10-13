@@ -12,10 +12,10 @@ multipliers are separate tuning parameters.
 The active topology closes the wheel-speed loop with chained controllers:
 
 ```
-cmd_vel -> isaacbot_drive_controller (diff_drive) -> pid_controller_<wheel> x4 -> hardware
+cmd_vel -> isaacbot_amr_drive_controller (diff_drive) -> pid_controller_<wheel> x4 -> hardware
 ```
 
-`isaacbot_drive_controller`'s wheel names are `<pid controller>/<joint>`, so it writes
+`isaacbot_amr_drive_controller`'s wheel names are `<pid controller>/<joint>`, so it writes
 each PID's reference interface and reads back the PID's exported state (the measured
 wheel velocity) for odometry. Each PID uses `feedforward_gain: 1.0` - the hardware
 velocity command is an open-loop, rad/s-scaled duty cycle - and PID trims the error
@@ -40,7 +40,7 @@ The options are live parameters, like the gains:
 | `scale_integral_with_reference` | `true` | The integral fades with \|reference\| below the largest reference since the last stop (cleared on reversal), so turns end on time. |
 | `turn_feedforward` | `1.0` | Extra command (rad/s) while the isaacbot turns: `turn_side · sign(ω) · turn_feedforward`, ramped in up to `turn_feedforward_full_rate` (0.3 rad/s) and scaled by the turn's share of the wheel speed (1 in a spin in place, 0 straight). Skid scrub eats a constant ~1.7 rad/s of wheel command in a spin (open loop, 2026-10-10), which the integral otherwise has to build up first. Never past `u_clamp`. 1.0 from the 2026-10-11 lane runs (`docs/wheel_pid_tuning_notes.md`); 0.0 turns it off. |
 | `turn_side` / `turn_track_width` | ±1 / 1.0236 m | Which side the wheel is on (−1 left, +1 right) and diff_drive's effective track (`wheel_separation · wheel_separation_multiplier`); `test/test_wheel_geometry.py` checks both. |
-| `turn_command_topic` / `turn_command_timeout` | `isaacbot_drive_controller/cmd_vel_out` / 0.2 s | The body command (diff_drive's `publish_limited_velocity`), read at configure; an older command gives no turn feed-forward. |
+| `turn_command_topic` / `turn_command_timeout` | `isaacbot_amr_drive_controller/cmd_vel_out` / 0.2 s | The body command (diff_drive's `publish_limited_velocity`), read at configure; an older command gives no turn feed-forward. |
 
 All four wheels use the same gains, with `i_clamp` ±2.0: with the model-reference integral the
 clamp only has to cover the persistent load error (in-place turns need ~2 rad/s of trim). The
@@ -56,15 +56,15 @@ simulation, which has no motor dead time.
 Each PID publishes `<pid>/controller_state` (reference, feedback, error, output).
 `save_i_term: false` clears each PID's integral whenever it is (re)activated; pid_controller
 has no reset service, so to reset on demand deactivate and reactivate
-`isaacbot_drive_controller` together with its PIDs.
+`isaacbot_amr_drive_controller` together with its PIDs.
 Listing plain joint names as wheel names instead drives the wheels open loop; the
 launch file then spawns no PIDs (see below).
 
 The joint-state and IMU broadcasters are spawned as before.
 
 controller_manager runs at 25 Hz, and each controller at its own `update_rate`: the
-wheel PIDs, `isaacbot_drive_controller`, `isaacbot_imu_broadcaster` and
-`isaacbot_joint_state_broadcaster` all at the manager's 25 Hz (the EKF runs at 50 Hz). The
+wheel PIDs, `isaacbot_amr_drive_controller`, `isaacbot_amr_imu_broadcaster` and
+`isaacbot_amr_joint_state_broadcaster` all at the manager's 25 Hz (the EKF runs at 50 Hz). The
 encoders report at most every 100 ms (10 Hz). Every rate must divide the manager's
 (`test/test_wheel_geometry.py`). The manager used to run at 100 Hz, which only re-ran the PIDs
 on stale feedback, then at 50 Hz, where 22-24 % of the velocity commands were dropped because
@@ -76,7 +76,7 @@ diagnostic; see the comment above the rates in `config/wheel_01_controller.yaml`
 Do these in order; each step relies on the one before. Both tools publish on the
 twist_mux Foxglove input (priority 100, still gated by the E-Stop motion lock),
 print their plan and only move the isaacbot with `-p enable_motion:=true`. Results go
-to `~/isaacbot_calibration/<tool>_<timestamp>/` (`summary.yaml`, raw samples).
+to `~/isaacbot_amr_calibration/<tool>_<timestamp>/` (`summary.yaml`, raw samples).
 
 1. **Wheel-speed loop.** Run the step-response tool with the wheels off the ground
    first, then on the ground. Tune the PID gains until overshoot stays under 10 %
@@ -107,7 +107,7 @@ to `~/isaacbot_calibration/<tool>_<timestamp>/` (`summary.yaml`, raw samples).
    integral reference models: after changing it, repeat step 1 on the ground and
    re-fit `integral_reference_delay` / `_time_constant`.
    Then set the limits from the inside out:
-   `isaacbot_drive_controller` >= Nav2 `velocity_smoother` `max_accel`/`max_decel`
+   `isaacbot_amr_drive_controller` >= Nav2 `velocity_smoother` `max_accel`/`max_decel`
    = MPPI `ax_max`/`ax_min`/`az_max` >= `behavior_server.rotational_acc_lim`.
 
 3. **Skid-steer calibration.** Spin in place at several rates in both directions.
@@ -160,7 +160,7 @@ process-wide remaps only affect the controller manager itself.
 ```yaml
 controller_manager:
   ros__parameters:
-    isaacbot_drive_controller:
+    isaacbot_amr_drive_controller:
       type: diff_drive_controller/DiffDriveController
       node_options_args: ["-r", "~/odom:=odometry/wheels"]
 ```

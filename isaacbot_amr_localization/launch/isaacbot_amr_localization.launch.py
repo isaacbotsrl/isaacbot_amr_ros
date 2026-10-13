@@ -30,15 +30,15 @@ from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
     
-    # Not restricted with `choices`: the value usually comes straight from the ISAACBOT_SYSTEM_USE_GPS
+    # Not restricted with `choices`: the value usually comes straight from the ISAACBOT_AMR_SYSTEM_USE_GPS
     # balena variable, so any of true/1/yes/on (any case) enables GPS fusion.
     fuse_gps = LaunchConfiguration("fuse_gps")
     declare_fuse_gps_arg = DeclareLaunchArgument(
         "fuse_gps",
-        default_value=EnvironmentVariable("ISAACBOT_SYSTEM_USE_GPS", default_value="false"),
+        default_value=EnvironmentVariable("ISAACBOT_AMR_SYSTEM_USE_GPS", default_value="false"),
         description=(
-            "Fuse GPS: adds isaacbot_gps_heading_node, isaacbot_ekf_global_node (map -> odom) and "
-            "isaacbot_navsat_transform_node, and loads the _with_gps config. The GPS driver "
+            "Fuse GPS: adds isaacbot_amr_gps_heading_node, isaacbot_amr_ekf_global_node (map -> odom) and "
+            "isaacbot_amr_navsat_transform_node, and loads the _with_gps config. The GPS driver "
             "(gps/fix) is part of the sensor payload (rover-a1-sensors container)."
         ),
     )
@@ -69,7 +69,7 @@ def generate_launch_description():
     namespace = LaunchConfiguration("namespace")
     declare_namespace_arg = DeclareLaunchArgument(
         "namespace",
-        default_value=EnvironmentVariable("ISAACBOT_SYSTEM_NAMESPACE", default_value=""),
+        default_value=EnvironmentVariable("ISAACBOT_AMR_SYSTEM_NAMESPACE", default_value=""),
         description="Add namespace to all launched nodes.",
     )
 
@@ -81,14 +81,14 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
-    # Like fuse_gps, the default usually comes from a balena variable (ISAACBOT_SYSTEM_GPS_MAP_TF),
+    # Like fuse_gps, the default usually comes from a balena variable (ISAACBOT_AMR_SYSTEM_GPS_MAP_TF),
     # so any of true/1/yes/on (any case) counts as true; anything else, empty included, is false.
     publish_global_tf = LaunchConfiguration("publish_global_tf")
     declare_publish_global_tf_arg = DeclareLaunchArgument(
         "publish_global_tf",
-        default_value=EnvironmentVariable("ISAACBOT_SYSTEM_GPS_MAP_TF", default_value="false"),
+        default_value=EnvironmentVariable("ISAACBOT_AMR_SYSTEM_GPS_MAP_TF", default_value="false"),
         description=(
-            "Let isaacbot_ekf_global_node broadcast map -> odom (GPS fusion only). Off by default: "
+            "Let isaacbot_amr_ekf_global_node broadcast map -> odom (GPS fusion only). Off by default: "
             "SLAM or AMCL owns map -> odom; odometry/global is still published."
         ),
     )
@@ -116,7 +116,7 @@ def generate_launch_description():
         default_value="",
         description="Path to the common configuration directory.",
     )
-    isaacbot_localization_common_dir = PythonExpression(
+    isaacbot_amr_localization_common_dir = PythonExpression(
         [
             "'",
             common_dir_path,
@@ -132,7 +132,7 @@ def generate_launch_description():
     declare_localization_config_path_arg = DeclareLaunchArgument(
         "localization_config_path",
         default_value=PathJoinSubstitution(
-            [isaacbot_localization_common_dir, "config", localization_config_filename]
+            [isaacbot_amr_localization_common_dir, "config", localization_config_filename]
         ),
         description="Specify the path to the localization configuration file.",
     )
@@ -140,7 +140,7 @@ def generate_launch_description():
     ekf_filter_node = Node(
         package="robot_localization",
         executable="ekf_node",
-        name="isaacbot_ekf_node",
+        name="isaacbot_amr_ekf_node",
         parameters=[localization_config_path, {"tf_prefix": namespace}],
         namespace=namespace,
         remappings=[
@@ -168,12 +168,12 @@ def generate_launch_description():
 
     gps_enabled = PythonExpression(["'", use_ekf, "'.lower() == 'true' and ", fuse_gps_bool])
 
-    # Global filter of the dual EKF: same inputs as isaacbot_ekf_node plus odometry/gps, publishing
+    # Global filter of the dual EKF: same inputs as isaacbot_amr_ekf_node plus odometry/gps, publishing
     # map -> odom. Do not run AMCL at the same time; it publishes map -> odom too.
     ekf_global_filter_node = Node(
         package="robot_localization",
         executable="ekf_node",
-        name="isaacbot_ekf_global_node",
+        name="isaacbot_amr_ekf_global_node",
         parameters=[
             localization_config_path,
             {"tf_prefix": namespace},
@@ -192,7 +192,7 @@ def generate_launch_description():
             "--ros-args",
             "--log-level",
             log_level,
-            # Same unset-sensor parameter noise as isaacbot_ekf_node.
+            # Same unset-sensor parameter noise as isaacbot_amr_ekf_node.
             "--log-level",
             "rclcpp:=ERROR",
             "--log-level",
@@ -211,7 +211,7 @@ def generate_launch_description():
     gps_heading_node = Node(
         package="isaacbot_amr_gps_heading",
         executable="isaacbot_amr_gps_heading_node",
-        name="isaacbot_gps_heading_node",
+        name="isaacbot_amr_gps_heading_node",
         parameters=[
             localization_config_path,
             {"publish_heading": True, "heading_frame_id": base_link_frame},
@@ -227,11 +227,11 @@ def generate_launch_description():
     )
 
     # Converts gps/fix into odometry/gps in the map frame. The heading it needs comes from
-    # isaacbot_gps_heading_node (gps/heading_imu), published only once aligned.
+    # isaacbot_amr_gps_heading_node (gps/heading_imu), published only once aligned.
     navsat_transform_node = Node(
         package="robot_localization",
         executable="navsat_transform_node",
-        name="isaacbot_navsat_transform_node",
+        name="isaacbot_amr_navsat_transform_node",
         parameters=[localization_config_path, {"tf_prefix": namespace}],
         namespace=namespace,
         remappings=[

@@ -36,7 +36,7 @@ def generate_launch_description():
         default_value="",
         description="Path to the common configuration directory.",
     )
-    isaacbot_safety_common_dir = PythonExpression(
+    isaacbot_amr_safety_common_dir = PythonExpression(
         [
             "'",
             common_dir_path,
@@ -48,13 +48,13 @@ def generate_launch_description():
         ]
     )
 
-    isaacbot_safety_pkg = FindPackageShare("isaacbot_amr_safety")
+    isaacbot_amr_safety_pkg = FindPackageShare("isaacbot_amr_safety")
 
     led_bt_project_path = LaunchConfiguration("led_bt_project_path")
     declare_led_bt_project_path_arg = DeclareLaunchArgument(
         "led_bt_project_path",
         default_value=PathJoinSubstitution(
-            [isaacbot_safety_common_dir, "behavior_trees", "IsaacbotLedSafetyBT.btproj"]
+            [isaacbot_amr_safety_common_dir, "behavior_trees", "IsaacbotLedSafetyBT.btproj"]
         ),
         description="Path to BehaviorTree project file, responsible for led management.",
     )
@@ -70,7 +70,7 @@ def generate_launch_description():
     namespace = LaunchConfiguration("namespace")
     declare_namespace_arg = DeclareLaunchArgument(
         "namespace",
-        default_value=EnvironmentVariable("ISAACBOT_SYSTEM_NAMESPACE", default_value=""),
+        default_value=EnvironmentVariable("ISAACBOT_AMR_SYSTEM_NAMESPACE", default_value=""),
         description="Add namespace to all launched nodes.",
     )
 
@@ -78,7 +78,7 @@ def generate_launch_description():
     declare_safety_bt_project_path_arg = DeclareLaunchArgument(
         "safety_bt_project_path",
         default_value=PathJoinSubstitution(
-            [isaacbot_safety_pkg, "behavior_trees", "IsaacbotSafetyBT.btproj"]
+            [isaacbot_amr_safety_pkg, "behavior_trees", "IsaacbotSafetyBT.btproj"]
         ),
         description="Path to BehaviorTree project file, responsible for safety.",
     )
@@ -87,7 +87,7 @@ def generate_launch_description():
     declare_shutdown_hosts_config_path_arg = DeclareLaunchArgument(
         "shutdown_hosts_config_path",
         default_value=PathJoinSubstitution(
-            [isaacbot_safety_common_dir, "config", "shutdown_hosts.yaml"]
+            [isaacbot_amr_safety_common_dir, "config", "shutdown_hosts.yaml"]
         ),
         description="Path to the YAML file listing the hosts to shut down before the ROS controller powers off.",
     )
@@ -99,18 +99,18 @@ def generate_launch_description():
         description="Whether simulation is used",
     )
 
-    isaacbot_led_safety_node = Node(
+    isaacbot_amr_led_safety_node = Node(
         package="isaacbot_amr_safety",
         executable="led_safety_node",
-        name="isaacbot_led_safety_node",
+        name="isaacbot_amr_led_safety_node",
         parameters=[
-            PathJoinSubstitution([isaacbot_safety_pkg, "config", "led_safety.yaml"]),
+            PathJoinSubstitution([isaacbot_amr_safety_pkg, "config", "led_safety.yaml"]),
             {
                 "bt_project_path": led_bt_project_path,
             },
         ],
         namespace=namespace,
-        # Topic names carry no isaacbot_ prefix, so the lifecycle transition_event topic is remapped
+        # Topic names carry no isaacbot_amr_ prefix, so the lifecycle transition_event topic is remapped
         # off the node name (the node keeps it).
         remappings=[
             ("/diagnostics", "diagnostics"),
@@ -126,12 +126,12 @@ def generate_launch_description():
         emulate_tty=True,
     )
 
-    isaacbot_safety_node = Node(
+    isaacbot_amr_safety_node = Node(
         package="isaacbot_amr_safety",
         executable="isaacbot_amr_safety_node",
-        name="isaacbot_safety_node",
+        name="isaacbot_amr_safety_node",
         parameters=[
-            PathJoinSubstitution([isaacbot_safety_pkg, "config", "isaacbot_amr_safety.yaml"]),
+            PathJoinSubstitution([isaacbot_amr_safety_pkg, "config", "isaacbot_amr_safety.yaml"]),
             {
                 "bt_project_path": safety_bt_project_path,
                 "shutdown_hosts_path": shutdown_hosts_config_path,
@@ -161,8 +161,8 @@ def generate_launch_description():
         declare_namespace_arg,
         declare_shutdown_hosts_config_path_arg,
         declare_use_sim_arg,
-        isaacbot_safety_node,
-        isaacbot_led_safety_node,
+        isaacbot_amr_safety_node,
+        isaacbot_amr_led_safety_node,
     ]
 
     return LaunchDescription(actions)

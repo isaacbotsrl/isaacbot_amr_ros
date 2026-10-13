@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_DIAG_MANAGER_INFRASTRUCTURE_SYSTEM_DIAG_NODE_HPP_
-#define ISAACBOT_DIAG_MANAGER_INFRASTRUCTURE_SYSTEM_DIAG_NODE_HPP_
+#ifndef ISAACBOT_AMR_DIAG_MANAGER_INFRASTRUCTURE_SYSTEM_DIAG_NODE_HPP_
+#define ISAACBOT_AMR_DIAG_MANAGER_INFRASTRUCTURE_SYSTEM_DIAG_NODE_HPP_
 
 #include <memory>
 #include <string>
@@ -62,4 +62,4 @@ private:
 
 }  // namespace isaacbot_amr_diag_manager
 
-#endif  // ISAACBOT_DIAG_MANAGER_INFRASTRUCTURE_SYSTEM_DIAG_NODE_HPP_
+#endif  // ISAACBOT_AMR_DIAG_MANAGER_INFRASTRUCTURE_SYSTEM_DIAG_NODE_HPP_

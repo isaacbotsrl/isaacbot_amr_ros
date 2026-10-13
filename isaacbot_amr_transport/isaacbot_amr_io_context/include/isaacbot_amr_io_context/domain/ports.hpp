@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_IO_CONTEXT_DOMAIN_PORTS_HPP_
-#define ISAACBOT_IO_CONTEXT_DOMAIN_PORTS_HPP_
+#ifndef ISAACBOT_AMR_IO_CONTEXT_DOMAIN_PORTS_HPP_
+#define ISAACBOT_AMR_IO_CONTEXT_DOMAIN_PORTS_HPP_
 
 #include <cstddef>
 #include <cstdint>
@@ -32,7 +32,7 @@ using ByteReceiveCallback =
     std::function<void (const std::vector<uint8_t> & buffer, std::size_t length)>;
 
 // A bidirectional byte stream. Implemented in infrastructure by AsioUdpSocket
-// (isaacbot_amr_udp_driver); the UART implementation went with isaacbot_serial_driver.
+// (isaacbot_amr_udp_driver); the UART implementation went with isaacbot_amr_serial_driver.
 //
 // Deliberately minimal. The blocking send/receive pair is used by nothing but tests, so it
 // stays a concrete method on AsioUdpSocket rather than widening this interface.
@@ -72,4 +72,4 @@ public:
 
 }  // namespace isaacbot::transport
 
-#endif  // ISAACBOT_IO_CONTEXT_DOMAIN_PORTS_HPP_
+#endif  // ISAACBOT_AMR_IO_CONTEXT_DOMAIN_PORTS_HPP_

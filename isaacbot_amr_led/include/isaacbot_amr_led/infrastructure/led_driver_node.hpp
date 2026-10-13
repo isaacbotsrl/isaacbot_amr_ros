@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_LED_INFRASTRUCTURE_LED_DRIVER_NODE_HPP_
-#define ISAACBOT_LED_INFRASTRUCTURE_LED_DRIVER_NODE_HPP_
+#ifndef ISAACBOT_AMR_LED_INFRASTRUCTURE_LED_DRIVER_NODE_HPP_
+#define ISAACBOT_AMR_LED_INFRASTRUCTURE_LED_DRIVER_NODE_HPP_
 
 #include <cstdint>
 #include <memory>
@@ -159,4 +159,4 @@ private:
 
 }  // namespace isaacbot_amr_led
 
-#endif  // ISAACBOT_LED_INFRASTRUCTURE_LED_DRIVER_NODE_HPP_
+#endif  // ISAACBOT_AMR_LED_INFRASTRUCTURE_LED_DRIVER_NODE_HPP_

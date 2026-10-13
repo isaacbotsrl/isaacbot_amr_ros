@@ -57,7 +57,7 @@ class WheelOdomCalibration(DriveSession):
         self.declare_parameter('wheel_radius', 0.1651)
         self.declare_parameter('wheel_separation', 0.617)
         # imu/data is in imu_link, which isaacbot_amr_description mounts upside down (roll pi,
-        # ISAACBOT_SYSTEM_MOUNT_IMU_ROLL), so its z rate is minus the body yaw rate. With +1 every
+        # ISAACBOT_AMR_SYSTEM_MOUNT_IMU_ROLL), so its z rate is minus the body yaw rate. With +1 every
         # spin segment came out non-physical and was rejected (isaacbot, 2026-09-29).
         self.declare_parameter('imu_yaw_sign', -1.0)
         self.wheels = []   # (t, left rim m/s, right rim m/s)

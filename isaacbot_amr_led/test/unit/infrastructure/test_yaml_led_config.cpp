@@ -227,7 +227,7 @@ TEST(YamlAnimationCatalog, RejectsInvalidEntries)
 
 TEST(YamlAnimationCatalog, ParsesTheShippedArdennesConfig)
 {
-    const auto config = YAML::LoadFile(std::string(ISAACBOT_LED_SOURCE_DIR) + "/config/ardennes_animations.yaml");
+    const auto config = YAML::LoadFile(std::string(ISAACBOT_AMR_LED_SOURCE_DIR) + "/config/ardennes_animations.yaml");
     const auto layout = parseLedLayout(config);
     const YamlAnimationCatalog catalog(config["led_animations"], layout.segments_map);
 
@@ -239,7 +239,7 @@ TEST(YamlAnimationCatalog, ParsesTheShippedArdennesConfig)
 
 TEST(YamlAnimationCatalog, ShippedAnimationsUseIsaacbotLedPluginsAndImages)
 {
-    const std::string source_dir(ISAACBOT_LED_SOURCE_DIR);
+    const std::string source_dir(ISAACBOT_AMR_LED_SOURCE_DIR);
     const auto config = YAML::LoadFile(source_dir + "/config/ardennes_animations.yaml");
     const auto layout = parseLedLayout(config);
     const YamlAnimationCatalog catalog(config["led_animations"], layout.segments_map);

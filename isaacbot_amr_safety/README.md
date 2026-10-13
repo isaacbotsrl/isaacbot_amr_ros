@@ -3,19 +3,19 @@
 Behavior-tree driven safety supervision for the isaacbot. Two lifecycle nodes feed isaacbot state
 into BehaviorTree.CPP trees and act on it:
 
-- `isaacbot_safety_node` trips the software E-Stop when the battery is unsafe, and shuts down the
+- `isaacbot_amr_safety_node` trips the software E-Stop when the battery is unsafe, and shuts down the
   **ROS controller** (the computer running the isaacbot ROS 2 stack) when asked to.
-- `isaacbot_led_safety_node` chooses the LED animations (E-Stop, ready, manual drive, battery,
+- `isaacbot_amr_led_safety_node` chooses the LED animations (E-Stop, ready, manual drive, battery,
   error) and requests them from `isaacbot_amr_led`.
 
 Both are `nav2::LifecycleNode`s that configure and activate themselves (`autostart_node`).
 
-## isaacbot_safety_node
+## isaacbot_amr_safety_node
 
 | Direction | Name | Type |
 |-----------|------|------|
 | sub | `battery/battery_status` | `sensor_msgs/BatteryState` (latest-state QoS) |
-| sub | `hardware_interface/driver_state` | `isaacbot_amr_msgs/IsaacbotDriverState` |
+| sub | `hardware_interface/driver_state` | `isaacbot_amr_msgs/IsaacbotAmrDriverState` |
 | sub | `hardware_interface/safety_command_echo` | `isaacbot_amr_msgs/SafetyCommandEcho` (`sw_e_stop_user_button` → `sw_e_stop_state`) |
 | sub | `system_status` | `isaacbot_amr_msgs/SystemStatus` (from `isaacbot_amr_diag_manager`, CPU temperature) |
 | client | `hardware_interface/sw_user_e_stop_set` | `std_srvs/Trigger` (called from the trees) |
@@ -45,16 +45,16 @@ A shutdown starts when:
 
 - the `IsaacbotSafety` tree runs `SignalShutdown` (battery `SHUTDOWN` verdict), or
 - anything calls `~/shutdown` (`std_srvs/Trigger`), e.g.
-  `ros2 service call /isaacbot/isaacbot_safety_node/shutdown std_srvs/srv/Trigger {}`.
+  `ros2 service call /isaacbot/isaacbot_amr_safety_node/shutdown std_srvs/srv/Trigger {}`.
 
 The node then halts the safety tree and ticks the `IsaacbotShutdown` tree
-(`behavior_trees/isaacbot_shutdown.xml`) at `timer_frequency` instead:
+(`behavior_trees/isaacbot_amr_shutdown.xml`) at `timer_frequency` instead:
 
 1. `CallTriggerService` trips the E-Stop (`hardware_interface/sw_user_e_stop_set`), best effort.
 2. `ShutdownHostsFromFile` asks every host in `shutdown_hosts_path` to shut down, best effort
    (see [Remote hosts](#remote-hosts)).
 3. `ExecuteCommand` runs `shutdown.command`, by default the installed
-   `shutdown_ros_controller.sh --no-e-stop`, with the reason exported as `ISAACBOT_SHUTDOWN_REASON`.
+   `shutdown_ros_controller.sh --no-e-stop`, with the reason exported as `ISAACBOT_AMR_SHUTDOWN_REASON`.
    It must finish within `shutdown.command_timeout`.
 
 The tree runs without blocking the executor. The service replies right away:
@@ -81,7 +81,7 @@ ros2 run isaacbot_amr_safety shutdown_ros_controller.sh --reason "Maintenance"
 ros2 run isaacbot_amr_safety shutdown_ros_controller.sh --dry-run   # print what it would do
 ```
 
-It trips the E-Stop (`/$ISAACBOT_SYSTEM_NAMESPACE/hardware_interface/sw_user_e_stop_set`, skipped with
+It trips the E-Stop (`/$ISAACBOT_AMR_SYSTEM_NAMESPACE/hardware_interface/sw_user_e_stop_set`, skipped with
 `--no-e-stop`; a failure does not stop the power-off). Then it uses the first power-off method that
 works:
 
@@ -110,7 +110,7 @@ hosts:
 Each host must serve `GET /shutdown?ts=<unix seconds>&sig=<hex HMAC-SHA256(secret, "/shutdown|<ts>")>`,
 answer 200 and power off. Unreachable hosts are skipped. The file ships with no hosts.
 
-## isaacbot_led_safety_node
+## isaacbot_amr_led_safety_node
 
 | Direction | Name | Type |
 |-----------|------|------|
@@ -147,7 +147,7 @@ state; which animation is visible is up to `isaacbot_amr_led`'s animation priori
 The node writes the verdicts (`led_state_verdict`, `led_error_verdict`, `led_battery_verdict`,
 `led_battery_full`/`_low`/`_critical`/`_nominal`) to the blackboard next to the raw inputs, which
 stay there for trees supplied through `led_bt_project_path`. The `IsaacbotLedSafety` tree
-(`behavior_trees/isaacbot_led_safety.xml`) runs `ErrorAnimationSubtree`, `BatteryAnimationSubtree` and
+(`behavior_trees/isaacbot_amr_led_safety.xml`) runs `ErrorAnimationSubtree`, `BatteryAnimationSubtree` and
 `StateAnimationSubtree` in parallel on the verdicts. It keeps the timing (the charger delays, the
 `LOW_BATTERY` repeat) and the deduplication: it records what it last sent (`current_*_anim_id`,
 `charging_anim_percent`) and requests an animation again only when that changes.
@@ -164,9 +164,9 @@ there.
 
 | File | Tree | Used by | Groot2 port (`bt_server_port`) |
 |------|------|---------|--------------------------------|
-| `behavior_trees/IsaacbotSafetyBT.btproj` → `isaacbot_amr_safety.xml` | `IsaacbotSafety` | `isaacbot_safety_node` | 6666 |
-| `behavior_trees/IsaacbotSafetyBT.btproj` → `isaacbot_shutdown.xml` | `IsaacbotShutdown` | `isaacbot_safety_node` | 7777 (`shutdown.bt_server_port`) |
-| `behavior_trees/IsaacbotLedSafetyBT.btproj` → `isaacbot_led_safety.xml` | `IsaacbotLedSafety` | `isaacbot_led_safety_node` | 5555 |
+| `behavior_trees/IsaacbotSafetyBT.btproj` → `isaacbot_amr_safety.xml` | `IsaacbotSafety` | `isaacbot_amr_safety_node` | 6666 |
+| `behavior_trees/IsaacbotSafetyBT.btproj` → `isaacbot_amr_shutdown.xml` | `IsaacbotShutdown` | `isaacbot_amr_safety_node` | 7777 (`shutdown.bt_server_port`) |
+| `behavior_trees/IsaacbotLedSafetyBT.btproj` → `isaacbot_amr_led_safety.xml` | `IsaacbotLedSafety` | `isaacbot_amr_led_safety_node` | 5555 |
 
 Open the `.btproj` files in Groot2 to edit the trees, or connect Groot2 to the port above to
 watch a running tree. Each node loads the BT plugin libraries named in its `plugin_libs` and
@@ -187,10 +187,10 @@ namespace.
 
 ## Config Files
 
-- `config/isaacbot_amr_safety.yaml` - `isaacbot_safety_node` parameters (battery temperature limits, tick
+- `config/isaacbot_amr_safety.yaml` - `isaacbot_amr_safety_node` parameters (battery temperature limits, tick
   rate, Groot ports, plugin list, shutdown).
 - `config/shutdown_hosts.yaml` - remote hosts to shut down before the ROS controller.
-- `config/led_safety.yaml` - `isaacbot_led_safety_node` parameters (battery thresholds and animation
+- `config/led_safety.yaml` - `isaacbot_amr_led_safety_node` parameters (battery thresholds and animation
   timing, tick rate, Groot port, plugin list).
 
 Every parameter, with its default and validation, is declared in `src/safety_parameters.yaml`
@@ -199,13 +199,13 @@ periodic input is reported stale on diagnostics.
 
 ## Launch Files
 
-- `isaacbot_amr_safety.launch.py` - starts `isaacbot_led_safety_node` and, unless `use_sim:=True`,
-  `isaacbot_safety_node`.
+- `isaacbot_amr_safety.launch.py` - starts `isaacbot_amr_led_safety_node` and, unless `use_sim:=True`,
+  `isaacbot_amr_safety_node`.
 
 | Argument | Default | Description |
 |----------|---------|-------------|
-| `namespace` | `$ISAACBOT_SYSTEM_NAMESPACE`, else empty | Namespace of both nodes. |
-| `use_sim` | `False` | Skip `isaacbot_safety_node` in simulation. |
+| `namespace` | `$ISAACBOT_AMR_SYSTEM_NAMESPACE`, else empty | Namespace of both nodes. |
+| `use_sim` | `False` | Skip `isaacbot_amr_safety_node` in simulation. |
 | `log_level` | `INFO` | Logging level. |
 | `led_bt_project_path` | `behavior_trees/IsaacbotLedSafetyBT.btproj` | LED safety tree project. |
 | `safety_bt_project_path` | `behavior_trees/IsaacbotSafetyBT.btproj` | Safety tree project. |
@@ -214,7 +214,7 @@ periodic input is reported stale on diagnostics.
 
 ```bash
 ros2 launch isaacbot_amr_safety isaacbot_amr_safety.launch.py
-ros2 lifecycle get /isaacbot/isaacbot_safety_node
+ros2 lifecycle get /isaacbot/isaacbot_amr_safety_node
 ```
 
 ## Layout
@@ -252,9 +252,9 @@ colcon test --packages-select isaacbot_amr_safety && colcon test-result --all --
   against a real service.
 - `test/integration/test_shutdown_tree.cpp` loads `IsaacbotSafetyBT.btproj` with the plugin lists of
   `config/isaacbot_amr_safety.yaml` and runs `IsaacbotShutdown`, including a retry.
-- `test/integration/test_safety_node_shutdown.cpp` runs `isaacbot_safety_node` in-process: the
+- `test/integration/test_safety_node_shutdown.cpp` runs `isaacbot_amr_safety_node` in-process: the
   `~/shutdown` service, retry after a failed power-off, and a fatal battery temperature.
-- `test/integration/test_led_safety_node_animations.cpp` runs `isaacbot_led_safety_node` in-process
+- `test/integration/test_led_safety_node_animations.cpp` runs `isaacbot_amr_led_safety_node` in-process
   against a fake LED controller: the idle animations once each, then `E_STOP`.
 - `test/integration/test_shutdown_script.sh` checks `shutdown_ros_controller.sh` against stub
   `ros2`/`curl`/`dbus-send`/`systemctl` binaries.

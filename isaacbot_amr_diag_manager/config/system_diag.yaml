@@ -1,4 +1,4 @@
-/**/isaacbot_diag_manager_node:
+/**/isaacbot_amr_diag_manager_node:
   ros__parameters:
     cpu_usage_warn_threshold: 95.0
     cpu_temperature_warn_threshold: 80.0

@@ -109,7 +109,7 @@ CalibrationOutcome CalibrationUseCase::start(
     // throw, which on an active node is a full-speed command. Ordered so the operator is told
     // about the condition they are most likely to be able to fix first.
     if (teleop_.teleopCouldCommand()) {
-        return {false, "Deactivate isaacbot_crsf_teleop_node before starting a calibration: while "
+        return {false, "Deactivate isaacbot_amr_crsf_teleop_node before starting a calibration: while "
                        "it is active the sweep would command full speed."};
     }
 

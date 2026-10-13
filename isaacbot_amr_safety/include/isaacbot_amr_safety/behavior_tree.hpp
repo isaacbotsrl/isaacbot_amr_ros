@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_SAFETY_BEHAVIOR_TREE_HPP_
-#define ISAACBOT_SAFETY_BEHAVIOR_TREE_HPP_
+#ifndef ISAACBOT_AMR_SAFETY_BEHAVIOR_TREE_HPP_
+#define ISAACBOT_AMR_SAFETY_BEHAVIOR_TREE_HPP_
 
 #include <any>
 #include <iostream>
@@ -184,4 +184,4 @@ private:
 
 }  // namespace isaacbot_amr_safety
 
-#endif  // ISAACBOT_SAFETY_BEHAVIOR_TREE_HPP_
+#endif  // ISAACBOT_AMR_SAFETY_BEHAVIOR_TREE_HPP_

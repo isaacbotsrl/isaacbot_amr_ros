@@ -24,7 +24,7 @@ isaacbot's router would join the simulated nodes to the real isaacbot.
 
 - `simulation.launch.py` - entry point. It starts:
   - `isaacbot_amr_world`'s `isaacbot_amr_world.launch.py` (Gazebo with `config/teleop.config` as the GUI layout)
-  - `isaacbot_amr_description`'s `isaacbot_rviz.launch.py` (unless `use_rviz:=False`)
+  - `isaacbot_amr_description`'s `isaacbot_amr_rviz.launch.py` (unless `use_rviz:=False`)
   - `include/simulate_robot.launch.py`
 
   Everything runs with `use_sim_time`.
@@ -36,16 +36,16 @@ isaacbot's router would join the simulated nodes to the real isaacbot.
     PIDs' `d` to 0: Gazebo's wheels have none of the encoder/motor lag that gain is tuned for,
     and with it the loop oscillates between its limits. For the same reason it sets
     `integral_reference_delay` and `integral_reference_time_constant` to 0, so the integral works
-    on the plain error. It also sets `isaacbot_drive_controller`'s `wheel_radius` to 0.1699 m, the
+    on the plain error. It also sets `isaacbot_amr_drive_controller`'s `wheel_radius` to 0.1699 m, the
     CAD tyre radius the simulated wheel cylinders roll on, instead of the real tyre's 0.1651 m;
     without it the simulated wheel odometry under-reports distance by ~2.9 %.
   - `isaacbot_amr_localization` with `use_sim:=True use_ekf:=True`; `fuse_gps` follows `use_gps`, which
-    adds `isaacbot_gps_heading_node`, `isaacbot_navsat_transform_node` and `isaacbot_ekf_global_node`.
-  - `isaacbot_amr_twist_mux` (mux + `isaacbot_motion_lock_node`), as on the isaacbot:
+    adds `isaacbot_amr_gps_heading_node`, `isaacbot_amr_navsat_transform_node` and `isaacbot_amr_ekf_global_node`.
+  - `isaacbot_amr_twist_mux` (mux + `isaacbot_amr_motion_lock_node`), as on the isaacbot:
     `nav_cmd_vel_stamped` / teleop → `cmd_vel`, gated by `motion_lock`.
   - `sim_safety_plc` (`scripts/sim_safety_plc.py`, latch logic in `scripts/sim_safety_plc_model.py`):
     the safety PLC stand-in. It publishes `hardware_interface/safety_status` and
-    `hardware_interface/safety_command_echo`, which `isaacbot_motion_lock_node` needs to open the lock.
+    `hardware_interface/safety_command_echo`, which `isaacbot_amr_motion_lock_node` needs to open the lock.
     It models the set-dominant E-Stop latch and serves the isaacbot's
     `hardware_interface/sw_user_e_stop_set`, `sw_user_e_stop_reset` and `sw_e_stop_latch_reset`.
     The Gazebo **Isaacbot Safety** panel (`isaacbot_amr_gazebo_plugins`) drives it with the HW E-STOP
@@ -54,16 +54,16 @@ isaacbot's router would join the simulated nodes to the real isaacbot.
     While the latch is set it publishes zero `cmd_vel` in place of the open contactor.
     The latch starts clear (`latch_set_at_startup:=false`).
   - `gz_bridge` (`ros_gz_bridge/parameter_bridge`) configured by `config/gz_bridge.yaml`.
-  - `isaacbot_rs16_lidar_scan` (`pointcloud_to_laserscan`): `scan` sliced from `rslidar_points`
+  - `isaacbot_amr_rs16_lidar_scan` (`pointcloud_to_laserscan`): `scan` sliced from `rslidar_points`
     with the real driver's settings (±0.25 m, 360° at 0.5°, 0.2–20 m).
   - `static_tf_publisher`: an optional `world → <namespace>/odom` transform at the spawn pose
     (`add_world_transform:=True`).
 
 | Argument | Default | Description |
 |----------|---------|-------------|
-| `namespace` | `$ISAACBOT_SYSTEM_NAMESPACE`, else empty | Namespace of the robot's nodes and topics. |
-| `use_gps` | `$ISAACBOT_SYSTEM_USE_GPS`, else `false` | Fuse the simulated GNSS (dual EKF + navsat_transform). |
-| `publish_global_tf` | `$ISAACBOT_SYSTEM_GPS_MAP_TF`, else `false` | `isaacbot_ekf_global_node` broadcasts `map → odom`. |
+| `namespace` | `$ISAACBOT_AMR_SYSTEM_NAMESPACE`, else empty | Namespace of the robot's nodes and topics. |
+| `use_gps` | `$ISAACBOT_AMR_SYSTEM_USE_GPS`, else `false` | Fuse the simulated GNSS (dual EKF + navsat_transform). |
+| `publish_global_tf` | `$ISAACBOT_AMR_SYSTEM_GPS_MAP_TF`, else `false` | `isaacbot_amr_ekf_global_node` broadcasts `map → odom`. |
 | `use_rviz` | `True` | Start RViz (`simulation.launch.py`). |
 | `gz_gui` | `config/teleop.config` | Gazebo GUI layout; `{namespace}` in the file is replaced with `namespace`. |
 | `gz_headless_mode` | `False` | Run Gazebo server-only with headless rendering (`isaacbot_amr_world`). |
@@ -81,14 +81,14 @@ Frames carry the namespace prefix, like `robot_state_publisher`'s TF.
 |--------|--------------|-----------|-------|
 | `gpu_lidar`, 16 rings ±15°, 360° at 0.5°, 0.2–20 m, 10 Hz | `rover_rs16_lidar` | `<ns>/rslidar_points` (`PointCloud2`), `<ns>/scan` (`LaserScan`) | `<ns>/lidar_link` |
 | `navsat`, 5 Hz, σ 5 cm | `rover_gps` (RUTX11) | `<ns>/gps/fix` (`NavSatFix`) | `<ns>/gps_link` |
-| `imu`, 50 Hz | Phidget IMU | `<ns>/imu/data` (via `isaacbot_imu_broadcaster`) | `<ns>/imu_link` |
+| `imu`, 50 Hz | Phidget IMU | `<ns>/imu/data` (via `isaacbot_amr_imu_broadcaster`) | `<ns>/imu_link` |
 
 In simulation only, `body_link` gets a box collision over the `base.stl` bounds, so the body
 collides with obstacles. The hardware URDF keeps visual-only geometry.
 
-The lidar uses the `ISAACBOT_SYSTEM_MOUNT_LIDAR_*` mount pose; with none set it sits 0.68 m above `body_link`,
+The lidar uses the `ISAACBOT_AMR_SYSTEM_MOUNT_LIDAR_*` mount pose; with none set it sits 0.68 m above `body_link`,
 high enough that its lowest ring (-15°) clears the body and the front arch. A custom mount lower
-than about 0.65 m makes the isaacbot see itself (0.62 m was verified to hit the arch). The GNSS uses `ISAACBOT_SYSTEM_MOUNT_GPS_*`. The world's `<spherical_coordinates>` sets
+than about 0.65 m makes the isaacbot see itself (0.62 m was verified to hit the arch). The GNSS uses `ISAACBOT_AMR_SYSTEM_MOUNT_GPS_*`. The world's `<spherical_coordinates>` sets
 the datum (50.088384 N, 19.939128 E).
 
 ## Config Files
@@ -107,20 +107,20 @@ the datum (50.088384 N, 19.939128 E).
 
 ## Running
 
-`scripts/isaacbot_sim.sh` (installed as `lib/isaacbot_amr_gazebo/isaacbot_sim.sh`) runs the simulation from a
+`scripts/isaacbot_amr_sim.sh` (installed as `lib/isaacbot_amr_gazebo/isaacbot_amr_sim.sh`) runs the simulation from a
 fresh terminal, whatever `~/.bashrc` set up for the isaacbot. It sets
-`ISAACBOT_AMR_ROS_BUILD_TYPE=simulation` and `ISAACBOT_SYSTEM_NAMESPACE` (default `isaacbot`), drops
+`ISAACBOT_AMR_ROS_BUILD_TYPE=simulation` and `ISAACBOT_AMR_SYSTEM_NAMESPACE` (default `isaacbot`), drops
 `ZENOH_CONFIG_OVERRIDE`, and starts a zenoh router bound to `127.0.0.1:7447`, which it stops on
 exit. It also checks that the apt packages are installed. Run as-is, it starts the simulation;
 sourced, it only prepares the current shell, e.g. for a second terminal:
 
 ```bash
 # terminal 1: simulation (--build builds the workspace first; extra args go to the launch file)
-~/ros2_ws/rover_a1/src/isaacbot_amr_ros/isaacbot_amr_gazebo/scripts/isaacbot_sim.sh --build
-ISAACBOT_SYSTEM_USE_GPS=true ~/ros2_ws/rover_a1/src/isaacbot_amr_ros/isaacbot_amr_gazebo/scripts/isaacbot_sim.sh use_rviz:=False
+~/ros2_ws/rover_a1/src/isaacbot_amr_ros/isaacbot_amr_gazebo/scripts/isaacbot_amr_sim.sh --build
+ISAACBOT_AMR_SYSTEM_USE_GPS=true ~/ros2_ws/rover_a1/src/isaacbot_amr_ros/isaacbot_amr_gazebo/scripts/isaacbot_amr_sim.sh use_rviz:=False
 
 # terminal 2: orchestrator / ros2 CLI on the same local middleware
-source ~/ros2_ws/rover_a1/src/isaacbot_amr_ros/isaacbot_amr_gazebo/scripts/isaacbot_sim.sh
+source ~/ros2_ws/rover_a1/src/isaacbot_amr_ros/isaacbot_amr_gazebo/scripts/isaacbot_amr_sim.sh
 ros2 launch rover_navigation bringup.launch.py use_sim_time:=True localization_source:=slam
 ```
 
@@ -130,11 +130,11 @@ Manually, with the environment already set up:
 
 ```bash
 ros2 launch isaacbot_amr_gazebo simulation.launch.py
-ISAACBOT_SYSTEM_NAMESPACE=isaacbot ISAACBOT_SYSTEM_USE_GPS=true ros2 launch isaacbot_amr_gazebo simulation.launch.py use_rviz:=False
+ISAACBOT_AMR_SYSTEM_NAMESPACE=isaacbot ISAACBOT_AMR_SYSTEM_USE_GPS=true ros2 launch isaacbot_amr_gazebo simulation.launch.py use_rviz:=False
 
 # then the orchestrator, e.g.
 ros2 launch rover_navigation bringup.launch.py use_sim_time:=True localization_source:=slam
 ```
 
-With `ISAACBOT_SYSTEM_USE_GPS=true`, `gps/heading_imu` (and so `odometry/gps` / `odometry/global`) only
+With `ISAACBOT_AMR_SYSTEM_USE_GPS=true`, `gps/heading_imu` (and so `odometry/gps` / `odometry/global`) only
 appears after the isaacbot has driven straight for a few metres, exactly as on the isaacbot.

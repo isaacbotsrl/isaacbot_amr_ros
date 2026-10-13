@@ -50,7 +50,7 @@ namespace isaacbot_amr_led
 {
 
 LedControllerNode::LedControllerNode(const rclcpp::NodeOptions & options)
-: Node("isaacbot_led_controller", options)
+: Node("isaacbot_amr_led_controller", options)
 , animation_factory_(std::make_shared<PluginlibAnimationFactory>())
 , shutdown_gate_(this->get_node_base_interface()->get_context(), [this]() { stopTimers(); })
 {

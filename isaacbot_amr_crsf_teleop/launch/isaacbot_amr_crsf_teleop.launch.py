@@ -24,7 +24,7 @@ deliberately not opened by the teleop node: isaacbot_amr_udp_driver's receiver n
 lifecycle-managed, and filters on the sender (`source_ip`), which the published UdpPacket cannot
 tell the teleop node. That also keeps asio out of this package entirely.
 
-Both run as components of one single-threaded container, isaacbot_crsf_container, with intra-process
+Both run as components of one single-threaded container, isaacbot_amr_crsf_container, with intra-process
 communication: the receiver publishes one rc/raw_udp message per datagram (~250/s), and as
 separate processes each of them would cross the Zenoh router. The single thread is also what the
 teleop node was written for (see IsaacbotCrsfTeleopNode).
@@ -33,7 +33,7 @@ One trade-off: on Ctrl-C a component container exits without running the lifecyc
 transition, so the teleop node's on_shutdown() doesn't publish its final stop command. The isaacbot
 still stops - twist_mux drops the RC input after its timeout and diff_drive's cmd_vel_timeout
 zeroes the wheels - just as it would if the process crashed. The standalone executables
-(isaacbot_crsf_teleop_node, isaacbot_udp_receiver_node) still run the transition.
+(isaacbot_amr_crsf_teleop_node, isaacbot_amr_udp_receiver_node) still run the transition.
 """
 
 import launch.logging
@@ -93,7 +93,7 @@ def _launch_setup(context, *args, **kwargs):
     namespace = LaunchConfiguration('namespace')
     log_level = LaunchConfiguration('log_level')
     use_sim = LaunchConfiguration('use_sim')
-    config_path = LaunchConfiguration('isaacbot_crsf_config_path')
+    config_path = LaunchConfiguration('isaacbot_amr_crsf_config_path')
 
     bind_ip, port, source_ip = _udp_settings(context, config_path)
 
@@ -110,7 +110,7 @@ def _launch_setup(context, *args, **kwargs):
     udp_receiver_node = ComposableNode(
         package='isaacbot_amr_udp_driver',
         plugin='isaacbot::transport::udp::UdpReceiverNode',
-        name='isaacbot_crsf_udp_receiver',
+        name='isaacbot_amr_crsf_udp_receiver',
         namespace=namespace,
         parameters=[{
             'ip': bind_ip,
@@ -118,7 +118,7 @@ def _launch_setup(context, *args, **kwargs):
             'source_ip': source_ip,
             'autostart': True,
         }],
-        # Topic names carry no isaacbot_ prefix, so the lifecycle transition_event topic is remapped
+        # Topic names carry no isaacbot_amr_ prefix, so the lifecycle transition_event topic is remapped
         # off the node name (the node keeps it).
         remappings=[
             ('udp_read', 'rc/raw_udp'),
@@ -132,10 +132,10 @@ def _launch_setup(context, *args, **kwargs):
 
     # Lifecycle node, brought straight to active. A supervisor can later deactivate it to take RC
     # teleop off the command path without killing the process.
-    isaacbot_crsf_node = ComposableNode(
+    isaacbot_amr_crsf_node = ComposableNode(
         package='isaacbot_amr_crsf_teleop',
         plugin='isaacbot_amr_crsf_teleop::IsaacbotCrsfTeleopNode',
-        name='isaacbot_crsf_teleop_node',
+        name='isaacbot_amr_crsf_teleop_node',
         namespace=namespace,
         parameters=[config_path, {'autostart': True}],
         remappings=[
@@ -146,12 +146,12 @@ def _launch_setup(context, *args, **kwargs):
     )
 
     # component_container, not _mt: one thread, as the teleop node requires.
-    isaacbot_crsf_container = ComposableNodeContainer(
+    isaacbot_amr_crsf_container = ComposableNodeContainer(
         package='rclcpp_components',
         executable='component_container',
-        name='isaacbot_crsf_container',
+        name='isaacbot_amr_crsf_container',
         namespace=namespace,
-        composable_node_descriptions=[udp_receiver_node, isaacbot_crsf_node],
+        composable_node_descriptions=[udp_receiver_node, isaacbot_amr_crsf_node],
         arguments=[
             '--ros-args',
             '--log-level',
@@ -160,7 +160,7 @@ def _launch_setup(context, *args, **kwargs):
         emulate_tty=True,
     )
 
-    return [isaacbot_crsf_container]
+    return [isaacbot_amr_crsf_container]
 
 
 def generate_launch_description():
@@ -174,7 +174,7 @@ def generate_launch_description():
 
     declare_namespace_arg = DeclareLaunchArgument(
         'namespace',
-        default_value=EnvironmentVariable('ISAACBOT_SYSTEM_NAMESPACE', default_value=''),
+        default_value=EnvironmentVariable('ISAACBOT_AMR_SYSTEM_NAMESPACE', default_value=''),
         description='Add namespace to all launched nodes',
     )
 
@@ -193,15 +193,15 @@ def generate_launch_description():
         description='Path to the common configuration directory.',
     )
 
-    isaacbot_crsf_common_dir = PythonExpression(
+    isaacbot_amr_crsf_common_dir = PythonExpression(
         ["'", common_dir_path, "/isaacbot_amr_crsf_teleop' if '", common_dir_path,
          "' else '", FindPackageShare('isaacbot_amr_crsf_teleop'), "'"]
     )
 
-    declare_isaacbot_crsf_config_path_arg = DeclareLaunchArgument(
-        'isaacbot_crsf_config_path',
+    declare_isaacbot_amr_crsf_config_path_arg = DeclareLaunchArgument(
+        'isaacbot_amr_crsf_config_path',
         default_value=PathJoinSubstitution(
-            [isaacbot_crsf_common_dir, 'config', 'isaacbot_amr_crsf_teleop.yaml']
+            [isaacbot_amr_crsf_common_dir, 'config', 'isaacbot_amr_crsf_teleop.yaml']
         ),
         description='Specify the path to the isaacbot CRSF teleop configuration file.',
     )
@@ -211,7 +211,7 @@ def generate_launch_description():
         declare_namespace_arg,
         declare_use_sim_arg,
         declare_common_dir_path_arg,
-        declare_isaacbot_crsf_config_path_arg,
+        declare_isaacbot_amr_crsf_config_path_arg,
         OpaqueFunction(function=_launch_setup),
     ]
 

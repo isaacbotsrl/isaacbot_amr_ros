@@ -18,8 +18,8 @@
 // io_context/include/msg_converters/udp_msgs.hpp (ros-drivers/transport_drivers v1.2.0)
 // and de-inlined, so isaacbot_amr_io_context no longer depends on udp_msgs.
 
-#ifndef ISAACBOT_UDP_DRIVER_INFRASTRUCTURE_UDP_PACKET_CONVERSIONS_HPP_
-#define ISAACBOT_UDP_DRIVER_INFRASTRUCTURE_UDP_PACKET_CONVERSIONS_HPP_
+#ifndef ISAACBOT_AMR_UDP_DRIVER_INFRASTRUCTURE_UDP_PACKET_CONVERSIONS_HPP_
+#define ISAACBOT_AMR_UDP_DRIVER_INFRASTRUCTURE_UDP_PACKET_CONVERSIONS_HPP_
 
 #include <cstddef>
 #include <cstdint>
@@ -42,4 +42,4 @@ void fromMsg(
 
 }  // namespace isaacbot::transport::udp
 
-#endif  // ISAACBOT_UDP_DRIVER_INFRASTRUCTURE_UDP_PACKET_CONVERSIONS_HPP_
+#endif  // ISAACBOT_AMR_UDP_DRIVER_INFRASTRUCTURE_UDP_PACKET_CONVERSIONS_HPP_

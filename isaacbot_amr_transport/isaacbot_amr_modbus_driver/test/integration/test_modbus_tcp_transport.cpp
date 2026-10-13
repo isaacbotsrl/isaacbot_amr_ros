@@ -14,7 +14,7 @@
 
 //
 // Integration tests for the real Modbus TCP client, moved here from
-// isaacbot_amr_hardware_interface/test/isaacbot_amr_modbus/test_isaacbot_modbus.cpp along with the code it
+// isaacbot_amr_hardware_interface/test/isaacbot_amr_modbus/test_isaacbot_amr_modbus.cpp along with the code it
 // exercises. No live Modbus server is required: these only cover the
 // connection-establishment path (factory + retry/backoff), which fails fast and
 // deterministically against a closed TCP port on loopback - ECONNREFUSED is immediate on

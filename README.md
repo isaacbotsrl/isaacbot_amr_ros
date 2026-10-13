@@ -26,14 +26,14 @@ Mechatronics Academy's Ardennes ROS2.
 - [`isaacbot_amr_controller`](isaacbot_amr_controller/README.md) - ros2_control controller configuration
   and launch.
 - [`isaacbot_amr_twist_mux`](isaacbot_amr_twist_mux/README.md) - velocity command arbitration with
-  `twist_mux`, plus `isaacbot_motion_lock_node`.
+  `twist_mux`, plus `isaacbot_amr_motion_lock_node`.
 - [`isaacbot_amr_crsf_teleop`](isaacbot_amr_crsf_teleop/README.md) - CRSF (ExpressLRS) RC teleop, software
   E-Stop switches and RC link failsafe.
 
 **Localization**
 
 - [`isaacbot_amr_localization`](isaacbot_amr_localization/README.md) - `robot_localization` EKFs fusing
-  wheel odometry and IMU, optionally GPS (`ISAACBOT_SYSTEM_USE_GPS`).
+  wheel odometry and IMU, optionally GPS (`ISAACBOT_AMR_SYSTEM_USE_GPS`).
 - [`isaacbot_amr_gps_heading`](isaacbot_amr_gps_heading/README.md) - ENU heading from GNSS course for
   `navsat_transform_node`.
 
@@ -63,7 +63,7 @@ Mechatronics Academy's Ardennes ROS2.
 - [`isaacbot_amr_foxglove`](isaacbot_amr_foxglove/README.md) - Foxglove dashboard layout for the `isaacbot`
   namespace.
 - [`isaacbot_amr_scripts`](isaacbot_amr_scripts/README.md) - development PC helper scripts
-  (`setup_isaacbot_pc.sh`).
+  (`setup_isaacbot_amr_pc.sh`).
 - [`rover_platform_mbse`](rover_platform_mbse/README.md) - MATLAB/Simulink MBSE project for
   the platform: System Composer architecture, per-package software requirements
   (Requirements Toolbox), behaviour models and tests, traceability and SYS-SR compliance.
@@ -83,11 +83,11 @@ git clone -b master https://github.com/isaacbotsrl/isaacbot_amr_ros.git src/isaa
 ### Setup environment variables
 
 One step: write the **isaacbot-pc setup** block into `~/.bashrc`. It covers ROS, the workspace
-overlay, `ISAACBOT_*`, and the Zenoh settings to reach the isaacbot at `192.168.1.201`. It's safe to
+overlay, `ISAACBOT_AMR_*`, and the Zenoh settings to reach the isaacbot at `192.168.1.201`. It's safe to
 re-run; see [isaacbot_amr_scripts/README.md](isaacbot_amr_scripts/README.md) for the options.
 
 ```bash
-src/isaacbot_amr_ros/isaacbot_amr_scripts/setup_isaacbot_pc.sh
+src/isaacbot_amr_ros/isaacbot_amr_scripts/setup_isaacbot_amr_pc.sh
 source ~/.bashrc
 ```
 
@@ -95,7 +95,7 @@ Or by hand:
 
 ```bash
 export ROS_DISTRO=lyrical
-export ISAACBOT_SYSTEM_NAMESPACE=isaacbot
+export ISAACBOT_AMR_SYSTEM_NAMESPACE=isaacbot
 ```
 
 #### Real isaacbot:
@@ -158,7 +158,7 @@ ros2 launch isaacbot_amr_bringup isaacbot_amr_bringup.launch.py
 #### Simulated isaacbot:
 
 ```bash
-src/isaacbot_amr_ros/isaacbot_amr_gazebo/scripts/isaacbot_sim.sh
+src/isaacbot_amr_ros/isaacbot_amr_gazebo/scripts/isaacbot_amr_sim.sh
 ```
 
 ### Testing

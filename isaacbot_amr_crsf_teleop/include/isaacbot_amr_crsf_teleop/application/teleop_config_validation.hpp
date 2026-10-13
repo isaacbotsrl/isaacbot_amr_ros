@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_CRSF_TELEOP_APPLICATION_TELEOP_CONFIG_VALIDATION_HPP_
-#define ISAACBOT_CRSF_TELEOP_APPLICATION_TELEOP_CONFIG_VALIDATION_HPP_
+#ifndef ISAACBOT_AMR_CRSF_TELEOP_APPLICATION_TELEOP_CONFIG_VALIDATION_HPP_
+#define ISAACBOT_AMR_CRSF_TELEOP_APPLICATION_TELEOP_CONFIG_VALIDATION_HPP_
 
 #include <cstdint>
 #include <string>
@@ -69,4 +69,4 @@ TeleopConfigCheck validateTeleopConfig(
 
 }  // namespace isaacbot_amr_crsf_teleop
 
-#endif  // ISAACBOT_CRSF_TELEOP_APPLICATION_TELEOP_CONFIG_VALIDATION_HPP_
+#endif  // ISAACBOT_AMR_CRSF_TELEOP_APPLICATION_TELEOP_CONFIG_VALIDATION_HPP_

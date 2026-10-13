@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_DIAG_MANAGER_APPLICATION_MONITOR_SYSTEM_USE_CASE_HPP_
-#define ISAACBOT_DIAG_MANAGER_APPLICATION_MONITOR_SYSTEM_USE_CASE_HPP_
+#ifndef ISAACBOT_AMR_DIAG_MANAGER_APPLICATION_MONITOR_SYSTEM_USE_CASE_HPP_
+#define ISAACBOT_AMR_DIAG_MANAGER_APPLICATION_MONITOR_SYSTEM_USE_CASE_HPP_
 
 #include <memory>
 
@@ -44,4 +44,4 @@ private:
 
 }  // namespace isaacbot_amr_diag_manager::application
 
-#endif  // ISAACBOT_DIAG_MANAGER_APPLICATION_MONITOR_SYSTEM_USE_CASE_HPP_
+#endif  // ISAACBOT_AMR_DIAG_MANAGER_APPLICATION_MONITOR_SYSTEM_USE_CASE_HPP_

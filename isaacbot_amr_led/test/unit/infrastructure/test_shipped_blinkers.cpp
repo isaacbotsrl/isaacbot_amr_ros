@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Renders BLINKER_LEFT / BLINKER_RIGHT from the shipped ardennes config through
-// the same use cases as isaacbot_led_controller, and checks they light opposite
+// the same use cases as isaacbot_amr_led_controller, and checks they light opposite
 // sides of each bumper. Both panels are 2 rows x 20 LEDs in series (see
 // ardennes_animations.yaml); frames are in wire order, so sides are checked by
 // physical column.
@@ -91,7 +91,7 @@ private:
 // The shipped config with "$(find isaacbot_amr_led)" pointed at the source tree.
 YAML::Node loadShippedConfig()
 {
-    const std::string source_dir(ISAACBOT_LED_SOURCE_DIR);
+    const std::string source_dir(ISAACBOT_AMR_LED_SOURCE_DIR);
     std::ifstream file(source_dir + "/config/ardennes_animations.yaml");
     std::stringstream buffer;
     buffer << file.rdbuf();

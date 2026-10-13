@@ -6,7 +6,7 @@ Decodes BMS telemetry received over UDP and publishes the isaacbot's battery sta
 
 | Direction | Name | Type |
 |-----------|------|------|
-| in  | `battery_udp_data` | `udp_msgs/UdpPacket` (from `isaacbot_amr_udp_driver`, 392-byte BMS payload sent by the ESP32 `isaacbot_led_bms_ble_controller`) |
+| in  | `battery_udp_data` | `udp_msgs/UdpPacket` (from `isaacbot_amr_udp_driver`, 392-byte BMS payload sent by the ESP32 `isaacbot_amr_led_bms_ble_controller`) |
 | out | `battery/battery_status` | `sensor_msgs/BatteryState` — used by `isaacbot_amr_safety` |
 | out | `battery/charging_status` | `isaacbot_amr_msgs/ChargingStatus` |
 | out | `diagnostics` | hardware id `IsaacbotBattery`, tasks `Battery errors`, `Battery status` (voltage, current, SoC, charge, design capacity, temperature, charge state, health, cell min / max) |
@@ -16,11 +16,11 @@ If no packet arrives within `watchdog_timeout_ms`, the node publishes a state wi
 
 `launch/isaacbot_amr_battery.launch.py` loads the node (component `isaacbot_amr_battery::IsaacbotBatteryNode`) and
 the BMS UDP endpoint (`isaacbot_amr_udp_driver`'s `isaacbot::transport::udp::UdpReceiverNode`, named
-`isaacbot_udp_battery_receiver_node`) into one container, `isaacbot_battery_container`, with
-intra-process communication, so the packets never cross the Zenoh router. The `isaacbot_battery_node`
+`isaacbot_amr_udp_battery_receiver_node`) into one container, `isaacbot_amr_battery_container`, with
+intra-process communication, so the packets never cross the Zenoh router. The `isaacbot_amr_battery_node`
 executable still runs the node on its own.
 
-### Parameters (`isaacbot_battery_node`, see `config/isaacbot_amr_battery.yaml`)
+### Parameters (`isaacbot_amr_battery_node`, see `config/isaacbot_amr_battery.yaml`)
 
 | Name | Default | Description |
 |------|---------|-------------|
@@ -39,13 +39,13 @@ infrastructure/  IsaacbotBatteryNode (composition root, UDP decode, watchdog tim
 ```
 
 Unit tests (`test/unit/`) cover the domain, the use case, and the message mapping without a
-running ROS graph. `test/integration/test_isaacbot_battery_node.cpp` runs the real node in-process:
+running ROS graph. `test/integration/test_isaacbot_amr_battery_node.cpp` runs the real node in-process:
 valid and wrong-size packets, the watchdog, and parameter range validation.
 Run everything with `colcon test --packages-select isaacbot_amr_battery` (configure with `-DBUILD_TESTING=ON`).
 
 ## Units
 
-The payload comes from the ESP32 firmware `isaacbot_led_bms_ble_controller`, which polls the Daly
+The payload comes from the ESP32 firmware `isaacbot_amr_led_bms_ble_controller`, which polls the Daly
 BMS over BLE and already decodes the Daly raw units
 (`docs/Part 4 - Daly RS485+UART Protocol.pdf`), so pack voltage, current, SoC and temperatures
 arrive in V, A, % and °C. `BmsFrame` mirrors that firmware's `BmsData` / `Alarm` byte for byte.

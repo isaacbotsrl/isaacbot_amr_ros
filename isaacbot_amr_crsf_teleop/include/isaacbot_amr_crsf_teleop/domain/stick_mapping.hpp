@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_CRSF_TELEOP_DOMAIN_STICK_MAPPING_HPP_
-#define ISAACBOT_CRSF_TELEOP_DOMAIN_STICK_MAPPING_HPP_
+#ifndef ISAACBOT_AMR_CRSF_TELEOP_DOMAIN_STICK_MAPPING_HPP_
+#define ISAACBOT_AMR_CRSF_TELEOP_DOMAIN_STICK_MAPPING_HPP_
 
 namespace isaacbot_amr_crsf_teleop
 {
@@ -81,4 +81,4 @@ double mapAxis(const int raw_value, const AxisMapping & mapping);
 
 }  // namespace isaacbot_amr_crsf_teleop
 
-#endif  // ISAACBOT_CRSF_TELEOP_DOMAIN_STICK_MAPPING_HPP_
+#endif  // ISAACBOT_AMR_CRSF_TELEOP_DOMAIN_STICK_MAPPING_HPP_

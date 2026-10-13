@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_DIAG_MANAGER_INFRASTRUCTURE_SYSTEM_STATUS_MSG_CONVERSIONS_HPP_
-#define ISAACBOT_DIAG_MANAGER_INFRASTRUCTURE_SYSTEM_STATUS_MSG_CONVERSIONS_HPP_
+#ifndef ISAACBOT_AMR_DIAG_MANAGER_INFRASTRUCTURE_SYSTEM_STATUS_MSG_CONVERSIONS_HPP_
+#define ISAACBOT_AMR_DIAG_MANAGER_INFRASTRUCTURE_SYSTEM_STATUS_MSG_CONVERSIONS_HPP_
 
 #include "builtin_interfaces/msg/time.hpp"
 #include "diagnostic_updater/diagnostic_status_wrapper.hpp"
@@ -44,4 +44,4 @@ domain::SystemHealthThresholds toThresholds(const system_diag::Params & params);
 
 }  // namespace isaacbot_amr_diag_manager::infrastructure
 
-#endif  // ISAACBOT_DIAG_MANAGER_INFRASTRUCTURE_SYSTEM_STATUS_MSG_CONVERSIONS_HPP_
+#endif  // ISAACBOT_AMR_DIAG_MANAGER_INFRASTRUCTURE_SYSTEM_STATUS_MSG_CONVERSIONS_HPP_

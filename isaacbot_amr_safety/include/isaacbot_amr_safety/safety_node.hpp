@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_SAFETY_SAFETY_NODE_HPP_
-#define ISAACBOT_SAFETY_SAFETY_NODE_HPP_
+#ifndef ISAACBOT_AMR_SAFETY_SAFETY_NODE_HPP_
+#define ISAACBOT_AMR_SAFETY_SAFETY_NODE_HPP_
 
 #include <chrono>
 #include <map>
@@ -33,7 +33,7 @@
 #include <sensor_msgs/msg/battery_state.hpp>
 
 #include "isaacbot_amr_msgs/msg/safety_command_echo.hpp"
-#include "isaacbot_amr_msgs/msg/isaacbot_driver_state.hpp"
+#include "isaacbot_amr_msgs/msg/isaacbot_amr_driver_state.hpp"
 #include "isaacbot_amr_msgs/msg/system_status.hpp"
 
 #include "isaacbot_amr_safety/behavior_tree.hpp"
@@ -47,7 +47,7 @@ namespace isaacbot_amr_safety
 
 using BatteryStateMsg = sensor_msgs::msg::BatteryState;
 using BoolMsg = std_msgs::msg::Bool;
-using IsaacbotDriverStateMsg = isaacbot_amr_msgs::msg::IsaacbotDriverState;
+using IsaacbotDriverStateMsg = isaacbot_amr_msgs::msg::IsaacbotAmrDriverState;
 // The SW E-Stop request this system itself drives - which is exactly what the tree needs:
 // `_skipIf="sw_e_stop_state"` means "do not re-assert a stop we are already asserting".
 // That is a read-back of our own command, so it belongs to SafetyCommandEcho rather than
@@ -152,4 +152,4 @@ private:
 
 }  // namespace isaacbot_amr_safety
 
-#endif  // ISAACBOT_SAFETY_SAFETY_NODE_HPP_
+#endif  // ISAACBOT_AMR_SAFETY_SAFETY_NODE_HPP_

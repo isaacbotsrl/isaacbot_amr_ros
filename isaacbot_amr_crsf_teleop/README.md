@@ -11,23 +11,23 @@ The ELRS receiver is **not** connected to the isaacbot computer. It is wired thr
 adapter to the **RUTX11 router's USB port**, and the router's Serial Utilities ("Over IP": UDP,
 Client mode, raw mode) read the UART at 460800 8N1 and send the raw CRSF bytes as UDP datagrams to
 `192.168.1.201:10111`. On the isaacbot, `isaacbot_amr_udp_driver`'s receiver (from `isaacbot_amr_transport`),
-running as node `isaacbot_crsf_udp_receiver`, owns the socket and publishes each datagram; this node
+running as node `isaacbot_amr_crsf_udp_receiver`, owns the socket and publishes each datagram; this node
 subscribes to them and decodes CRSF in-process.
 The launch file loads both as components (`isaacbot_amr_udp_driver`'s
 `isaacbot::transport::udp::UdpReceiverNode` and `isaacbot_amr_crsf_teleop::IsaacbotCrsfTeleopNode`) into one
-single-threaded container, `isaacbot_crsf_container`, with intra-process communication, so the ~250
+single-threaded container, `isaacbot_amr_crsf_container`, with intra-process communication, so the ~250
 `rc/raw_udp` messages a second never cross the Zenoh router. Inside the container, Ctrl-C does not
 run the lifecycle shutdown, so the final stop command comes from twist_mux's timeout instead; the
-standalone `isaacbot_crsf_teleop_node` executable still sends it.
+standalone `isaacbot_amr_crsf_teleop_node` executable still sends it.
 
 ```
 ELRS receiver ──UART 460800──▶ USB-UART ──USB──▶ RUTX11 (Serial Utilities: Over IP, UDP)
                                                     │  192.168.1.1 ──▶ 192.168.1.201:10111
                                                     ▼
-                                 isaacbot_crsf_udp_receiver   (source_ip 192.168.1.1)
+                                 isaacbot_amr_crsf_udp_receiver   (source_ip 192.168.1.1)
                                                     │  rc/raw_udp (udp_msgs/UdpPacket)
                                                     ▼
-                                 isaacbot_crsf_teleop_node ──▶ teleop_elrs_cmd_vel_stamped
+                                 isaacbot_amr_crsf_teleop_node ──▶ teleop_elrs_cmd_vel_stamped
                                                         ──▶ hardware_interface/sw_* (Trigger)
                                                         ──▶ rc/channels, rc/link (echo)
 ```
@@ -66,7 +66,7 @@ through to its next source. The E-Stop is not triggered — the same as any othe
 
 | Direction | Name | Type |
 |---|---|---|
-| sub | `rc/raw_udp` | `udp_msgs/UdpPacket` (reliable, depth 100) — raw CRSF bytes, one datagram per message, from `isaacbot_crsf_udp_receiver` |
+| sub | `rc/raw_udp` | `udp_msgs/UdpPacket` (reliable, depth 100) — raw CRSF bytes, one datagram per message, from `isaacbot_amr_crsf_udp_receiver` |
 | sub | `hardware_interface/safety_status` | `isaacbot_amr_msgs/SafetyStatus` (reliable, volatile, depth 1) — E-Stop state that gates RC calibration |
 | pub | `teleop_elrs_cmd_vel_stamped` | `geometry_msgs/TwistStamped`, frame `base_link` |
 | pub | `rc/channels` | `isaacbot_amr_msgs/RcChannels` (best effort) — echo, for tuning only |
@@ -223,27 +223,27 @@ include/isaacbot_amr_crsf_teleop/
 │                    calibration_use_case - the session, its gate and its timeout    (no ROS)
 └── infrastructure/  ROS adapters for the ports + IsaacbotCrsfTeleopNode (lifecycle)
                      yaml_calibration_store - the persisted calibration
-                     isaacbot_crsf_teleop_component (.cpp only) - rclcpp_components
-                     registration, loaded into isaacbot_crsf_container
+                     isaacbot_amr_crsf_teleop_component (.cpp only) - rclcpp_components
+                     registration, loaded into isaacbot_amr_crsf_container
 ```
 
 The CRSF decoder sits in `domain/` because it is pure byte math: no clock, no syscalls, no ROS
 types. Freshness is `LinkMonitor`'s job, not the parser's.
 
-The `(no ROS)` above is checked, not just intended. `isaacbot_crsf_teleop_core` is built from
+The `(no ROS)` above is checked, not just intended. `isaacbot_amr_crsf_teleop_core` is built from
 `domain/` and `application/` alone and links no ROS target, and `test/layer_purity.cmake` (run as
 the `test_layer_purity` test) fails the build if either layer ever includes `rclcpp`, a message
 package, yaml-cpp or the filesystem - a header-only include would otherwise compile quietly and
-take the boundary with it. Infrastructure is split in two: `isaacbot_crsf_teleop_adapters` holds the
-port adapters and the conversions, `isaacbot_crsf_teleop_ros` holds the node, so an adapter's unit
+take the boundary with it. Infrastructure is split in two: `isaacbot_amr_crsf_teleop_adapters` holds the
+port adapters and the conversions, `isaacbot_amr_crsf_teleop_ros` holds the node, so an adapter's unit
 test does not link the node.
 
 ## Launch
 
 ```bash
 ros2 launch isaacbot_amr_crsf_teleop isaacbot_amr_crsf_teleop.launch.py   # UDP receiver + teleop, one container
-ros2 lifecycle get /isaacbot/isaacbot_crsf_udp_receiver
-ros2 lifecycle get /isaacbot/isaacbot_crsf_teleop_node
+ros2 lifecycle get /isaacbot/isaacbot_amr_crsf_udp_receiver
+ros2 lifecycle get /isaacbot/isaacbot_amr_crsf_teleop_node
 ```
 
 ## Tests

@@ -8,7 +8,7 @@
     # as UDP datagrams to udp_bind_ip:udp_port. The baud rate is therefore set ON THE ROUTER
     # (scripts/rutx11_elrs_udp_forwarding.sh), not here.
     #
-    # The socket is owned by isaacbot_amr_udp_driver's receiver node, isaacbot_crsf_udp_receiver, which this
+    # The socket is owned by isaacbot_amr_udp_driver's receiver node, isaacbot_amr_crsf_udp_receiver, which this
     # package's launch file starts; this node only decodes the datagrams that node publishes.
     # udp_bind_ip, udp_port and udp_source_ip are read by the LAUNCH FILE and handed to the
     # receiver, so changing them here changes what it binds and accepts.
@@ -23,7 +23,7 @@
     udp_port: 10111
     udp_source_ip: 192.168.1.1
 
-    # Topic carrying the datagrams from isaacbot_crsf_udp_receiver - its `udp_read`, remapped by the
+    # Topic carrying the datagrams from isaacbot_amr_crsf_udp_receiver - its `udp_read`, remapped by the
     # launch file. Must match that remap. Subscribed with reliable QoS, depth 100: a dropped byte
     # chunk desynchronises the CRSF parser until the next sync byte, so the ROS hop must not be
     # what drops it.
@@ -105,7 +105,7 @@
     # would throw away a measurement that took minutes.
     e_stop_grace_s: 1.0
 
-    # Stick axes. Out limits match isaacbot_drive_controller's linear.x / angular.z caps in
+    # Stick axes. Out limits match isaacbot_amr_drive_controller's linear.x / angular.z caps in
     # isaacbot_amr_controller/config/wheel_01_controller.yaml: anything above them is clipped per axis
     # by diff_drive, which bends the commanded arc.
     linear_x_channel: 3
@@ -120,7 +120,7 @@
 
     # Stick expo per axis: (1 - e) * m + e * m^3 on the normalized deflection m. 0 = linear,
     # 1 = softest. Small moves give much less speed (30 % turn stick -> 16 % at 0.5), full stick
-    # is still out_min/out_max. Same values as the web joystick (ISAACBOT_DRIVE_EXPO_*). This is ON
+    # is still out_min/out_max. Same values as the web joystick (ISAACBOT_AMR_DRIVE_EXPO_*). This is ON
     # TOP of any expo in the transmitter model - keep the radio's expo at 0 %. Calibration is
     # unaffected: it measures raw endpoints and midpoint, expo only reshapes the curve between.
     linear_x_expo: 0.3

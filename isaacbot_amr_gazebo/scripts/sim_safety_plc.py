@@ -16,7 +16,7 @@
 
 """Stands in for the safety PLC and isaacbot_amr_hardware_interface's E-Stop interface in simulation.
 
-isaacbot_motion_lock_node keeps the twist_mux lock closed until both hardware_interface/safety_status
+isaacbot_amr_motion_lock_node keeps the twist_mux lock closed until both hardware_interface/safety_status
 and hardware_interface/safety_command_echo arrive with link_healthy set, and re-closes it once
 either is older than gpio_timeout, so they are published periodically.
 

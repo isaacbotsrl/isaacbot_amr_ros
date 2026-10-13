@@ -15,7 +15,7 @@
 
 # Powers off the ROS_CONTROLLER, the computer running the isaacbot ROS 2 stack.
 #
-# isaacbot_safety_node runs this script (with --no-e-stop, it trips the E-Stop itself) at the end of
+# isaacbot_amr_safety_node runs this script (with --no-e-stop, it trips the E-Stop itself) at the end of
 # its IsaacbotShutdown behavior tree. It also works on its own, e.g. when the ROS stack is down:
 #
 #   ros2 run isaacbot_amr_safety shutdown_ros_controller.sh --reason "Maintenance"
@@ -29,8 +29,8 @@ readonly BALENA_HOST_DBUS_SOCKET="/host/run/dbus/system_bus_socket"
 # Returned by a power-off method that is not available here, as opposed to one that failed.
 readonly UNAVAILABLE=100
 
-reason="${ISAACBOT_SHUTDOWN_REASON:-Manual shutdown request}"
-namespace="${ISAACBOT_SYSTEM_NAMESPACE:-}"
+reason="${ISAACBOT_AMR_SHUTDOWN_REASON:-Manual shutdown request}"
+namespace="${ISAACBOT_AMR_SYSTEM_NAMESPACE:-}"
 trip_e_stop=true
 dry_run=false
 
@@ -44,8 +44,8 @@ Trips the isaacbot E-Stop, then powers off this computer with the first availabl
   3. systemctl poweroff
 
 Options:
-  --reason TEXT      Reason written to the log (default: \$ISAACBOT_SHUTDOWN_REASON or "Manual shutdown request").
-  --namespace NS     ROS namespace of the E-Stop service (default: \$ISAACBOT_SYSTEM_NAMESPACE).
+  --reason TEXT      Reason written to the log (default: \$ISAACBOT_AMR_SHUTDOWN_REASON or "Manual shutdown request").
+  --namespace NS     ROS namespace of the E-Stop service (default: \$ISAACBOT_AMR_SYSTEM_NAMESPACE).
   --no-e-stop        Do not call ${E_STOP_SERVICE}.
   --dry-run          Print what would be done without doing it.
   -h, --help         Show this help.

@@ -80,7 +80,7 @@ run_script --reason
 
 # Default: trips the namespaced E-Stop, then D-Bus power-off
 reset_stubs
-EXTRA_ENV="ISAACBOT_SYSTEM_NAMESPACE=/isaacbot/" run_script --reason "unit test"
+EXTRA_ENV="ISAACBOT_AMR_SYSTEM_NAMESPACE=/isaacbot/" run_script --reason "unit test"
 [ "${rc}" -eq 0 ] || fail "default run exit code ${rc}: ${output}"
 grep -q "^ros2 service call /isaacbot/hardware_interface/sw_user_e_stop_set std_srvs/srv/Trigger" "${CALLS}" \
   || fail "E-Stop not called on the namespaced service: $(cat "${CALLS}")"
@@ -91,10 +91,10 @@ grep -q "Reason: unit test" <<<"${output}" || fail "reason not logged: ${output}
 
 # --no-e-stop, reason from the environment
 reset_stubs
-EXTRA_ENV="ISAACBOT_SHUTDOWN_REASON=from_env" run_script --no-e-stop
+EXTRA_ENV="ISAACBOT_AMR_SHUTDOWN_REASON=from_env" run_script --no-e-stop
 [ "${rc}" -eq 0 ] || fail "--no-e-stop exit code ${rc}"
 grep -q "^ros2" "${CALLS}" && fail "--no-e-stop still called ros2"
-grep -q "Reason: from_env" <<<"${output}" || fail "ISAACBOT_SHUTDOWN_REASON not used: ${output}"
+grep -q "Reason: from_env" <<<"${output}" || fail "ISAACBOT_AMR_SHUTDOWN_REASON not used: ${output}"
 
 # A failing E-Stop does not block the power-off
 reset_stubs

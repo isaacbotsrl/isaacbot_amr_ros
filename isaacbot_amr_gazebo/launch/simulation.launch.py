@@ -49,7 +49,7 @@ def generate_launch_description():
     namespace = LaunchConfiguration("namespace")
     declare_namespace_arg = DeclareLaunchArgument(
         "namespace",
-        default_value=EnvironmentVariable("ISAACBOT_SYSTEM_NAMESPACE", default_value=""),
+        default_value=EnvironmentVariable("ISAACBOT_AMR_SYSTEM_NAMESPACE", default_value=""),
         description="Add namespace to all launched nodes.",
     )
 
@@ -81,7 +81,7 @@ def generate_launch_description():
                 [
                     FindPackageShare("isaacbot_amr_description"),
                     "launch",
-                    "isaacbot_rviz.launch.py",
+                    "isaacbot_amr_rviz.launch.py",
                 ]
             )
         ),

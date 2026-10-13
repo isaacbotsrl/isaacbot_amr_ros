@@ -18,8 +18,8 @@
 # includes a ROS, hardware_interface, or vendor-SDK header, or an in-project header from anything
 # other than domain/ or application/ itself. Per .claude/rules/clean_architecture.md, the
 # application layer may depend only on the domain layer (never on rclcpp/ROS/hardware_interface,
-# and never on infrastructure - isaacbot_system/, isaacbot_driver/, isaacbot_safety_controller/,
-# isaacbot_sensors/, system_ros_interface/, which is where the infrastructure layer
+# and never on infrastructure - isaacbot_amr_system/, isaacbot_amr_driver/, isaacbot_amr_safety_controller/,
+# isaacbot_amr_sensors/, system_ros_interface/, which is where the infrastructure layer
 # actually lives in this package - see the "Note on infrastructure" comment atop
 # check_domain_purity.sh) so it stays unit-testable with fake domain ports, the same way domain/
 # itself is (see check_domain_purity.sh, which this mirrors). Invoked from CMakeLists.txt as a
@@ -39,7 +39,7 @@ APPLICATION_DIRS=(
 
 # In-project (quoted) includes from application/ files may only reach other application/ headers,
 # domain/ headers (the only layer application/ is allowed to depend on), or the dependency-free
-# utils.hpp - never isaacbot_system/, isaacbot_driver/, isaacbot_safety_controller/, isaacbot_sensors/,
+# utils.hpp - never isaacbot_amr_system/, isaacbot_amr_driver/, isaacbot_amr_safety_controller/, isaacbot_amr_sensors/,
 # or system_ros_interface/, all of which are infrastructure.
 ALLOWED_QUOTED_PATTERN='^isaacbot_amr_hardware_interface/(application/[^/]+\.hpp$|domain/[^/]+\.hpp$|utils\.hpp$)'
 

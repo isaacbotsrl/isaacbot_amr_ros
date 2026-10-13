@@ -16,7 +16,7 @@ two dependents and deleted; it is kept as a package to stay close to upstream.
 Forked from [ros-drivers/transport_drivers](https://github.com/ros-drivers/transport_drivers)
 **v1.2.0** (Apache-2.0; LeoDrive, The Autoware Foundation, Apex.AI, Trimble, TierIV,
 Evan Flynn). Relayouted into this workspace's Clean Architecture layout, renamed to the
-`isaacbot_` prefix and re-namespaced from `drivers::` to `isaacbot::transport::`.
+`isaacbot_amr_` prefix and re-namespaced from `drivers::` to `isaacbot::transport::`.
 
 **Upstream is no longer merged - this is a hard fork.** Upstream has no release for ROS 2
 `lyrical`, which is why it was vendored in the first place; port fixes by hand.

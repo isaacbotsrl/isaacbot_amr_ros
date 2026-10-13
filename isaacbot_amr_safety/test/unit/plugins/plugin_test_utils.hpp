@@ -13,8 +13,8 @@
 // limitations under the License.
 
 
-#ifndef ISAACBOT_SAFETY_TEST_UNIT_PLUGINS_PLUGIN_TEST_UTILS_HPP_
-#define ISAACBOT_SAFETY_TEST_UNIT_PLUGINS_PLUGIN_TEST_UTILS_HPP_
+#ifndef ISAACBOT_AMR_SAFETY_TEST_UNIT_PLUGINS_PLUGIN_TEST_UTILS_HPP_
+#define ISAACBOT_AMR_SAFETY_TEST_UNIT_PLUGINS_PLUGIN_TEST_UTILS_HPP_
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -173,4 +173,4 @@ inline constexpr char kUnreachableIp[] = "192.0.2.1";
 
 }  // namespace isaacbot_amr_safety::test
 
-#endif  // ISAACBOT_SAFETY_TEST_UNIT_PLUGINS_PLUGIN_TEST_UTILS_HPP_
+#endif  // ISAACBOT_AMR_SAFETY_TEST_UNIT_PLUGINS_PLUGIN_TEST_UTILS_HPP_

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_GPS_HEADING_DOMAIN_GEO_MATH_HPP_
-#define ISAACBOT_GPS_HEADING_DOMAIN_GEO_MATH_HPP_
+#ifndef ISAACBOT_AMR_GPS_HEADING_DOMAIN_GEO_MATH_HPP_
+#define ISAACBOT_AMR_GPS_HEADING_DOMAIN_GEO_MATH_HPP_
 
 #include <vector>
 
@@ -53,4 +53,4 @@ CircularStats circularStats(const std::vector<double> & angles_rad);
 
 }  // namespace isaacbot_amr_gps_heading::domain
 
-#endif  // ISAACBOT_GPS_HEADING_DOMAIN_GEO_MATH_HPP_
+#endif  // ISAACBOT_AMR_GPS_HEADING_DOMAIN_GEO_MATH_HPP_

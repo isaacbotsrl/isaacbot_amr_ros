@@ -49,7 +49,7 @@
 #include "isaacbot_amr_crsf_teleop/domain/crsf/crsf_protocol.hpp"
 #include "isaacbot_amr_crsf_teleop/domain/rc_frame.hpp"
 #include "isaacbot_amr_crsf_teleop/domain/stick_mapping.hpp"
-#include "isaacbot_amr_crsf_teleop/infrastructure/isaacbot_crsf_teleop_node.hpp"
+#include "isaacbot_amr_crsf_teleop/infrastructure/isaacbot_amr_crsf_teleop_node.hpp"
 
 namespace isaacbot_amr_crsf_teleop
 {
@@ -121,7 +121,7 @@ public:
     explicit IsaacbotHarness(const rclcpp::Node::SharedPtr & node)
     : node_(node)
     {
-        // Matches isaacbot_crsf_udp_receiver's publisher QoS, which is what the node subscribes with.
+        // Matches isaacbot_amr_crsf_udp_receiver's publisher QoS, which is what the node subscribes with.
         udp_pub_ = node_->create_publisher<udp_msgs::msg::UdpPacket>("rc/raw_udp", rclcpp::QoS(100));
 
         cmd_vel_sub_ = node_->create_subscription<Twist>(
@@ -337,9 +337,9 @@ protected:
             rclcpp::Parameter("channel_timeout_ms", 200),
             rclcpp::Parameter("diagnostic_updater.period", 0.1),
         });
-        teleop_ = std::make_shared<IsaacbotCrsfTeleopNode>("isaacbot_crsf_teleop_node", options);
+        teleop_ = std::make_shared<IsaacbotCrsfTeleopNode>("isaacbot_amr_crsf_teleop_node", options);
 
-        helper_node_ = std::make_shared<rclcpp::Node>("isaacbot_harness", ns);
+        helper_node_ = std::make_shared<rclcpp::Node>("isaacbot_amr_harness", ns);
         harness_ = std::make_unique<IsaacbotHarness>(helper_node_);
 
         executor_.add_node(teleop_->get_node_base_interface());
@@ -427,7 +427,7 @@ TEST_F(TeleopNodeTest, UdpLinkDiagnosticFollowsTheDatagrams)
         "/diagnostics", 10,
         [&level, &message](const diagnostic_msgs::msg::DiagnosticArray & msg) {
             for (const auto & status : msg.status) {
-                if (status.name == "isaacbot_crsf_teleop_node: RC UDP link") {
+                if (status.name == "isaacbot_amr_crsf_teleop_node: RC UDP link") {
                     level = status.level;
                     message = status.message;
                 }
@@ -454,7 +454,7 @@ TEST_F(TeleopNodeTest, RcLinkDiagnosticFollowsTheLink)
         "/diagnostics", 10,
         [&rc_link_level, &rc_link_message](const diagnostic_msgs::msg::DiagnosticArray & msg) {
             for (const auto & status : msg.status) {
-                if (status.name == "isaacbot_crsf_teleop_node: RC link") {
+                if (status.name == "isaacbot_amr_crsf_teleop_node: RC link") {
                     rc_link_level = status.level;
                     rc_link_message = status.message;
                 }
@@ -487,7 +487,7 @@ TEST_F(TeleopNodeTest, ChannelsRateDiagnosticWarnsWithoutFrames)
         "/diagnostics", 10,
         [&rate_levels](const diagnostic_msgs::msg::DiagnosticArray & msg) {
             for (const auto & status : msg.status) {
-                if (status.name == "isaacbot_crsf_teleop_node: RC channels rate") {
+                if (status.name == "isaacbot_amr_crsf_teleop_node: RC channels rate") {
                     rate_levels.push_back(status.level);
                 }
             }
@@ -563,7 +563,7 @@ TEST_F(TeleopNodeTest, ConfigureRejectsAnInvalidChannel)
 {
     rclcpp::NodeOptions options;
     options.parameter_overrides({rclcpp::Parameter("e_stop_channel", 17)});
-    auto node = std::make_shared<IsaacbotCrsfTeleopNode>("isaacbot_crsf_teleop_bad_config", options);
+    auto node = std::make_shared<IsaacbotCrsfTeleopNode>("isaacbot_amr_crsf_teleop_bad_config", options);
 
     EXPECT_EQ(node->configure().id(), lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED);
 }
@@ -572,7 +572,7 @@ TEST_F(TeleopNodeTest, ConfigureRejectsDuplicateChannels)
 {
     rclcpp::NodeOptions options;
     options.parameter_overrides({rclcpp::Parameter("e_stop_channel", 3)});  // linear_x_channel
-    auto node = std::make_shared<IsaacbotCrsfTeleopNode>("isaacbot_crsf_teleop_dup_channel", options);
+    auto node = std::make_shared<IsaacbotCrsfTeleopNode>("isaacbot_amr_crsf_teleop_dup_channel", options);
 
     EXPECT_EQ(node->configure().id(), lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED);
 }
@@ -582,7 +582,7 @@ TEST_F(TeleopNodeTest, ConfigureRejectsNegativeDeadband)
     rclcpp::NodeOptions options;
     options.parameter_overrides(
         {rclcpp::Parameter("channel_deadband", std::vector<int64_t>{-1})});
-    auto node = std::make_shared<IsaacbotCrsfTeleopNode>("isaacbot_crsf_teleop_bad_deadband", options);
+    auto node = std::make_shared<IsaacbotCrsfTeleopNode>("isaacbot_amr_crsf_teleop_bad_deadband", options);
 
     EXPECT_EQ(node->configure().id(), lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED);
 }
@@ -596,7 +596,7 @@ TEST_F(TeleopNodeTest, ConfigureRejectsASwitchThresholdOffTheWire)
         rclcpp::NodeOptions options;
         options.parameter_overrides({rclcpp::Parameter("channel_switch_threshold", threshold)});
         auto node = std::make_shared<IsaacbotCrsfTeleopNode>(
-            "isaacbot_crsf_teleop_bad_threshold", options);
+            "isaacbot_amr_crsf_teleop_bad_threshold", options);
 
         EXPECT_EQ(node->configure().id(), lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED)
             << "channel_switch_threshold " << threshold << " should have failed configure";
@@ -852,7 +852,7 @@ TEST_F(TeleopCalibrationTest, TheCalibrationDiagnosticReportsOneCalibration)
     auto diagnostics_sub = helper_node_->create_subscription<diagnostic_msgs::msg::DiagnosticArray>(
         "/diagnostics", 10, [&endpoints](const diagnostic_msgs::msg::DiagnosticArray & msg) {
             for (const auto & status : msg.status) {
-                if (status.name != "isaacbot_crsf_teleop_node: RC calibration") {
+                if (status.name != "isaacbot_amr_crsf_teleop_node: RC calibration") {
                     continue;
                 }
                 for (const auto & value : status.values) {

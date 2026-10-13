@@ -4,9 +4,9 @@ Lifecycle nodes bridging UDP to ROS 2.
 
 | Executable | Role |
 |---|---|
-| `isaacbot_udp_receiver_node` | binds a socket, republishes every datagram on `udp_read` |
-| `isaacbot_udp_sender_node` | transmits packets received on `udp_write`, **while active** |
-| `isaacbot_udp_bridge_node` | both, sharing one `IoContext` |
+| `isaacbot_amr_udp_receiver_node` | binds a socket, republishes every datagram on `udp_read` |
+| `isaacbot_amr_udp_sender_node` | transmits packets received on `udp_write`, **while active** |
+| `isaacbot_amr_udp_bridge_node` | both, sharing one `IoContext` |
 
 | | Topic | Type |
 |---|---|---|
@@ -24,7 +24,7 @@ any other address are dropped inside the socket, never published, and logged at 
 as upstream did - not the sender. Filter with `source_ip`, not on `address`.
 
 `isaacbot::transport::udp::UdpReceiverNode` and `UdpSenderNode` are also registered as
-`rclcpp_components` (`isaacbot_udp_driver_components`). The in-tree consumers load them into
+`rclcpp_components` (`isaacbot_amr_udp_driver_components`). The in-tree consumers load them into
 their own container, intra-process: `isaacbot_amr_battery` (a receiver, `udp_read` ->
 `battery_udp_data`), `isaacbot_amr_crsf_teleop` (a receiver, `udp_read` -> `rc/raw_udp`,
 `source_ip` = the RUTX11, hardware only) and `isaacbot_amr_led` (two senders, `udp_write` ->
@@ -63,14 +63,14 @@ their own container, intra-process: `isaacbot_amr_battery` (a receiver, `udp_rea
   run concurrently, are merged into one file using per-process ports.
 - The executables have explicit `main()`s, which run the lifecycle shutdown on Ctrl-C. The
   `rclcpp_components` registration lives in its own SHARED library,
-  `isaacbot_udp_driver_components`, since a static archive would drop it.
+  `isaacbot_amr_udp_driver_components`, since a static archive would drop it.
 
 ## Provenance
 
 Forked from [ros-drivers/transport_drivers](https://github.com/ros-drivers/transport_drivers)
 **v1.2.0** (Apache-2.0; LeoDrive, The Autoware Foundation, Apex.AI, Trimble, TierIV,
 Evan Flynn). Relayouted into this workspace's Clean Architecture layout, renamed to the
-`isaacbot_` prefix and re-namespaced from `drivers::` to `isaacbot::transport::`.
+`isaacbot_amr_` prefix and re-namespaced from `drivers::` to `isaacbot::transport::`.
 
 **Upstream is no longer merged - this is a hard fork.** Upstream has no release for ROS 2
 `lyrical`, which is why it was vendored in the first place; port fixes by hand.

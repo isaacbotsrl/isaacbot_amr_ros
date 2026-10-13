@@ -11,7 +11,7 @@ relayouted into this workspace's Clean Architecture convention.
 | [`isaacbot_amr_udp_driver`](isaacbot_amr_udp_driver/) | UDP <-> `udp_read` / `udp_write`. |
 | [`isaacbot_amr_modbus_driver`](isaacbot_amr_modbus_driver/) | Synchronous Modbus TCP client. **Library only - no node, no topics.** |
 
-Upstream's serial driver was forked as `isaacbot_serial_driver` and **removed in 2026-10**: its
+Upstream's serial driver was forked as `isaacbot_amr_serial_driver` and **removed in 2026-10**: its
 only consumer, the ELRS receiver, moved onto the RUTX11 router, which forwards the UART over
 UDP to `isaacbot_amr_udp_driver` (see `isaacbot_amr_crsf_teleop`). Recover it from git history if a UART
 consumer ever returns.
@@ -35,7 +35,7 @@ from transport_drivers:
 Forked from [ros-drivers/transport_drivers](https://github.com/ros-drivers/transport_drivers)
 **v1.2.0** (Apache-2.0; LeoDrive, The Autoware Foundation, Apex.AI, Trimble, TierIV,
 Evan Flynn). Relayouted into this workspace's Clean Architecture layout, renamed to the
-`isaacbot_` prefix and re-namespaced from `drivers::` to `isaacbot::transport::`.
+`isaacbot_amr_` prefix and re-namespaced from `drivers::` to `isaacbot::transport::`.
 
 **Upstream is no longer merged - this is a hard fork.** Upstream has no release for ROS 2
 `lyrical`, which is why it was vendored in the first place; port fixes by hand.

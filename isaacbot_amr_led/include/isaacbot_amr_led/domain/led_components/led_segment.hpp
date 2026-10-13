@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_LED_DOMAIN_LED_COMPONENTS_LED_SEGMENT_HPP_
-#define ISAACBOT_LED_DOMAIN_LED_COMPONENTS_LED_SEGMENT_HPP_
+#ifndef ISAACBOT_AMR_LED_DOMAIN_LED_COMPONENTS_LED_SEGMENT_HPP_
+#define ISAACBOT_AMR_LED_DOMAIN_LED_COMPONENTS_LED_SEGMENT_HPP_
 
 #include <cstddef>
 #include <cstdint>
@@ -113,4 +113,4 @@ private:
 
 }  // namespace isaacbot_amr_led
 
-#endif  // ISAACBOT_LED_DOMAIN_LED_COMPONENTS_LED_SEGMENT_HPP_
+#endif  // ISAACBOT_AMR_LED_DOMAIN_LED_COMPONENTS_LED_SEGMENT_HPP_

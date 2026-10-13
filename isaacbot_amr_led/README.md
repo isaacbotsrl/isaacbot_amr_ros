@@ -5,17 +5,17 @@ image animations into one RGBA frame per panel. A driver encodes those frames in
 packets, and `isaacbot_amr_udp_driver` sends them to the LED board over UDP.
 
 ```
-led/set_animation ──► isaacbot_led_controller ──led/channel_<n>_frame──► isaacbot_led_driver
-                      (isaacbot_led_container)                           (isaacbot_led_container)
+led/set_animation ──► isaacbot_amr_led_controller ──led/channel_<n>_frame──► isaacbot_amr_led_driver
+                      (isaacbot_amr_led_container)                           (isaacbot_amr_led_container)
                                                                             │ udp_write/led_channel_<n>
                                                                             ▼
-                               isaacbot_udp_led_channel_<n>_sender_node ──UDP──► LED board
-                               (isaacbot_led_container)
+                               isaacbot_amr_udp_led_channel_<n>_sender_node ──UDP──► LED board
+                               (isaacbot_amr_led_container)
 ```
 
 ## Nodes and interfaces
 
-### isaacbot_led_controller (component `isaacbot_amr_led::LedControllerNode`)
+### isaacbot_amr_led_controller (component `isaacbot_amr_led::LedControllerNode`)
 
 | Direction | Name | Type |
 |-----------|------|------|
@@ -31,7 +31,7 @@ Parameters (`src/led_controller_parameters.yaml`): `animations_config_path` (req
 `controller_frequency` (50 Hz), `state_publish_rate` (5 Hz), `preview_publish_rate` (5 Hz, 0 = no
 preview topics).
 
-### isaacbot_led_driver (lifecycle component `isaacbot_amr_led::LedDriverNode`)
+### isaacbot_amr_led_driver (lifecycle component `isaacbot_amr_led::LedDriverNode`)
 
 | Direction | Name | Type |
 |-----------|------|------|
@@ -65,10 +65,10 @@ Parameters (`src/led_driver_parameters.yaml`, values in `config/ardennes_driver.
 | `led_control_handshake` | `false` | Request control from `hardware/led_control_enable` on activation |
 | `autostart` | `true` | Configure and activate on startup |
 
-### isaacbot_udp_led_channel_{1,2}_sender_node (`isaacbot_amr_udp_driver`)
+### isaacbot_amr_udp_led_channel_{1,2}_sender_node (`isaacbot_amr_udp_driver`)
 
 These are lifecycle `isaacbot::transport::udp::UdpSenderNode` components, loaded into
-`isaacbot_led_container` next to the driver with intra-process communication (hardware only), so the
+`isaacbot_amr_led_container` next to the driver with intra-process communication (hardware only), so the
 50 Hz frames never cross the Zenoh router. Each one subscribes to
 `udp_write/led_channel_<n>` and sends to the address in
 `config/ardennes_udp_led_channel_<n>.yaml` (channel 1 → `192.168.77.202:3334`, channel 2 → `192.168.77.201:3333`).
@@ -155,20 +155,20 @@ ros2 service call /isaacbot/led/set_brightness isaacbot_amr_msgs/srv/SetLedBrigh
 ros2 topic echo /isaacbot/led/state
 ```
 
-`isaacbot_amr_safety`'s `isaacbot_led_safety_node` is the normal client of `led/set_animation`.
+`isaacbot_amr_safety`'s `isaacbot_amr_led_safety_node` is the normal client of `led/set_animation`.
 
 ## Launch Files
 
-- `isaacbot_amr_led.launch.py` - `isaacbot_led_container`: the controller, plus the driver and the two UDP
+- `isaacbot_amr_led.launch.py` - `isaacbot_amr_led_container`: the controller, plus the driver and the two UDP
   senders on hardware only.
 
 | Argument | Default | Description |
 |----------|---------|-------------|
-| `namespace` | `$ISAACBOT_SYSTEM_NAMESPACE`, else empty | Namespace of all nodes. |
+| `namespace` | `$ISAACBOT_AMR_SYSTEM_NAMESPACE`, else empty | Namespace of all nodes. |
 | `robot_model` | `$ROBOT_MODEL_NAME`, else `ardennes` | Selects `config/<robot_model>_*.yaml`. |
 | `animations_config_path` | `config/<robot_model>_animations.yaml` | Animation catalog. |
 | `common_dir_path` | empty | If set, the default animations file is read from `<common_dir_path>/isaacbot_amr_led/config/`. |
-| `use_sim` | `False` | `True` skips `isaacbot_led_driver` and the UDP senders (the controller still publishes frames). |
+| `use_sim` | `False` | `True` skips `isaacbot_amr_led_driver` and the UDP senders (the controller still publishes frames). |
 | `log_level` | `INFO` | Logging level. |
 
 ## Layout

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_MODBUS_DRIVER_INFRASTRUCTURE_MB_FRAME_MAPPING_HPP_
-#define ISAACBOT_MODBUS_DRIVER_INFRASTRUCTURE_MB_FRAME_MAPPING_HPP_
+#ifndef ISAACBOT_AMR_MODBUS_DRIVER_INFRASTRUCTURE_MB_FRAME_MAPPING_HPP_
+#define ISAACBOT_AMR_MODBUS_DRIVER_INFRASTRUCTURE_MB_FRAME_MAPPING_HPP_
 
 #include <MB/modbusRequest.hpp>
 #include <MB/modbusResponse.hpp>
@@ -24,7 +24,7 @@ namespace isaacbot::transport::modbus
 {
 
 // The only translation between this package's DiscreteRequest/DiscreteReply and the MB:: codec's
-// frame types. Socket-free and ROS-free, in its own library (isaacbot_modbus_driver_mb_mapping), so
+// frame types. Socket-free and ROS-free, in its own library (isaacbot_amr_modbus_driver_mb_mapping), so
 // ModbusTcpTransport and the unit tests' fake transport both run exactly this code.
 
 // Builds the MB::ModbusRequest the client used to construct directly: the same constructor
@@ -38,4 +38,4 @@ DiscreteReply toDiscreteReply(const MB::ModbusResponse & response);
 
 }  // namespace isaacbot::transport::modbus
 
-#endif  // ISAACBOT_MODBUS_DRIVER_INFRASTRUCTURE_MB_FRAME_MAPPING_HPP_
+#endif  // ISAACBOT_AMR_MODBUS_DRIVER_INFRASTRUCTURE_MB_FRAME_MAPPING_HPP_

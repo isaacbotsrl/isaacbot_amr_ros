@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_UTILS_ISAACBOT_UTILS_NETWORKING_UTILS_HPP_
-#define ISAACBOT_UTILS_ISAACBOT_UTILS_NETWORKING_UTILS_HPP_
+#ifndef ISAACBOT_AMR_UTILS_ISAACBOT_AMR_UTILS_NETWORKING_UTILS_HPP_
+#define ISAACBOT_AMR_UTILS_ISAACBOT_AMR_UTILS_NETWORKING_UTILS_HPP_
 
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -45,4 +45,4 @@ inline bool isPortAvailable(int port)
 
 }  // namespace isaacbot_amr_utils
 
-#endif  // ISAACBOT_UTILS_ISAACBOT_UTILS_NETWORKING_UTILS_HPP_
+#endif  // ISAACBOT_AMR_UTILS_ISAACBOT_AMR_UTILS_NETWORKING_UTILS_HPP_

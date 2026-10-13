@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <root BTCPP_format="4" project_name="IsaacbotLedBT">
-    <include path="isaacbot_led_safety.xml"/>
+    <include path="isaacbot_amr_led_safety.xml"/>
     <TreeNodesModel>
         <Action ID="CallSetLedAnimationService" editable="true">
             <input_port name="id">animation ID</input_port>

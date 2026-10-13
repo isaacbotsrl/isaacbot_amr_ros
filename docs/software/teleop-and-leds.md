@@ -10,13 +10,13 @@ ROS names on this page are relative to the robot namespace `isaacbot`. For examp
 
 ### Hardware link
 
-The receiver connects to the RUTX11 router's USB port through a USB-UART adapter, not to the ROS controller computer. The router's Serial Utilities ("Over IP", UDP, Client mode, raw mode) read the UART and send the raw CRSF bytes as UDP datagrams to the controller. `isaacbot_crsf_udp_receiver` (`isaacbot_amr_udp_driver`, `isaacbot_amr_transport`) owns the socket and publishes each datagram on `rc/raw_udp`; `isaacbot_crsf_teleop_node` decodes CRSF from them. Both run as components in one container, `isaacbot_crsf_container`.
+The receiver connects to the RUTX11 router's USB port through a USB-UART adapter, not to the ROS controller computer. The router's Serial Utilities ("Over IP", UDP, Client mode, raw mode) read the UART and send the raw CRSF bytes as UDP datagrams to the controller. `isaacbot_amr_crsf_udp_receiver` (`isaacbot_amr_udp_driver`, `isaacbot_amr_transport`) owns the socket and publishes each datagram on `rc/raw_udp`; `isaacbot_amr_crsf_teleop_node` decodes CRSF from them. Both run as components in one container, `isaacbot_amr_crsf_container`.
 
 ```mermaid
 flowchart LR
   RX["ELRS receiver"] -->|"UART 460800 baud"| R["RUTX11 Serial Utilities"]
-  R -->|"UDP 192.168.1.1 → 192.168.1.201:10111"| UR["isaacbot_crsf_udp_receiver"]
-  UR -->|"rc/raw_udp"| T["isaacbot_crsf_teleop_node"]
+  R -->|"UDP 192.168.1.1 → 192.168.1.201:10111"| UR["isaacbot_amr_crsf_udp_receiver"]
+  UR -->|"rc/raw_udp"| T["isaacbot_amr_crsf_teleop_node"]
   T -->|"teleop_elrs_cmd_vel_stamped"| MUX["twist_mux (priority 110)"]
   T -->|"Trigger calls"| HI["hardware_interface/sw_*"]
 ```
@@ -71,7 +71,7 @@ Source: `isaacbot_amr_crsf_teleop/config/isaacbot_amr_crsf_teleop.yaml`, `isaacb
 
 | Direction | Name | Type |
 |---|---|---|
-| sub | `rc/raw_udp` | `udp_msgs/UdpPacket` (from `isaacbot_crsf_udp_receiver`) |
+| sub | `rc/raw_udp` | `udp_msgs/UdpPacket` (from `isaacbot_amr_crsf_udp_receiver`) |
 | sub | `hardware_interface/safety_status` | `isaacbot_amr_msgs/SafetyStatus` (calibration gate) |
 | pub | `teleop_elrs_cmd_vel_stamped` | `geometry_msgs/TwistStamped`, frame `base_link` |
 | pub | `rc/channels` | `isaacbot_amr_msgs/RcChannels`, capped at `rc_topics_rate_hz` (25 Hz) |
@@ -84,7 +84,7 @@ Source: `isaacbot_amr_crsf_teleop/config/isaacbot_amr_crsf_teleop.yaml`, `isaacb
 
 `rc/channels` and `rc/link` are echoes for tuning. Nothing on the isaacbot consumes them.
 
-Source: `isaacbot_amr_crsf_teleop/README.md`, `isaacbot_amr_crsf_teleop/src/infrastructure/isaacbot_crsf_teleop_node.cpp`.
+Source: `isaacbot_amr_crsf_teleop/README.md`, `isaacbot_amr_crsf_teleop/src/infrastructure/isaacbot_amr_crsf_teleop_node.cpp`.
 
 ### RC calibration
 
@@ -94,7 +94,7 @@ Stick centre, endpoints and deadband are stored per channel. The node measures t
 2. Deactivate the teleop node:
 
     ```bash
-    ros2 lifecycle set /isaacbot/isaacbot_crsf_teleop_node deactivate
+    ros2 lifecycle set /isaacbot/isaacbot_amr_crsf_teleop_node deactivate
     ```
 
 3. Start the session and confirm the E-Stop:
@@ -113,7 +113,7 @@ Stick centre, endpoints and deadband are stored per channel. The node measures t
     ros2 service call /isaacbot/rc/calibration/apply isaacbot_amr_msgs/srv/SetRcCalibration "{persist: true}"
     ```
 
-7. Activate the node again (`ros2 lifecycle set /isaacbot/isaacbot_crsf_teleop_node activate`). The E-Stop switch is inert for 2 s afterwards while it re-learns its resting position.
+7. Activate the node again (`ros2 lifecycle set /isaacbot/isaacbot_amr_crsf_teleop_node activate`). The E-Stop switch is inert for 2 s afterwards while it re-learns its resting position.
 
 | Parameter | Value | Note |
 |---|---|---|
@@ -124,7 +124,7 @@ Stick centre, endpoints and deadband are stored per channel. The node measures t
 
 Shipped defaults are the nominal CRSF endpoints: min 172, mid 992, max 1811 on all 16 channels.
 
-Source: `isaacbot_amr_crsf_teleop/README.md`, `isaacbot_amr_crsf_teleop/config/isaacbot_amr_crsf_teleop.yaml`, `isaacbot_amr_crsf_teleop/src/infrastructure/isaacbot_crsf_teleop_node.cpp`.
+Source: `isaacbot_amr_crsf_teleop/README.md`, `isaacbot_amr_crsf_teleop/config/isaacbot_amr_crsf_teleop.yaml`, `isaacbot_amr_crsf_teleop/src/infrastructure/isaacbot_amr_crsf_teleop_node.cpp`.
 
 !!! warning "The router is in the RC path"
     A router reboot, a firmware update, a Serial Utilities reload or a pulled controller–router cable looks like a lost RC link: a zero burst, then `twist_mux` falls through to the next source. The E-Stop is not triggered. The `RC UDP link` diagnostic shows when no datagrams arrive. Nothing needs to be cycled afterwards.
@@ -133,11 +133,11 @@ Details: [isaacbot_amr_crsf_teleop README](https://github.com/isaacbotsrl/isaacb
 
 ## Foxglove
 
-`isaacbot_amr_foxglove/ardennes_foxglove_dashboard_isaacbot_namespace.json` is a Foxglove layout for a isaacbot in the `isaacbot` namespace. Import it in Foxglove and connect to the bridge.
+`isaacbot_amr_foxglove/ardennes_foxglove_dashboard_isaacbot_amr_namespace.json` is a Foxglove layout for a isaacbot in the `isaacbot` namespace. Import it in Foxglove and connect to the bridge.
 
 | Item | Value |
 |---|---|
-| Bridge node | `isaacbot_foxglove_bridge` (`foxglove_bridge`), started by `isaacbot_amr_bringup/launch/isaacbot_web_bridges.launch.py` |
+| Bridge node | `isaacbot_amr_foxglove_bridge` (`foxglove_bridge`), started by `isaacbot_amr_bringup/launch/isaacbot_amr_web_bridges.launch.py` |
 | WebSocket port | 8765 |
 | Connection URL | `ws://<isaacbot IP>:8765` (isaacbot IP: see [IO and network](../hardware/io-and-network.md)) |
 
@@ -148,14 +148,14 @@ The layout contains:
 - **Virtual joystick** publishing on `teleop_foxglove_cmd_vel_stamped` (mux priority 100, still gated by the motion lock).
 - **Battery gauges** (temperature, current, percentage), wheel speed plot, CPU load plot, 3D robot model, GPS map, LED panel frames, motor driver state, diagnostics and log panels.
 
-Source: `isaacbot_amr_foxglove/ardennes_foxglove_dashboard_isaacbot_namespace.json`, `isaacbot_amr_bringup/README.md`.
+Source: `isaacbot_amr_foxglove/ardennes_foxglove_dashboard_isaacbot_amr_namespace.json`, `isaacbot_amr_bringup/README.md`.
 
 !!! warning "Topic whitelist"
-    `isaacbot_foxglove_bridge` advertises only the topics in `FOXGLOVE_TOPIC_WHITELIST` in `isaacbot_amr_bringup/launch/isaacbot_web_bridges.launch.py`. Several topics the layout uses are not on it, among them `teleop_foxglove_cmd_vel_stamped`, `joint_states`, `robot_description`, `system_status`, `diagnostics`, `led/channel_<n>_frame`, `gps/fix` and `hardware_interface/driver_state`. Those panels may stay empty. For a full Foxglove session, set `ISAACBOT_PLATFORM_FOXGLOVE_TOPIC_WHITELIST="['.*']"` (and `ISAACBOT_PLATFORM_FOXGLOVE_SERVICE_WHITELIST="['.*']"` if needed) on the platform service. Every topic a client subscribes to then crosses the Zenoh router at full rate.
+    `isaacbot_amr_foxglove_bridge` advertises only the topics in `FOXGLOVE_TOPIC_WHITELIST` in `isaacbot_amr_bringup/launch/isaacbot_amr_web_bridges.launch.py`. Several topics the layout uses are not on it, among them `teleop_foxglove_cmd_vel_stamped`, `joint_states`, `robot_description`, `system_status`, `diagnostics`, `led/channel_<n>_frame`, `gps/fix` and `hardware_interface/driver_state`. Those panels may stay empty. For a full Foxglove session, set `ISAACBOT_AMR_PLATFORM_FOXGLOVE_TOPIC_WHITELIST="['.*']"` (and `ISAACBOT_AMR_PLATFORM_FOXGLOVE_SERVICE_WHITELIST="['.*']"` if needed) on the platform service. Every topic a client subscribes to then crosses the Zenoh router at full rate.
 
 ## LED panels
 
-The isaacbot has two SK9822 LED panels, front and rear bumper. Each is 2 rows × 20 LEDs (40 LEDs). `isaacbot_led_controller` renders layered image animations; `isaacbot_led_driver` encodes them and two UDP sender nodes send them to the LED boards.
+The isaacbot has two SK9822 LED panels, front and rear bumper. Each is 2 rows × 20 LEDs (40 LEDs). `isaacbot_amr_led_controller` renders layered image animations; `isaacbot_amr_led_driver` encodes them and two UDP sender nodes send them to the LED boards.
 
 | Panel | Channel | LEDs | UDP target |
 |---|---|---|---|
@@ -229,7 +229,7 @@ Source: `isaacbot_amr_led/config/ardennes_animations.yaml`, `isaacbot_amr_msgs/m
 
 ### How isaacbot_amr_safety picks animations
 
-`isaacbot_led_safety_node` runs the `IsaacbotLedSafety` behavior tree at 10 Hz. Three channels request animations independently, and the `isaacbot_amr_led` layers decide what is visible:
+`isaacbot_amr_led_safety_node` runs the `IsaacbotLedSafety` behavior tree at 10 Hz. Three channels request animations independently, and the `isaacbot_amr_led` layers decide what is visible:
 
 | Channel | Input | Result |
 |---|---|---|
@@ -242,7 +242,7 @@ The tree requests an animation only when it changes. The node is an indicator on
 !!! note
     The state channel follows the hardware E-Stop button only. A software E-Stop or a held latch leaves `READY` on the LEDs. Nothing in this repository publishes `joy`, so `MANUAL_ACTION` is not shown without an added joystick driver.
 
-Source: `isaacbot_amr_safety/README.md`, `isaacbot_amr_safety/behavior_trees/isaacbot_led_safety.xml`, `isaacbot_amr_safety/config/led_safety.yaml`, `isaacbot_amr_safety/src/led_safety_node.cpp`.
+Source: `isaacbot_amr_safety/README.md`, `isaacbot_amr_safety/behavior_trees/isaacbot_amr_led_safety.xml`, `isaacbot_amr_safety/config/led_safety.yaml`, `isaacbot_amr_safety/src/led_safety_node.cpp`.
 
 ## Further reading
 

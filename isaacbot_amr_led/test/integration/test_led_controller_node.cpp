@@ -171,7 +171,7 @@ protected:
         options.arguments({"--ros-args", "-r", "__ns:=" + ns_});
         options.parameter_overrides({
             {"animations_config_path",
-             std::string(ISAACBOT_LED_SOURCE_DIR) + "/test/integration/led_controller_test_animations.yaml"},
+             std::string(ISAACBOT_AMR_LED_SOURCE_DIR) + "/test/integration/led_controller_test_animations.yaml"},
             {"controller_frequency", 50.0},
             {"state_publish_rate", 20.0},
         });

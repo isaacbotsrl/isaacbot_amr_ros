@@ -370,7 +370,7 @@ void SafetyNode::tickShutdownTree()
     const bool succeeded = status == BT::NodeStatus::SUCCESS;
 
     shutdown_sequence_.finish(
-        succeeded, succeeded ? std::string() : "Power-off command failed; see the isaacbot_safety_node log.",
+        succeeded, succeeded ? std::string() : "Power-off command failed; see the isaacbot_amr_safety_node log.",
         std::chrono::steady_clock::now());
 
     if (succeeded) {

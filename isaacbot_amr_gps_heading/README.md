@@ -10,16 +10,16 @@ package only consumes `gps/fix`, so any GNSS receiver that publishes a reliable 
 works; `navsat_transform_node` needs it reliable too. A receiver with its own true heading (dual
 antenna) can skip this node and feed its heading to `navsat_transform_node` directly.
 
-`isaacbot_amr_localization` starts `isaacbot_gps_heading_node` in GPS mode (`ISAACBOT_SYSTEM_USE_GPS=true`) and
+`isaacbot_amr_localization` starts `isaacbot_amr_gps_heading_node` in GPS mode (`ISAACBOT_AMR_SYSTEM_USE_GPS=true`) and
 loads its parameters from `config/rel_localization_with_gps.yaml`.
 
-## Interfaces (`isaacbot_gps_heading_node`)
+## Interfaces (`isaacbot_amr_gps_heading_node`)
 
 | Direction | Name | Type |
 |-----------|------|------|
 | sub | `gps/fix` | `sensor_msgs/NavSatFix` (reliable, volatile, depth 10, from the sensor payload) |
 | sub | `odom` | `nav_msgs/Odometry` (local EKF output from `isaacbot_amr_localization`) |
-| pub | `gps/heading_imu` | `sensor_msgs/Imu`: orientation only, ENU yaw of `<namespace>/base_link`. Published only when `publish_heading` is true and the alignment has finished. Input of `isaacbot_navsat_transform_node`. |
+| pub | `gps/heading_imu` | `sensor_msgs/Imu`: orientation only, ENU yaw of `<namespace>/base_link`. Published only when `publish_heading` is true and the alignment has finished. Input of `isaacbot_amr_navsat_transform_node`. |
 | srv | `gps/reset_heading_alignment` | `std_srvs/Trigger`: discard the alignment and collect it again. |
 | pub | `diagnostics` | hardware id `IsaacbotGpsHeading`, task `Heading alignment` (`/Isaacbot/GPS` in `diagnostics_agg`) |
 
@@ -36,7 +36,7 @@ loads its parameters from `config/rel_localization_with_gps.yaml`.
 
 **On the isaacbot:** after start, drive straight for about 10 m (for example 3 × 3 m at ≥ 0.3 m/s)
 with a good fix. Until then, the global EKF runs on wheels + IMU only.
-Call `gps/reset_heading_alignment` to realign, and restart `isaacbot_navsat_transform_node`
+Call `gps/reset_heading_alignment` to realign, and restart `isaacbot_amr_navsat_transform_node`
 afterwards: it computes its transform only once.
 
 ## Parameters
@@ -69,7 +69,7 @@ infrastructure/  IsaacbotGpsHeadingNode (composition root, parameters, subscript
 ```
 
 `test/unit/` covers the geo math, the estimator, the use case and the message mapping without a
-ROS graph. `test/integration/test_isaacbot_gps_heading_node.cpp` runs the real node in-process and
+ROS graph. `test/integration/test_isaacbot_amr_gps_heading_node.cpp` runs the real node in-process and
 checks the alignment diagnostic, the heading output after alignment, the reset service,
 parameter validation and the reliable `gps/fix` subscription. Run them with
 `colcon test --packages-select isaacbot_amr_gps_heading`.

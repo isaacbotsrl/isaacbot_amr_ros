@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_BATTERY_DOMAIN_PORTS_BATTERY_STATE_PUBLISHER_PORT_HPP_
-#define ISAACBOT_BATTERY_DOMAIN_PORTS_BATTERY_STATE_PUBLISHER_PORT_HPP_
+#ifndef ISAACBOT_AMR_BATTERY_DOMAIN_PORTS_BATTERY_STATE_PUBLISHER_PORT_HPP_
+#define ISAACBOT_AMR_BATTERY_DOMAIN_PORTS_BATTERY_STATE_PUBLISHER_PORT_HPP_
 
 #include "isaacbot_amr_battery/domain/battery_report.hpp"
 
@@ -31,4 +31,4 @@ public:
 
 }  // namespace isaacbot_amr_battery::domain
 
-#endif  // ISAACBOT_BATTERY_DOMAIN_PORTS_BATTERY_STATE_PUBLISHER_PORT_HPP_
+#endif  // ISAACBOT_AMR_BATTERY_DOMAIN_PORTS_BATTERY_STATE_PUBLISHER_PORT_HPP_

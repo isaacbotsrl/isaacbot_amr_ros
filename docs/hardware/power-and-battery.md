@@ -38,13 +38,13 @@ The pack feeds the BMS, which feeds the power board. The power board supplies 24
 
 ## Telemetry chain
 
-The ESP32 bridge (firmware `isaacbot_led_bms_ble_controller`, outside this repository) polls the Daly BMS over BLE. It converts the raw Daly units and sends a 392-byte frame over UDP. On the ROS controller, `isaacbot_udp_battery_receiver_node` receives it and `isaacbot_battery_node` decodes it. Both run in one container, `isaacbot_battery_container`, with intra-process communication.
+The ESP32 bridge (firmware `isaacbot_amr_led_bms_ble_controller`, outside this repository) polls the Daly BMS over BLE. It converts the raw Daly units and sends a 392-byte frame over UDP. On the ROS controller, `isaacbot_amr_udp_battery_receiver_node` receives it and `isaacbot_amr_battery_node` decodes it. Both run in one container, `isaacbot_amr_battery_container`, with intra-process communication.
 
 ```mermaid
 flowchart LR
     BMS["Daly BMS"] -->|BLE| ESP["ESP32 bridge"]
-    ESP -->|"UDP, 392 B"| RX["isaacbot_udp_battery_receiver_node"]
-    RX -->|battery_udp_data| BN["isaacbot_battery_node"]
+    ESP -->|"UDP, 392 B"| RX["isaacbot_amr_udp_battery_receiver_node"]
+    RX -->|battery_udp_data| BN["isaacbot_amr_battery_node"]
     BN --> T1["battery/battery_status"]
     BN --> T2["battery/charging_status"]
     BN --> T3["diagnostics"]
@@ -87,9 +87,9 @@ More detail: [isaacbot_amr_battery README](https://github.com/isaacbotsrl/isaacb
 
 ## Battery thresholds
 
-### Safety reactions (`isaacbot_safety_node`)
+### Safety reactions (`isaacbot_amr_safety_node`)
 
-`isaacbot_safety_node` reads `battery/battery_status` and decides a verdict every tick (10 Hz). It runs on hardware only, not with `use_sim:=True`.
+`isaacbot_amr_safety_node` reads `battery/battery_status` and decides a verdict every tick (10 Hz). It runs on hardware only, not with `use_sim:=True`.
 
 | Battery reading | Verdict | Effect |
 |-----------------|---------|--------|
@@ -102,7 +102,7 @@ Source: `isaacbot_amr_safety/src/domain/battery_safety_policy.cpp`, `isaacbot_am
 
 The temperature limits apply only when the BMS has raised an overheat alarm. `isaacbot_amr_safety` does not trip on low SoC by itself: low SoC acts through the BMS `DEAD` health. The CPU and driver temperature parameters in `isaacbot_amr_safety.yaml` (`cpu.temp.*`, `driver.temp.*`) are declared but not used.
 
-### LED indications (`isaacbot_led_safety_node`)
+### LED indications (`isaacbot_amr_led_safety_node`)
 
 | Condition | Animation | Source parameter |
 |-----------|-----------|------------------|
@@ -117,10 +117,10 @@ Source: `isaacbot_amr_safety/config/led_safety.yaml`, `isaacbot_amr_safety/READM
 
 ## Shutdown and power-down
 
-`isaacbot_safety_node` shuts down the ROS controller (the computer, not the battery) when the battery verdict is `SHUTDOWN`, or when anything calls its service:
+`isaacbot_amr_safety_node` shuts down the ROS controller (the computer, not the battery) when the battery verdict is `SHUTDOWN`, or when anything calls its service:
 
 ```bash
-ros2 service call /isaacbot/isaacbot_safety_node/shutdown std_srvs/srv/Trigger {}
+ros2 service call /isaacbot/isaacbot_amr_safety_node/shutdown std_srvs/srv/Trigger {}
 ```
 
 The `IsaacbotShutdown` behavior tree then runs:

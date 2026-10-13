@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ISAACBOT_HARDWARE_INTERFACE_SYSTEM_ROS_INTERFACE_HPP_
-#define ISAACBOT_HARDWARE_INTERFACE_SYSTEM_ROS_INTERFACE_HPP_
+#ifndef ISAACBOT_AMR_HARDWARE_INTERFACE_SYSTEM_ROS_INTERFACE_HPP_
+#define ISAACBOT_AMR_HARDWARE_INTERFACE_SYSTEM_ROS_INTERFACE_HPP_
 
 #include <any>
 #include <functional>
@@ -34,7 +34,7 @@
 #include <std_srvs/srv/trigger.hpp>
 
 #include "isaacbot_amr_msgs/msg/driver_state_named.hpp"
-#include "isaacbot_amr_msgs/msg/isaacbot_driver_state.hpp"
+#include "isaacbot_amr_msgs/msg/isaacbot_amr_driver_state.hpp"
 #include "isaacbot_amr_hardware_interface/domain/safety_link_health.hpp"
 #include "isaacbot_amr_msgs/msg/aux_io_state.hpp"
 #include "isaacbot_amr_msgs/msg/safety_command_echo.hpp"
@@ -44,7 +44,7 @@
 #include "isaacbot_amr_hardware_interface/domain/driver_data_snapshot.hpp"
 #include "isaacbot_amr_hardware_interface/domain/imu_data_health.hpp"
 
-#include "isaacbot_amr_hardware_interface/isaacbot_safety_controller/isaacbot_safety_controller_types.hpp"
+#include "isaacbot_amr_hardware_interface/isaacbot_amr_safety_controller/isaacbot_amr_safety_controller_types.hpp"
 
 namespace isaacbot_amr_hardware_interface
 {
@@ -54,7 +54,7 @@ using BoolMsg = std_msgs::msg::Bool;
 using TriggerSrv = std_srvs::srv::Trigger;
 
 // Isaacbot messages
-using IsaacbotDriverStateMsg = isaacbot_amr_msgs::msg::IsaacbotDriverState;
+using IsaacbotDriverStateMsg = isaacbot_amr_msgs::msg::IsaacbotAmrDriverState;
 using DriverStateNamedMsg = isaacbot_amr_msgs::msg::DriverStateNamed;
 using SafetyStatusMsg = isaacbot_amr_msgs::msg::SafetyStatus;
 using SafetyCommandEchoMsg = isaacbot_amr_msgs::msg::SafetyCommandEcho;
@@ -198,4 +198,4 @@ protected:
 
 }  // namespace isaacbot_amr_hardware_interface
 
-#endif  // ISAACBOT_HARDWARE_INTERFACE_SYSTEM_ROS_INTERFACE_HPP_
+#endif  // ISAACBOT_AMR_HARDWARE_INTERFACE_SYSTEM_ROS_INTERFACE_HPP_

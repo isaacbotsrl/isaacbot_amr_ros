@@ -26,10 +26,10 @@ Two reasons:
 
 | Layer | Contents | Library |
 |-------|----------|---------|
-| `domain/` | `Contact`/`Coil` types, `ClientSettings`, the `DiscreteRequest`/`DiscreteReply` transaction values, and the `DiscreteIoPort`, `ModbusTransportPort` and `LoggerPort` seams | `isaacbot_modbus_driver_core` |
-| `application/` | `ModbusDiscreteIoClient` - contact/coil operations to `DiscreteRequest`s and reply validation, plus connection retry | `isaacbot_modbus_driver_core` |
-| `infrastructure/` | `toMbRequest()`/`toDiscreteReply()`: the only translation to and from `MB::` frames | `isaacbot_modbus_driver_mb_mapping` |
-| `infrastructure/` | `ModbusTcpTransport` (sockets), `RclcppLogger`, and `makeModbusTcpDiscreteIoClient()` | `isaacbot_modbus_driver_ros` |
+| `domain/` | `Contact`/`Coil` types, `ClientSettings`, the `DiscreteRequest`/`DiscreteReply` transaction values, and the `DiscreteIoPort`, `ModbusTransportPort` and `LoggerPort` seams | `isaacbot_amr_modbus_driver_core` |
+| `application/` | `ModbusDiscreteIoClient` - contact/coil operations to `DiscreteRequest`s and reply validation, plus connection retry | `isaacbot_amr_modbus_driver_core` |
+| `infrastructure/` | `toMbRequest()`/`toDiscreteReply()`: the only translation to and from `MB::` frames | `isaacbot_amr_modbus_driver_mb_mapping` |
+| `infrastructure/` | `ModbusTcpTransport` (sockets), `RclcppLogger`, and `makeModbusTcpDiscreteIoClient()` | `isaacbot_amr_modbus_driver_ros` |
 
 `_core` links only `isaacbot_amr_modbus::Modbus_Core`, the OS-independent frame codec - **not**
 `Modbus_Tcp`. So "no sockets in `_core`" is enforced by the linker, not by convention.
@@ -135,7 +135,7 @@ Renamed during the move:
 | `IsaacbotModbus` | `ModbusDiscreteIoClient` |
 | `ModbusSettings` | `ClientSettings` |
 
-`isaacbot_amr_hardware_interface`'s `isaacbot_safety_controller_types.hpp` carries using-declarations
+`isaacbot_amr_hardware_interface`'s `isaacbot_amr_safety_controller_types.hpp` carries using-declarations
 for the old spellings so its coil table kept compiling unchanged.
 
 Settings are still parsed from the URDF `<ros2_control>` hardware parameters by

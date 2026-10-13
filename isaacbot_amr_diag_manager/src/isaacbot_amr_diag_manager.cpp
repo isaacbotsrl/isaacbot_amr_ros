@@ -37,7 +37,7 @@ int main(int argc, char ** argv)
 
         // Construction can throw on an invalid parameter override.
         auto system_diag_node = std::make_shared<isaacbot_amr_diag_manager::SystemDiagNode>(
-            "isaacbot_diag_manager_node", metrics_source);
+            "isaacbot_amr_diag_manager_node", metrics_source);
 
         rclcpp::spin(system_diag_node);
     } catch (const std::exception & e) {
