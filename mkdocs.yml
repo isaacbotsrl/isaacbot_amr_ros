@@ -12,8 +12,9 @@ exclude_docs: |
 
 theme:
   name: material
+  logo: assets/brand/isaacbot-mark-white.svg
+  favicon: assets/brand/isaacbot-mark-black.svg
   icon:
-    logo: material/robot-industrial
     repo: fontawesome/brands/github
   palette:
     - media: "(prefers-color-scheme: light)"
