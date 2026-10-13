@@ -1,5 +1,5 @@
 repositories:
-  rover_cppuprofile:
+  isaacbot_amr_cppuprofile:
     type: git
-    url: https://github.com/RaduPotlog/rover_cppuprofile
-    version: master
+    url: https://github.com/isaacbotsrl/isaacbot_amr_cppuprofile
+    version: main

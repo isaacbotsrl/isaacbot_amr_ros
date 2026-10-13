@@ -130,7 +130,7 @@ rosdep install --from-paths src -y -i
 #### Only for real isaacbot
 
 ```bash
-cd src/rover_cppuprofile
+cd src/isaacbot_amr_cppuprofile/
 cmake -Bbuild . -DPROFILE_ENABLED=ON
 cmake --build build
 cd build
