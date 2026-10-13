@@ -1,0 +1,299 @@
+// Copyright 2021 LeoDrive.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// Developed by LeoDrive, 2021
+//
+// Modified 2026 by Mechatronics Academy: relayouted from udp_driver/src/udp_socket.cpp
+// (ros-drivers/transport_drivers v1.2.0). Three defects fixed while moving - see
+// asyncSend(), asyncReceiveHandler() and send()/receive(). Later: close() waits for the
+// socket's handlers (AsyncOpGuard), so the owner can destroy what the callback uses; reads
+// land in sender_endpoint_ instead of overwriting host_endpoint_; an optional source filter
+// (setSourceFilter()).
+
+#include "isaacbot_amr_udp_driver/infrastructure/asio_udp_socket.hpp"
+
+#include <cstddef>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <system_error>
+#include <utility>
+#include <vector>
+
+#include <rclcpp/logging.hpp>
+
+namespace isaacbot::transport::udp
+{
+
+namespace
+{
+
+asio::ip::udp::endpoint makeEndpoint(const std::string & ip, std::uint16_t port)
+{
+    return ip.empty() ?
+           asio::ip::udp::endpoint{asio::ip::udp::v4(), port} :
+           asio::ip::udp::endpoint{asio::ip::address::from_string(ip), port};
+}
+
+}  // namespace
+
+AsioUdpSocket::AsioUdpSocket(
+    const IoContext & ctx,
+    const std::string & remote_ip,
+    const std::uint16_t remote_port,
+    const std::string & host_ip,
+    const std::uint16_t host_port,
+    SocketRole role)
+: ctx_(ctx),
+  guard_(ctx.ios()),
+  udp_socket_(ctx.ios()),
+  remote_endpoint_(makeEndpoint(remote_ip, remote_port)),
+  host_endpoint_(makeEndpoint(host_ip, host_port)),
+  role_(role)
+{
+    recv_buffer_.resize(kRecvBufferSize);
+}
+
+AsioUdpSocket::AsioUdpSocket(
+    const IoContext & ctx,
+    const std::string & ip,
+    const std::uint16_t port,
+    SocketRole role)
+: AsioUdpSocket{ctx, ip, port, ip, port, role}
+{
+}
+
+AsioUdpSocket::~AsioUdpSocket()
+{
+    close();
+}
+
+std::size_t AsioUdpSocket::send(const std::vector<uint8_t> & buffer)
+{
+    try {
+        return udp_socket_.send_to(asio::buffer(buffer), remote_endpoint_);
+    } catch (const std::system_error & error) {
+        // Upstream returned -1 from a std::size_t function, which wraps to SIZE_MAX and
+        // reads as a huge successful send. 0 is the honest answer.
+        RCLCPP_ERROR_STREAM(rclcpp::get_logger("AsioUdpSocket::send"), error.what());
+        return 0;
+    }
+}
+
+std::size_t AsioUdpSocket::receive(std::vector<uint8_t> & buffer)
+{
+    asio::error_code error;
+    // A local endpoint, not sender_endpoint_: that one belongs to the async read and its strand.
+    asio::ip::udp::endpoint sender;
+    const std::size_t len = udp_socket_.receive_from(
+        asio::buffer(buffer), sender, 0, error);
+
+    if (error && error != asio::error::message_size) {
+        RCLCPP_ERROR_STREAM(rclcpp::get_logger("AsioUdpSocket::receive"), error.message());
+        return 0;
+    }
+    return len;
+}
+
+void AsioUdpSocket::asyncSend(const std::vector<uint8_t> & buffer)
+{
+    // Upstream held asio::buffer() over a caller-owned vector that died when the
+    // subscriber callback returned, leaving the async write reading freed memory.
+    auto payload = std::make_shared<std::vector<uint8_t>>(buffer);
+
+    guard_.post(
+        [this, payload]()
+        {
+            if (!udp_socket_.is_open()) {
+                return;  // Closed after this send was queued.
+            }
+            udp_socket_.async_send_to(
+                asio::buffer(*payload), remote_endpoint_,
+                guard_.wrap(
+                    [this, payload](std::error_code error, std::size_t bytes_transferred)
+                    {
+                        asyncSendHandler(error, bytes_transferred);
+                    }));
+        });
+}
+
+void AsioUdpSocket::asyncReceive(ByteReceiveCallback callback)
+{
+    callback_ = std::move(callback);
+    guard_.post([this]() {armReceive();});
+}
+
+void AsioUdpSocket::armReceive()
+{
+    udp_socket_.async_receive_from(
+        asio::buffer(recv_buffer_),
+        sender_endpoint_,
+        guard_.wrap(
+            [this](std::error_code error, std::size_t bytes_transferred)
+            {
+                asyncReceiveHandler(error, bytes_transferred);
+            }));
+}
+
+void AsioUdpSocket::asyncSendHandler(
+    const asio::error_code & error,
+    std::size_t bytes_transferred)
+{
+    (void)bytes_transferred;
+    if (error) {
+        RCLCPP_ERROR_STREAM(
+            rclcpp::get_logger("AsioUdpSocket::asyncSendHandler"), error.message());
+    }
+}
+
+void AsioUdpSocket::asyncReceiveHandler(
+    const asio::error_code & error,
+    std::size_t bytes_transferred)
+{
+    if (error == asio::error::operation_aborted || !udp_socket_.is_open()) {
+        // close() cancelled the pending read, or ran after this datagram arrived but before
+        // its handler did - a normal part of shutdown/cleanup. Either way the callback's
+        // targets may be going away: don't deliver, don't re-arm.
+        return;
+    }
+
+    if (error) {
+        RCLCPP_ERROR_STREAM(
+            rclcpp::get_logger("AsioUdpSocket::asyncReceiveHandler"), error.message());
+        return;
+    }
+
+    if (source_filter_ && sender_endpoint_.address() != *source_filter_) {
+        // Not from the expected source: drop it before it reaches any consumer. Logged at
+        // 1, 2, 4, 8, ... rejections so a flood cannot flood the log as well.
+        const std::uint64_t rejected = ++rejected_datagrams_;
+        if ((rejected & (rejected - 1)) == 0) {
+            RCLCPP_WARN_STREAM(
+                rclcpp::get_logger("AsioUdpSocket::asyncReceiveHandler"),
+                "Dropped datagram from " << sender_endpoint_.address().to_string() << ":"
+                                         << sender_endpoint_.port() << " (only "
+                                         << source_filter_->to_string() << " is accepted); "
+                                         << rejected << " dropped so far.");
+        }
+        armReceive();
+        return;
+    }
+
+    if (bytes_transferred > 0 && callback_) {
+        // Upstream resized the receive buffer down to the datagram length, handed it to the
+        // callback, resized it back up, and then re-armed with a lambda that resized it
+        // down again *before* dispatching - so the next read could land in a 2-byte buffer.
+        // Passing (buffer, length) instead means the buffer keeps its full capacity.
+        callback_(recv_buffer_, bytes_transferred);
+    }
+
+    // Re-arm unconditionally on success: a zero-length datagram is legal UDP and must not
+    // silently stop the receiver, which is what upstream's `if` did.
+    armReceive();
+}
+
+std::string AsioUdpSocket::remoteIp() const
+{
+    return remote_endpoint_.address().to_string();
+}
+
+std::uint16_t AsioUdpSocket::remotePort() const
+{
+    return remote_endpoint_.port();
+}
+
+void AsioUdpSocket::setSourceFilter(const std::string & source_ip)
+{
+    if (source_ip.empty()) {
+        source_filter_.reset();
+        return;
+    }
+
+    asio::error_code error;
+    const auto address = asio::ip::make_address(source_ip, error);
+    if (error) {
+        throw std::invalid_argument("invalid source address '" + source_ip + "': " + error.message());
+    }
+    // The socket is IPv4-only (open()), so an IPv6 filter would silently reject everything.
+    if (!address.is_v4()) {
+        throw std::invalid_argument("source address '" + source_ip + "' is not IPv4");
+    }
+    source_filter_ = address;
+}
+
+std::uint64_t AsioUdpSocket::rejectedDatagrams() const
+{
+    return rejected_datagrams_.load();
+}
+
+std::string AsioUdpSocket::hostIp() const
+{
+    return host_endpoint_.address().to_string();
+}
+
+std::uint16_t AsioUdpSocket::hostPort() const
+{
+    return host_endpoint_.port();
+}
+
+void AsioUdpSocket::open()
+{
+    udp_socket_.open(asio::ip::udp::v4());
+    udp_socket_.set_option(asio::ip::udp::socket::reuse_address(true));
+
+    if (role_ == SocketRole::RECEIVER) {
+        udp_socket_.bind(host_endpoint_);
+    }
+}
+
+void AsioUdpSocket::close()
+{
+    // Returns only once no handler of this socket is running or queued, so the caller may
+    // destroy the receive callback's targets (and this socket) right after.
+    guard_.closeAndDrain(
+        [this]()
+        {
+            asio::error_code error;
+            udp_socket_.close(error);
+            if (error) {
+                RCLCPP_ERROR_STREAM(rclcpp::get_logger("AsioUdpSocket::close"), error.message());
+            }
+        });
+}
+
+bool AsioUdpSocket::isOpen() const
+{
+    return udp_socket_.is_open();
+}
+
+std::unique_ptr<ByteStreamPort> makeUdpReceiver(
+    const IoContext & ctx,
+    const UdpEndpoint & endpoint,
+    const std::string & source_ip)
+{
+    auto socket = std::make_unique<AsioUdpSocket>(
+        ctx, endpoint.ip(), endpoint.port(), SocketRole::RECEIVER);
+    socket->setSourceFilter(source_ip);
+    return socket;
+}
+
+std::unique_ptr<ByteStreamPort> makeUdpSender(
+    const IoContext & ctx,
+    const UdpEndpoint & endpoint)
+{
+    return std::make_unique<AsioUdpSocket>(
+        ctx, endpoint.ip(), endpoint.port(), SocketRole::SENDER);
+}
+
+}  // namespace isaacbot::transport::udp

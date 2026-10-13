@@ -1,0 +1,140 @@
+// Copyright 2025 Mechatronics Academy
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include <cstdint>
+#include <stdexcept>
+#include <vector>
+
+#include "gtest/gtest.h"
+
+#include "isaacbot_amr_led/domain/led_components/led_segment.hpp"
+
+#include "../test_helpers.hpp"
+
+using isaacbot_amr_led::LedSegment;
+using isaacbot_amr_led::LedSegmentConfig;
+using isaacbot_amr_led::test::makeStub;
+using isaacbot_amr_led::test::pixel;
+using isaacbot_amr_led::test::Rgba;
+
+TEST(LedSegment, ForwardRange)
+{
+    LedSegment segment(LedSegmentConfig{1, 0, 19});
+
+    EXPECT_EQ(segment.getChannel(), 1u);
+    EXPECT_EQ(segment.getNumberOfLeds(), 20u);
+    EXPECT_EQ(segment.getFirstLedPosition(), 0u);
+}
+
+TEST(LedSegment, ReversedRangeStartsAtTheLowerLed)
+{
+    LedSegment segment(LedSegmentConfig{2, 39, 20});
+
+    EXPECT_EQ(segment.getNumberOfLeds(), 20u);
+    EXPECT_EQ(segment.getFirstLedPosition(), 20u * 4);
+}
+
+TEST(LedSegment, SingleLed)
+{
+    EXPECT_EQ(LedSegment(LedSegmentConfig{1, 5, 5}).getNumberOfLeds(), 1u);
+}
+
+TEST(LedSegment, RejectsInvalidPriorityAndMismatchedAnimation)
+{
+    LedSegment segment(LedSegmentConfig{1, 0, 3});
+
+    EXPECT_THROW(segment.setAnimation(makeStub(4), false, 4), std::runtime_error);
+    EXPECT_THROW(segment.setAnimation(makeStub(5), false, isaacbot_amr_led::STATE), std::runtime_error);
+    EXPECT_THROW(segment.setAnimation(nullptr, false, isaacbot_amr_led::STATE), std::runtime_error);
+    EXPECT_FALSE(segment.hasAnimation());
+}
+
+TEST(LedSegment, AnimationGoesToItsPriorityLayer)
+{
+    LedSegment segment(LedSegmentConfig{1, 0, 3});
+
+    EXPECT_TRUE(segment.setAnimation(makeStub(4), false, isaacbot_amr_led::INFO));
+
+    EXPECT_TRUE(segment.hasAnimation());
+    EXPECT_TRUE(segment.layerHasAnimation(isaacbot_amr_led::INFO));
+    EXPECT_FALSE(segment.layerHasAnimation(isaacbot_amr_led::STATE));
+    EXPECT_FALSE(segment.layerHasAnimation(isaacbot_amr_led::ERROR));
+}
+
+TEST(LedSegment, OpaqueHigherPriorityLayerWins)
+{
+    LedSegment segment(LedSegmentConfig{1, 0, 1});
+    segment.setAnimation(makeStub(2, {10, 20, 30, 255}), false, isaacbot_amr_led::STATE);
+    segment.setAnimation(makeStub(2, {90, 80, 70, 255}), false, isaacbot_amr_led::ERROR);
+    segment.updateAnimation();
+
+    EXPECT_EQ(pixel(segment.getAnimationFrame(), 0), (Rgba{90, 80, 70, 255}));
+}
+
+TEST(LedSegment, TranslucentLayerIsAlphaBlended)
+{
+    LedSegment segment(LedSegmentConfig{1, 0, 0});
+    segment.setAnimation(makeStub(1, {200, 0, 100, 255}), false, isaacbot_amr_led::STATE);
+    segment.setAnimation(makeStub(1, {0, 200, 0, 51}), false, isaacbot_amr_led::ALERT);
+    segment.updateAnimation();
+
+    // c = (over * a + base * (255 - a)) / 255, alpha = a + base_a * (255 - a) / 255
+    EXPECT_EQ(pixel(segment.getAnimationFrame(), 0), (Rgba{160, 40, 80, 255}));
+}
+
+TEST(LedSegment, ReversedSegmentRendersLedsBackwards)
+{
+    LedSegment segment(LedSegmentConfig{1, 1, 0});
+    auto animation = makeStub(2, {0, 0, 0, 255});
+    segment.setAnimation(animation, false, isaacbot_amr_led::STATE);
+
+    // Stub frames are uniform, so compare against the animation's own
+    // inverted frame.
+    segment.updateAnimation();
+    EXPECT_EQ(segment.getAnimationFrame(), animation->getFrame(true));
+}
+
+TEST(LedSegment, NonRepeatingAnimationEndsBlank)
+{
+    LedSegment segment(LedSegmentConfig{1, 0, 0});
+    segment.setAnimation(makeStub(1, {5, 5, 5, 255}, 0.1f), false, isaacbot_amr_led::STATE);
+
+    segment.updateAnimation();
+    EXPECT_EQ(pixel(segment.getAnimationFrame(), 0), (Rgba{5, 5, 5, 255}));
+
+    segment.updateAnimation();
+    EXPECT_TRUE(segment.isAnimationFinished(isaacbot_amr_led::STATE));
+    EXPECT_EQ(segment.getAnimationFrame(), std::vector<std::uint8_t>(4, 0));
+}
+
+TEST(LedSegment, StopClearsOnlyTheGivenLayer)
+{
+    LedSegment segment(LedSegmentConfig{1, 0, 0});
+
+    auto state = makeStub(1, {5, 5, 5, 255});
+    state->setInfo({1, "STATE", ""});
+    auto info = makeStub(1, {9, 9, 9, 255});
+    info->setInfo({2, "INFO", ""});
+    segment.setAnimation(state, true, isaacbot_amr_led::STATE);
+    segment.setAnimation(info, true, isaacbot_amr_led::INFO);
+    segment.updateAnimation();
+
+    // Wrong layer for that id: nothing stops.
+    EXPECT_FALSE(segment.stopAnimation(2, isaacbot_amr_led::STATE));
+    EXPECT_THROW(segment.stopAnimation(2, 4), std::runtime_error);
+
+    EXPECT_TRUE(segment.stopAnimation(2, isaacbot_amr_led::INFO));
+    EXPECT_FALSE(segment.layerHasAnimation(isaacbot_amr_led::INFO));
+    EXPECT_EQ(pixel(segment.getAnimationFrame(), 0), (Rgba{5, 5, 5, 255}));
+}

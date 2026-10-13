@@ -1,0 +1,495 @@
+// Copyright 2026 Mechatronics Academy
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include <algorithm>
+#include <cmath>
+#include <deque>
+#include <limits>
+#include <vector>
+
+#include <gtest/gtest.h>
+#include <control_toolbox/pid.hpp>
+
+#include "isaacbot_amr_controller/wheel_speed_loop.hpp"
+
+namespace
+{
+
+using isaacbot_amr_controller::WheelLoopGains;
+using isaacbot_amr_controller::WheelLoopOptions;
+using isaacbot_amr_controller::WheelSpeedLoop;
+
+constexpr double kDt = 0.02;  // the isaacbot's 50 Hz controller rate
+
+// The shipped isaacbot gains (config/wheel_01_controller.yaml, front wheels).
+WheelLoopGains isaacbot_gains(double i_clamp = 0.25)
+{
+  WheelLoopGains g;
+  g.p = 0.05;
+  g.i = 1.0;
+  g.d = 0.04;
+  g.feedforward = 1.0;
+  g.i_min = -i_clamp;
+  g.i_max = i_clamp;
+  g.u_min = -12.58;
+  g.u_max = 12.58;
+  g.anti_windup = WheelLoopGains::AntiWindup::kBackCalculation;
+  return g;
+}
+
+// A wheel as the ground tests saw it: the command reaches the wheel after a dead time, through a
+// first-order lag, scaled by how much of the duty turns into speed (skid turns ~0.7, straight ~1).
+class WheelPlant
+{
+public:
+  explicit WheelPlant(double gain, double dead_time = 0.25, double time_constant = 0.12)
+  : gain_(gain), time_constant_(time_constant),
+    pipe_(static_cast<size_t>(std::round(dead_time / kDt)), 0.0) {}
+
+  double step(double command)
+  {
+    pipe_.push_back(command);
+    const double delayed = pipe_.front();
+    pipe_.pop_front();
+    speed_ += (gain_ * delayed - speed_) * (1.0 - std::exp(-kDt / time_constant_));
+    return speed_;
+  }
+
+  double speed() const {return speed_;}
+
+private:
+  double gain_;
+  double time_constant_;
+  std::deque<double> pipe_;
+  double speed_ = 0.0;
+};
+
+struct StepResult
+{
+  double overshoot;     // fraction of the step
+  double final_speed;   // mean over the last 0.5 s
+};
+
+StepResult run_step(
+  double target, double plant_gain, const WheelLoopGains & gains,
+  const WheelLoopOptions & options, double duration = 4.0)
+{
+  WheelSpeedLoop loop;
+  WheelPlant plant(plant_gain);
+  double peak = 0.0;
+  double tail = 0.0;
+  int tail_samples = 0;
+  const int steps = static_cast<int>(duration / kDt);
+  for (int k = 0; k < steps; ++k) {
+    const double speed = plant.step(loop.update(target, plant.speed(), kDt, gains, options));
+    peak = std::max(peak, speed);
+    if (k >= steps - static_cast<int>(0.5 / kDt)) {
+      tail += speed;
+      ++tail_samples;
+    }
+  }
+  return {std::max(0.0, peak / target - 1.0), tail / tail_samples};
+}
+
+WheelLoopOptions delayed_integral()
+{
+  WheelLoopOptions options;
+  options.integral_reference_delay = 0.25;
+  options.integral_reference_time_constant = 0.15;
+  return options;
+}
+
+TEST(WheelSpeedLoop, DefaultOptionsMatchControlToolboxPid)
+{
+  // The upstream loop the isaacbot used until now: feed-forward + control_toolbox::Pid.
+  const auto gains = isaacbot_gains();
+  control_toolbox::AntiWindupStrategy strategy;
+  strategy.set_type("back_calculation");
+  strategy.i_min = gains.i_min;
+  strategy.i_max = gains.i_max;
+  control_toolbox::Pid pid(gains.p, gains.i, gains.d, gains.u_max, gains.u_min, strategy);
+
+  WheelSpeedLoop loop;
+  const WheelLoopOptions defaults;
+  double measured = 0.0;
+  for (int k = 0; k < 400; ++k) {
+    const double reference = k < 100 ? 1.8 : (k < 200 ? -3.0 : (k < 300 ? 0.0 : 4.6));
+    measured += (0.8 * reference - measured) * 0.1 + 0.01 * std::sin(k);
+    const double expected = gains.feedforward * reference + pid.compute_command(
+      reference - measured, kDt);
+    ASSERT_NEAR(loop.update(reference, measured, kDt, gains, defaults), expected, 1e-12)
+      << "cycle " << k;
+  }
+}
+
+TEST(WheelSpeedLoop, LeftoverIntegralKeepsTheOutputOffZeroWithoutTheStopOption)
+{
+  // The isaacbot's ground runs: at a zero reference the output stayed at the old integral, so the
+  // DCC1000 target was never exactly 0 and the brake never engaged.
+  WheelSpeedLoop loop;
+  const auto gains = isaacbot_gains();
+  for (int k = 0; k < 100; ++k) {
+    loop.update(2.0, 1.5, kDt, gains, WheelLoopOptions{});
+  }
+  EXPECT_NE(loop.update(0.0, 0.0, kDt, gains, WheelLoopOptions{}), 0.0);
+}
+
+TEST(WheelSpeedLoop, ZeroReferenceGivesExactlyZeroAndClearsTheIntegral)
+{
+  WheelSpeedLoop loop;
+  const auto gains = isaacbot_gains(2.0);
+  WheelLoopOptions options;
+  options.stop_at_zero_reference = true;
+  for (int k = 0; k < 100; ++k) {
+    loop.update(2.0, 1.5, kDt, gains, options);
+  }
+  ASSERT_GT(loop.integral(), 0.5);
+
+  // Still coasting at 1.2 rad/s: zero command anyway, so the drive brakes.
+  EXPECT_EQ(loop.update(0.0, 1.2, kDt, gains, options), 0.0);
+  EXPECT_EQ(loop.integral(), 0.0);
+  EXPECT_EQ(loop.update(5e-4, 0.3, kDt, gains, options), 0.0);  // inside the tolerance
+
+  // The next start begins from a clean integral: feed-forward + P + D only.
+  const double start = loop.update(1.0, 0.0, kDt, gains, options);
+  EXPECT_NEAR(start, 1.0 + 0.05 * 1.0 + 0.04 * (1.0 - (5e-4 - 0.3)) / kDt, 1e-9);
+}
+
+TEST(WheelSpeedLoop, DelayedIntegralCutsStepOvershootWithAWideClamp)
+{
+  // A clamp wide enough for skid turns (~2 rad/s) is what made straight steps overshoot on the
+  // isaacbot: the raw error integrates through the dead time.
+  const auto gains = isaacbot_gains(2.0);
+  const auto raw = run_step(1.8, 1.0, gains, WheelLoopOptions{});
+  const auto delayed = run_step(1.8, 1.0, gains, delayed_integral());
+  EXPECT_GT(raw.overshoot, 0.10);
+  EXPECT_LT(delayed.overshoot, 0.05);
+  EXPECT_LT(delayed.overshoot, raw.overshoot / 3.0);
+  EXPECT_NEAR(delayed.final_speed, 1.8, 0.02 * 1.8);
+}
+
+TEST(WheelSpeedLoop, DelayedIntegralStillRemovesAPersistentLoadError)
+{
+  // Skid turn at 1.5 rad/s: only ~70 % of the duty becomes wheel speed (isaacbot, 2026-09-29), so
+  // 4.65 rad/s needs ~2 rad/s of integral on top of the feed-forward.
+  const auto gains = isaacbot_gains(2.5);
+  const auto delayed = run_step(4.65, 0.7, gains, delayed_integral(), 6.0);
+  EXPECT_NEAR(delayed.final_speed, 4.65, 0.03 * 4.65);
+
+  // With the shipped clamp the same turn stays far short, as on the isaacbot.
+  const auto shipped = run_step(4.65, 0.7, isaacbot_gains(0.25), delayed_integral(), 6.0);
+  EXPECT_LT(shipped.final_speed, 0.8 * 4.65);
+}
+
+// A skid turn at 1.5 rad/s, then diff_drive's 3.74 rad/s^2 ramp back to 0 (11.6 rad/s^2 at the
+// wheel): how fast the wheel is still turning when the reference reaches 0.
+double speed_when_the_turn_reference_reaches_zero(const WheelLoopOptions & options)
+{
+  WheelSpeedLoop loop;
+  WheelPlant plant(0.7, 0.15, 0.08);
+  const auto gains = isaacbot_gains(2.0);
+  for (int k = 0; k < static_cast<int>(4.0 / kDt); ++k) {
+    plant.step(loop.update(4.65, plant.speed(), kDt, gains, options));
+  }
+  EXPECT_GT(loop.integral(), 1.5);
+  for (double reference = 4.65 - 11.6 * kDt; reference > 0.0; reference -= 11.6 * kDt) {
+    plant.step(loop.update(reference, plant.speed(), kDt, gains, options));
+  }
+  return plant.speed();
+}
+
+TEST(WheelSpeedLoop, ScaledIntegralLetsATurnStopWithItsReference)
+{
+  // Isaacbot 2026-10-02: the ~1.5 rad/s skid-turn integral kept pushing through the whole ramp-down,
+  // so the wheels were still at 1-4 rad/s when the reference reached 0 and the turn ended late.
+  // Scaling removes that push (0.7 of the ~2 rad/s integral at the wheel by the end of the ramp);
+  // what is left is the plant lagging the ramp, which no integral change can remove.
+  WheelLoopOptions options;
+  options.integral_reference_delay = 0.15;
+  options.integral_reference_time_constant = 0.08;
+  const double plain = speed_when_the_turn_reference_reaches_zero(options);
+  options.scale_integral_with_reference = true;
+  const double scaled = speed_when_the_turn_reference_reaches_zero(options);
+  EXPECT_GT(plain, 2.5);
+  EXPECT_LT(scaled, plain - 0.5);
+}
+
+TEST(WheelSpeedLoop, ScaledIntegralComesBackWhenTheReferenceRecovers)
+{
+  // Command noise must not drain the trim: dips scale it down, the recovery scales it back.
+  WheelSpeedLoop loop;
+  WheelLoopOptions options;
+  options.scale_integral_with_reference = true;
+  for (int k = 0; k < 100; ++k) {
+    loop.update(4.65, 3.5, kDt, isaacbot_gains(2.0), options);
+  }
+  const double built = loop.integral();
+  ASSERT_GT(built, 1.0);
+  auto frozen = isaacbot_gains(2.0);
+  frozen.i = 0.0;  // isolate the scaling from further integration
+  for (double reference : {4.5, 4.65, 4.3, 4.1, 4.65, 2.0, 4.65}) {
+    loop.update(reference, 3.5, kDt, frozen, options);
+    EXPECT_NEAR(loop.integral(), built * reference / 4.65, 1e-9) << reference;
+  }
+  // Above the peak it was built at, the integral is not scaled up any further.
+  loop.update(6.0, 3.5, kDt, frozen, options);
+  EXPECT_NEAR(loop.integral(), built, 1e-9);
+}
+
+TEST(WheelSpeedLoop, ScaledIntegralIsClearedWhenTheReferenceReverses)
+{
+  WheelSpeedLoop loop;
+  WheelLoopOptions options;
+  options.scale_integral_with_reference = true;
+  for (int k = 0; k < 100; ++k) {
+    loop.update(3.0, 2.0, kDt, isaacbot_gains(2.0), options);
+  }
+  ASSERT_GT(loop.integral(), 1.0);
+  auto frozen = isaacbot_gains(2.0);
+  frozen.i = 0.0;
+  loop.update(-0.2, 0.0, kDt, frozen, options);  // through 0 between two cycles
+  EXPECT_EQ(loop.integral(), 0.0);
+}
+
+TEST(WheelSpeedLoop, IntegralReferenceFollowsTheDelayedReference)
+{
+  WheelSpeedLoop loop;
+  WheelLoopOptions options;
+  options.integral_reference_delay = 0.1;  // 5 cycles
+  const auto gains = isaacbot_gains();
+  for (int k = 0; k < 5; ++k) {
+    loop.update(1.0, 0.0, kDt, gains, options);
+    EXPECT_EQ(loop.integral_reference(), 0.0) << "cycle " << k;
+  }
+  loop.update(1.0, 0.0, kDt, gains, options);
+  EXPECT_EQ(loop.integral_reference(), 1.0);
+}
+
+TEST(WheelSpeedLoop, ShortHistoryFallsBackToTheOldestEvictedReference)
+{
+  WheelSpeedLoop loop(3);
+  WheelLoopOptions options;
+  options.integral_reference_delay = 1.0;  // far longer than 3 samples
+  const auto gains = isaacbot_gains();
+  loop.update(1.0, 0.0, kDt, gains, options);
+  loop.update(2.0, 0.0, kDt, gains, options);
+  loop.update(3.0, 0.0, kDt, gains, options);
+  EXPECT_EQ(loop.integral_reference(), 0.0);  // nothing evicted yet: the value at reset
+  loop.update(4.0, 0.0, kDt, gains, options);
+  EXPECT_EQ(loop.integral_reference(), 1.0);
+}
+
+TEST(WheelSpeedLoop, NonPositivePeriodRepeatsTheLastCommand)
+{
+  WheelSpeedLoop loop;
+  const auto gains = isaacbot_gains();
+  const double first = loop.update(1.0, 0.2, kDt, gains, WheelLoopOptions{});
+  EXPECT_EQ(loop.update(3.0, 0.0, 0.0, gains, WheelLoopOptions{}), first);
+}
+
+TEST(WheelSpeedLoop, ResetClearsEverything)
+{
+  WheelSpeedLoop loop;
+  const auto gains = isaacbot_gains();
+  for (int k = 0; k < 50; ++k) {
+    loop.update(1.0, 0.5, kDt, gains, delayed_integral());
+  }
+  loop.reset();
+  EXPECT_EQ(loop.integral(), 0.0);
+  EXPECT_EQ(loop.integral_reference(), 0.0);
+}
+
+using isaacbot_amr_controller::BodyCommand;
+
+constexpr double kTrack = 1.0236;  // 0.617 * 1.659, the isaacbot's effective track
+
+WheelLoopOptions turn_options(double side, double feedforward = 1.8)
+{
+  WheelLoopOptions options;
+  options.turn_feedforward = feedforward;
+  options.turn_side = side;
+  options.turn_full_rate = 0.3;
+  options.turn_track_width = kTrack;
+  return options;
+}
+
+BodyCommand body(double linear, double angular, bool valid = true)
+{
+  BodyCommand command;
+  command.linear = linear;
+  command.angular = angular;
+  command.valid = valid;
+  return command;
+}
+
+TEST(TurnFeedforward, PushesEachSideTheWayItTurnsInASpin)
+{
+  // A left (counter-clockwise) spin drives the left wheels backwards, the right ones forwards.
+  EXPECT_DOUBLE_EQ(isaacbot_amr_controller::turn_feedforward(body(0.0, 0.6), turn_options(-1.0)), -1.8);
+  EXPECT_DOUBLE_EQ(isaacbot_amr_controller::turn_feedforward(body(0.0, 0.6), turn_options(1.0)), 1.8);
+  EXPECT_DOUBLE_EQ(isaacbot_amr_controller::turn_feedforward(body(0.0, -1.0), turn_options(-1.0)), 1.8);
+  EXPECT_DOUBLE_EQ(isaacbot_amr_controller::turn_feedforward(body(0.0, -1.0), turn_options(1.0)), -1.8);
+}
+
+TEST(TurnFeedforward, RampsInBelowTheFullRate)
+{
+  EXPECT_DOUBLE_EQ(isaacbot_amr_controller::turn_feedforward(body(0.0, 0.15), turn_options(1.0)), 0.9);
+  EXPECT_DOUBLE_EQ(isaacbot_amr_controller::turn_feedforward(body(0.0, 0.03), turn_options(1.0)), 0.18);
+}
+
+TEST(TurnFeedforward, ScalesWithTheAngularShareInAnArc)
+{
+  // 0.5 m/s with 0.3 rad/s: the turn is 0.3 * 1.0236 / 2 = 0.154 m/s of 0.654 m/s per wheel.
+  const double turn_speed = 0.3 * kTrack / 2.0;
+  EXPECT_NEAR(
+    isaacbot_amr_controller::turn_feedforward(body(0.5, 0.3), turn_options(1.0)),
+    1.8 * turn_speed / (0.5 + turn_speed), 1e-12);
+  // Reversing in the same arc: the share depends on |linear| only.
+  EXPECT_DOUBLE_EQ(
+    isaacbot_amr_controller::turn_feedforward(body(-0.5, 0.3), turn_options(1.0)),
+    isaacbot_amr_controller::turn_feedforward(body(0.5, 0.3), turn_options(1.0)));
+}
+
+TEST(TurnFeedforward, IsZeroStraightOffOrWithoutAValidCommand)
+{
+  EXPECT_EQ(isaacbot_amr_controller::turn_feedforward(body(0.8, 0.0), turn_options(1.0)), 0.0);
+  EXPECT_EQ(isaacbot_amr_controller::turn_feedforward(body(0.0, 1.0, false), turn_options(1.0)), 0.0);
+  EXPECT_EQ(isaacbot_amr_controller::turn_feedforward(body(0.0, 1.0), turn_options(0.0)), 0.0);
+  EXPECT_EQ(isaacbot_amr_controller::turn_feedforward(body(0.0, 1.0), turn_options(1.0, 0.0)), 0.0);
+  EXPECT_EQ(
+    isaacbot_amr_controller::turn_feedforward(body(std::nan(""), 1.0), turn_options(1.0)), 0.0);
+}
+
+TEST(TurnFeedforward, OffLeavesTheLoopOutputUnchanged)
+{
+  // turn_feedforward 0 must be bit-identical to the loop without a body command.
+  WheelSpeedLoop with_body;
+  WheelSpeedLoop without;
+  const auto gains = isaacbot_gains(2.1);
+  auto options = delayed_integral();
+  options.turn_side = 1.0;  // a side, but no feed-forward
+  double measured = 0.0;
+  for (int k = 0; k < 200; ++k) {
+    const double reference = k < 100 ? 1.86 : -3.1;
+    measured += (0.5 * reference - measured) * 0.1;
+    ASSERT_EQ(
+      with_body.update(reference, measured, kDt, gains, options, body(0.0, 0.6)),
+      without.update(reference, measured, kDt, gains, options)) << "cycle " << k;
+  }
+}
+
+TEST(TurnFeedforward, AddsToTheLoopOutputUpToFullDuty)
+{
+  const auto gains = isaacbot_gains(2.1);
+  {
+    WheelSpeedLoop plain;
+    WheelSpeedLoop turned;
+    const double base = plain.update(1.86, 1.86, kDt, gains, WheelLoopOptions{});
+    EXPECT_NEAR(
+      turned.update(1.86, 1.86, kDt, gains, turn_options(1.0), body(0.0, 0.6)), base + 1.8,
+      1e-12);
+  }
+  {
+    // Near full duty only the room up to u_max (12.58) is added.
+    WheelSpeedLoop loop;
+    EXPECT_DOUBLE_EQ(
+      loop.update(11.5, 11.5, kDt, gains, turn_options(1.0), body(0.0, 1.0)), gains.u_max);
+  }
+  {
+    // Already past full duty (feed-forward of a large reference): nothing is taken back.
+    WheelSpeedLoop plain;
+    WheelSpeedLoop turned;
+    const double base = plain.update(12.9, 12.9, kDt, gains, WheelLoopOptions{});
+    EXPECT_DOUBLE_EQ(
+      turned.update(12.9, 12.9, kDt, gains, turn_options(1.0), body(0.0, 1.0)), base);
+  }
+  {
+    // A zero reference still sends exactly 0 with the stop option.
+    WheelSpeedLoop loop;
+    auto options = turn_options(1.0);
+    options.stop_at_zero_reference = true;
+    EXPECT_EQ(loop.update(0.0, 0.3, kDt, gains, options, body(0.5, 0.98)), 0.0);
+  }
+}
+
+// A wheel in a skid-steer spin as the 2026-10-10 open-loop ground run saw it: scrub eats a constant
+// ~1.7 rad/s of command (0.6 rad/s spin: 0-12 % of the reference, 1.0 rad/s: ~45 %).
+class ScrubbingWheel
+{
+public:
+  double step(double command)
+  {
+    const double driving = std::copysign(std::max(0.0, std::abs(command) - kScrub), command);
+    return plant_.step(driving);
+  }
+  double speed() const {return plant_.speed();}
+
+private:
+  static constexpr double kScrub = 1.7;
+  WheelPlant plant_{1.0, 0.3, 0.12};
+};
+
+struct SpinResult
+{
+  double time_to_half;  // s until the wheel first reaches half the reference
+  double overshoot;     // fraction of the reference
+  double final_integral;
+};
+
+SpinResult spin(const WheelLoopOptions & options)
+{
+  // A right wheel in a 0.6 rad/s spin: reference 0.6 * 1.0236 / 2 / 0.1651 = 1.86 rad/s.
+  const double reference = 0.6 * kTrack / 2.0 / 0.1651;
+  WheelSpeedLoop loop;
+  ScrubbingWheel wheel;
+  SpinResult result{std::numeric_limits<double>::infinity(), 0.0, 0.0};
+  for (int k = 0; k < static_cast<int>(6.0 / kDt); ++k) {
+    const double speed = wheel.step(
+      loop.update(reference, wheel.speed(), kDt, isaacbot_gains(2.1), options, body(0.0, 0.6)));
+    if (speed >= reference / 2.0 && k * kDt < result.time_to_half) {
+      result.time_to_half = k * kDt;
+    }
+    result.overshoot = std::max(result.overshoot, speed / reference - 1.0);
+  }
+  result.final_integral = loop.integral();
+  return result;
+}
+
+TEST(TurnFeedforward, SpinStartsSoonerWithoutPinningTheIntegral)
+{
+  // The shipped loop: model-reference integral 0.40 / 0.12, i_clamp 2.1.
+  WheelLoopOptions shipped;
+  shipped.integral_reference_delay = 0.40;
+  shipped.integral_reference_time_constant = 0.12;
+  auto with_turn = shipped;
+  with_turn.turn_feedforward = 1.8;
+  with_turn.turn_side = 1.0;
+  with_turn.turn_track_width = kTrack;
+
+  const auto without = spin(shipped);
+  const auto with = spin(with_turn);
+  // Without it the integral has to carry the scrub, near its 2.1 clamp.
+  EXPECT_GT(without.final_integral, 1.5);
+  EXPECT_LT(std::abs(with.final_integral), 0.3);
+  EXPECT_LT(with.time_to_half, without.time_to_half - 0.3)
+    << "with " << with.time_to_half << " s, without " << without.time_to_half << " s";
+  // This plant has a constant scrub and no stick-slip, so it can't show the ground runs' 4-18 %
+  // spin overshoot (the wheels breaking loose once the integral has wound up); that needs the
+  // lane. Here 1.8 of feed-forward over-supplies its 1.7 scrub and the wheel runs ~5 % fast until
+  // the integral trims it: bounded, not removed.
+  EXPECT_LT(with.overshoot, 0.08)
+    << "with " << with.overshoot << ", without " << without.overshoot;
+}
+
+}  // namespace

@@ -10,7 +10,7 @@ sources in `isaacbot_amr_ros`.
     prefix (`isaacbot/base_link`). The exceptions are `/tf`, `/tf_static`, `/clock` and the web
     bridges, which are not namespaced.
 
-Message types are shortened: `isaacbot_msgs/SafetyStatus` means `isaacbot_msgs/msg/SafetyStatus`.
+Message types are shortened: `isaacbot_amr_msgs/SafetyStatus` means `isaacbot_amr_msgs/msg/SafetyStatus`.
 
 Topic names carry no `isaacbot_` prefix, even where the node name does. A lifecycle node's
 `transition_event` topic is therefore remapped off its node name: `isaacbot_safety_node` publishes
@@ -21,14 +21,14 @@ their lifecycle services (`isaacbot_safety_node/change_state`) keep the prefix.
 
 ## Hardware interface
 
-`isaacbot_hardware_interface` provides two ros2_control plugins that run inside the
+`isaacbot_amr_hardware_interface` provides two ros2_control plugins that run inside the
 `controller_manager` process (`ros2_control_node`). Each component gets its own node,
 named after it: `/isaacbot/isaacbot_system_node` and `/isaacbot/isaacbot_imu`.
 
 | `<ros2_control>` component | Plugin | Hardware |
 |----------------------------|--------|----------|
-| `isaacbot_system_node` (system) | `isaacbot_hardware_interface/ArdennesSystem` | 4 x Phidget DCC1000 motor controllers; safety PLC over Modbus TCP |
-| `isaacbot_imu` (sensor) | `isaacbot_hardware_interface/PhidgetImuSensor` | Phidgets Spatial MOT0110, Madgwick orientation filter |
+| `isaacbot_system_node` (system) | `isaacbot_amr_hardware_interface/ArdennesSystem` | 4 x Phidget DCC1000 motor controllers; safety PLC over Modbus TCP |
+| `isaacbot_imu` (sensor) | `isaacbot_amr_hardware_interface/PhidgetImuSensor` | Phidgets Spatial MOT0110, Madgwick orientation filter |
 
 Command interface per wheel joint: `velocity`. State interfaces: `position`, `velocity`, `effort`.
 The IMU exports `imu/orientation.*`, `imu/angular_velocity.*` and `imu/linear_acceleration.*`.
@@ -42,10 +42,10 @@ hardware only.
 
 | Name | Type | Description |
 |------|------|-------------|
-| `hardware_interface/driver_state` | `isaacbot_msgs/IsaacbotDriverState` | Motor driver state per wheel (`rear_left`, `rear_right`, `front_left`, `front_right`). Reliable, volatile, depth 5. |
-| `hardware_interface/safety_status` | `isaacbot_msgs/SafetyStatus` | Plant state of the safety chain: HW E-Stop button, contactor feedback, latch, latch cause, link health. Reliable, volatile, depth 1. |
-| `hardware_interface/safety_command_echo` | `isaacbot_msgs/SafetyCommandEcho` | Read-back of the coils software drives (SW E-Stop, driver-fault stop, latch reset, watchdog heartbeat). Diagnostic only. Reliable, volatile, depth 1. |
-| `hardware_interface/aux_io_state` | `isaacbot_msgs/AuxIoState` | General-purpose aux IO on the PLC (DIO06..11 inputs, DIO00..05 output read-back). Not safety. Reliable, volatile, depth 1. |
+| `hardware_interface/driver_state` | `isaacbot_amr_msgs/IsaacbotDriverState` | Motor driver state per wheel (`rear_left`, `rear_right`, `front_left`, `front_right`). Reliable, volatile, depth 5. |
+| `hardware_interface/safety_status` | `isaacbot_amr_msgs/SafetyStatus` | Plant state of the safety chain: HW E-Stop button, contactor feedback, latch, latch cause, link health. Reliable, volatile, depth 1. |
+| `hardware_interface/safety_command_echo` | `isaacbot_amr_msgs/SafetyCommandEcho` | Read-back of the coils software drives (SW E-Stop, driver-fault stop, latch reset, watchdog heartbeat). Diagnostic only. Reliable, volatile, depth 1. |
+| `hardware_interface/aux_io_state` | `isaacbot_amr_msgs/AuxIoState` | General-purpose aux IO on the PLC (DIO06..11 inputs, DIO00..05 output read-back). Not safety. Reliable, volatile, depth 1. |
 | `diagnostics` | `diagnostic_msgs/DiagnosticArray` | Hardware id `Isaacbot System`. Tasks `system errors`, `system status`, `safety plc link`, `command path`, `imu data`. |
 
 **`command path` diagnostic (instrumentation).** Cumulative counters since start, per wheel
@@ -118,12 +118,12 @@ last look, and the age of the last message and of the last valid message.
 `isaacbot_imu` parameters: `data_interval_ms` `8`, Madgwick `gain` `0.00304`, `zeta` `0.00151`,
 `use_mag` `false`, `world_frame` `enu`.
 
-Source: `isaacbot_description/urdf/ardennes/ardennes_macro.urdf.xacro`,
-`isaacbot_description/urdf/common/imu.urdf.xacro`,
-`isaacbot_hardware_interface/src/system_ros_interface/system_ros_interface.cpp`,
-`isaacbot_hardware_interface/src/isaacbot_system/isaacbot_system.cpp`,
-`isaacbot_hardware_interface/include/isaacbot_hardware_interface/domain/driver.hpp`.
-More: [isaacbot_hardware_interface README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_hardware_interface/README.md),
+Source: `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro`,
+`isaacbot_amr_description/urdf/common/imu.urdf.xacro`,
+`isaacbot_amr_hardware_interface/src/system_ros_interface/system_ros_interface.cpp`,
+`isaacbot_amr_hardware_interface/src/isaacbot_system/isaacbot_system.cpp`,
+`isaacbot_amr_hardware_interface/include/isaacbot_amr_hardware_interface/domain/driver.hpp`.
+More: [isaacbot_amr_hardware_interface README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_hardware_interface/README.md),
 [Safety](../safety.md).
 
 ## Controllers
@@ -143,7 +143,7 @@ flowchart LR
 | Controller | Type | Rate |
 |------------|------|------|
 | `isaacbot_drive_controller` | `diff_drive_controller/DiffDriveController` | 25 Hz |
-| `pid_controller_<wheel>_wheel_base_to_<wheel>_wheel_joint` (`fl`, `fr`, `rl`, `rr`) | `isaacbot_controller/SeededPidController` (chainable, based on `pid_controller/PidController`) | 25 Hz |
+| `pid_controller_<wheel>_wheel_base_to_<wheel>_wheel_joint` (`fl`, `fr`, `rl`, `rr`) | `isaacbot_amr_controller/SeededPidController` (chainable, based on `pid_controller/PidController`) | 25 Hz |
 | `isaacbot_joint_state_broadcaster` | `joint_state_broadcaster/JointStateBroadcaster` | 25 Hz |
 | `isaacbot_imu_broadcaster` | `imu_sensor_broadcaster/IMUSensorBroadcaster` | 25 Hz |
 
@@ -167,9 +167,9 @@ flowchart LR
 | `odom_frame_id` / `base_frame_id` | `odom` / `base_footprint` |
 
 !!! warning "Source conflict"
-    The controller config `isaacbot_controller/config/wheel_01_controller.yaml` uses
+    The controller config `isaacbot_amr_controller/config/wheel_01_controller.yaml` uses
     `wheel_separation_multiplier` `1.659`. Its comment says the multiplier was rescaled to a measured separation of `0.615` m, while
-    `wheel_separation` there and in `isaacbot_description/config/wheel_01.yaml` is `0.617` m. This
+    `wheel_separation` there and in `isaacbot_amr_description/config/wheel_01.yaml` is `0.617` m. This
     page uses the configured values (`1.659`, `0.617` m).
 
 ### Wheel PIDs
@@ -196,12 +196,12 @@ The wheel loop options are live too: `stop_at_zero_reference` `true`, `zero_refe
 
 The controllers' lifecycle `transition_event` topics are moved under `_<controller>/`.
 
-Source: `isaacbot_controller/config/wheel_01_controller.yaml`,
-`isaacbot_controller/launch/isaacbot_controller.launch.py`,
-`isaacbot_description/launch/isaacbot_load_urdf.launch.py`.
-More: [isaacbot_controller README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_controller/README.md).
+Source: `isaacbot_amr_controller/config/wheel_01_controller.yaml`,
+`isaacbot_amr_controller/launch/isaacbot_amr_controller.launch.py`,
+`isaacbot_amr_description/launch/isaacbot_load_urdf.launch.py`.
+More: [isaacbot_amr_controller README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_controller/README.md).
 
-## Command arbitration (`isaacbot_twist_mux`)
+## Command arbitration (`isaacbot_amr_twist_mux`)
 
 ### `isaacbot_twist_mux_node`
 
@@ -224,8 +224,8 @@ A lock at priority 200 masks every input. A stale lock counts as locked.
 
 | Direction | Name | Type | Description |
 |-----------|------|------|-------------|
-| sub | `hardware_interface/safety_status` | `isaacbot_msgs/SafetyStatus` | Reliable, volatile, depth 1. |
-| sub | `hardware_interface/safety_command_echo` | `isaacbot_msgs/SafetyCommandEcho` | Reliable, volatile, depth 1. |
+| sub | `hardware_interface/safety_status` | `isaacbot_amr_msgs/SafetyStatus` | Reliable, volatile, depth 1. |
+| sub | `hardware_interface/safety_command_echo` | `isaacbot_amr_msgs/SafetyCommandEcho` | Reliable, volatile, depth 1. |
 | pub | `motion_lock` | `std_msgs/Bool` | `true` = motion inhibited. Reliable, depth 1. |
 | pub | `diagnostics` | `diagnostic_msgs/DiagnosticArray` | Hardware id `Motion Lock`, task `Motion lock`. |
 
@@ -250,11 +250,11 @@ arrived, when either is older than `gpio_timeout`, or when `link_healthy` is fal
 Parameters (read-only): `max_delay` `0.3` s, `max_clock_drift` `0.001` s/s, `resync_gap`
 `1.0` s, `resync_time` `2.0` s.
 
-Source: `isaacbot_twist_mux/config/*.yaml`, `isaacbot_twist_mux/launch/isaacbot_twist_mux.launch.py`,
-`isaacbot_twist_mux/src/infrastructure/motion_lock_node.cpp`, `isaacbot_twist_mux/src/*_params.yaml`.
-More: [isaacbot_twist_mux README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_twist_mux/README.md).
+Source: `isaacbot_amr_twist_mux/config/*.yaml`, `isaacbot_amr_twist_mux/launch/isaacbot_amr_twist_mux.launch.py`,
+`isaacbot_amr_twist_mux/src/infrastructure/motion_lock_node.cpp`, `isaacbot_amr_twist_mux/src/*_params.yaml`.
+More: [isaacbot_amr_twist_mux README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_twist_mux/README.md).
 
-## Safety supervision (`isaacbot_safety`)
+## Safety supervision (`isaacbot_amr_safety`)
 
 Both nodes are lifecycle nodes that configure and activate themselves (`autostart_node`) and
 retry a failed configure every `configure_retry_period` (5.0 s).
@@ -264,9 +264,9 @@ retry a failed configure every `configure_retry_period` (5.0 s).
 | Direction | Name | Type | Description |
 |-----------|------|------|-------------|
 | sub | `battery/battery_status` | `sensor_msgs/BatteryState` | Battery health and temperature. |
-| sub | `hardware_interface/driver_state` | `isaacbot_msgs/IsaacbotDriverState` | Motor driver state. |
-| sub | `hardware_interface/safety_command_echo` | `isaacbot_msgs/SafetyCommandEcho` | SW E-Stop echo. |
-| sub | `system_status` | `isaacbot_msgs/SystemStatus` | Computer status from `isaacbot_diag_manager_node`. |
+| sub | `hardware_interface/driver_state` | `isaacbot_amr_msgs/IsaacbotDriverState` | Motor driver state. |
+| sub | `hardware_interface/safety_command_echo` | `isaacbot_amr_msgs/SafetyCommandEcho` | SW E-Stop echo. |
+| sub | `system_status` | `isaacbot_amr_msgs/SystemStatus` | Computer status from `isaacbot_diag_manager_node`. |
 | client | `hardware_interface/sw_user_e_stop_set` | `std_srvs/Trigger` | Trips the E-Stop on an unsafe battery and before shutdown. |
 | srv | `~/shutdown` | `std_srvs/Trigger` | Shut down the isaacbot computer (`/isaacbot/isaacbot_safety_node/shutdown`). |
 | pub | `diagnostics` | `diagnostic_msgs/DiagnosticArray` | Hardware id `Isaacbot Safety`. |
@@ -285,19 +285,19 @@ retry a failed configure every `configure_retry_period` (5.0 s).
 | Direction | Name | Type | Description |
 |-----------|------|------|-------------|
 | sub | `battery/battery_status` | `sensor_msgs/BatteryState` | Battery state for the battery animations. |
-| sub | `hardware_interface/safety_status` | `isaacbot_msgs/SafetyStatus` | HW E-Stop button for the E-Stop animation. |
+| sub | `hardware_interface/safety_status` | `isaacbot_amr_msgs/SafetyStatus` | HW E-Stop button for the E-Stop animation. |
 | sub | `joy` | `sensor_msgs/Joy` | Dead-man button. Nothing on the platform publishes it. |
-| client | `led/set_animation` | `isaacbot_msgs/SetLedAnimation` | Requests animations from `isaacbot_led_controller`. |
+| client | `led/set_animation` | `isaacbot_amr_msgs/SetLedAnimation` | Requests animations from `isaacbot_led_controller`. |
 | pub | `diagnostics` | `diagnostic_msgs/DiagnosticArray` | Hardware id `Bumper Led`. |
 
 Parameters: `timer_frequency` `10.0` Hz, `battery.percent.threshold.low` `0.4`,
 `battery.percent.threshold.critical` `0.1`, `bt_server_port` `5555`.
 
-Source: `isaacbot_safety/src/safety_node.cpp`, `isaacbot_safety/src/led_safety_node.cpp`,
-`isaacbot_safety/config/isaacbot_safety.yaml`, `isaacbot_safety/config/led_safety.yaml`.
-More: [isaacbot_safety README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_safety/README.md).
+Source: `isaacbot_amr_safety/src/safety_node.cpp`, `isaacbot_amr_safety/src/led_safety_node.cpp`,
+`isaacbot_amr_safety/config/isaacbot_amr_safety.yaml`, `isaacbot_amr_safety/config/led_safety.yaml`.
+More: [isaacbot_amr_safety README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_safety/README.md).
 
-## Battery (`isaacbot_battery`)
+## Battery (`isaacbot_amr_battery`)
 
 `isaacbot_battery_container` holds two components with intra-process communication.
 
@@ -306,7 +306,7 @@ More: [isaacbot_safety README](https://github.com/isaacbotsrl/isaacbot_amr_ros/b
 | `isaacbot_udp_battery_receiver_node` | pub | `battery_udp_data` | `udp_msgs/UdpPacket` | Raw BMS packets received on `192.168.1.201:4444`. |
 | `isaacbot_battery_node` | sub | `battery_udp_data` | `udp_msgs/UdpPacket` | 392-byte BMS frame. |
 | `isaacbot_battery_node` | pub | `battery/battery_status` | `sensor_msgs/BatteryState` | Voltage, current, SoC, charge, hottest temperature, cell voltages. Depth 5. |
-| `isaacbot_battery_node` | pub | `battery/charging_status` | `isaacbot_msgs/ChargingStatus` | Charging flag, currents, charger type. Depth 5. |
+| `isaacbot_battery_node` | pub | `battery/charging_status` | `isaacbot_amr_msgs/ChargingStatus` | Charging flag, currents, charger type. Depth 5. |
 | `isaacbot_battery_node` | pub | `diagnostics` | `diagnostic_msgs/DiagnosticArray` | Hardware id `IsaacbotBattery`. |
 
 | Parameter | Value | Description |
@@ -315,11 +315,11 @@ More: [isaacbot_safety README](https://github.com/isaacbotsrl/isaacbot_amr_ros/b
 | `serial_number` | `224KA141600043` | Reported serial number. |
 | `watchdog_timeout_ms` | `10000` | Without a valid frame for this long, `present: false` and health `WATCHDOG_TIMER_EXPIRE`. |
 
-Source: `isaacbot_battery/config/isaacbot_battery.yaml`, `isaacbot_battery/launch/isaacbot_battery.launch.py`,
-`isaacbot_battery/src/infrastructure/*.cpp`.
-More: [isaacbot_battery README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_battery/README.md).
+Source: `isaacbot_amr_battery/config/isaacbot_amr_battery.yaml`, `isaacbot_amr_battery/launch/isaacbot_amr_battery.launch.py`,
+`isaacbot_amr_battery/src/infrastructure/*.cpp`.
+More: [isaacbot_amr_battery README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_battery/README.md).
 
-## LEDs (`isaacbot_led`)
+## LEDs (`isaacbot_amr_led`)
 
 `isaacbot_led_container` holds the controller, the driver and two UDP senders. The driver and the
 senders run on hardware only.
@@ -328,12 +328,12 @@ senders run on hardware only.
 
 | Direction | Name | Type | Description |
 |-----------|------|------|-------------|
-| srv | `led/set_animation` | `isaacbot_msgs/SetLedAnimation` | Play an animation by id. |
-| srv | `led/stop_animation` | `isaacbot_msgs/StopLedAnimation` | Stop an animation. |
+| srv | `led/set_animation` | `isaacbot_amr_msgs/SetLedAnimation` | Play an animation by id. |
+| srv | `led/stop_animation` | `isaacbot_amr_msgs/StopLedAnimation` | Stop an animation. |
 | pub | `led/channel_<n>_frame` | `sensor_msgs/Image` | RGBA frame per panel at `controller_frequency`. |
 | pub | `led/channel_<n>_preview` | `sensor_msgs/Image` | Same frame at `preview_publish_rate`, best effort, for UIs. |
-| pub | `led/animations` | `isaacbot_msgs/LedAnimationCatalog` | Loaded animations. Latched. |
-| pub | `led/state` | `isaacbot_msgs/LedState` | What every layer plays. Latched. |
+| pub | `led/animations` | `isaacbot_amr_msgs/LedAnimationCatalog` | Loaded animations. Latched. |
+| pub | `led/state` | `isaacbot_amr_msgs/LedState` | What every layer plays. Latched. |
 | pub | `diagnostics` | `diagnostic_msgs/DiagnosticArray` | Hardware id `Bumper Led`. |
 
 Parameters: `controller_frequency` `50.0` Hz, `state_publish_rate` `5.0` Hz,
@@ -345,7 +345,7 @@ Parameters: `controller_frequency` `50.0` Hz, `state_publish_rate` `5.0` Hz,
 |-----------|------|------|-------------|
 | sub | `led/channel_<n>_frame` | `sensor_msgs/Image` | Frames from the controller. |
 | pub | `udp_write/led_channel_<n>` | `udp_msgs/UdpPacket` | SK9822 frame for the UDP sender. |
-| srv | `led/set_brightness` | `isaacbot_msgs/SetLedBrightness` | Brightness 0.0 to 1.0. |
+| srv | `led/set_brightness` | `isaacbot_amr_msgs/SetLedBrightness` | Brightness 0.0 to 1.0. |
 | pub | `led/brightness` | `std_msgs/Float32` | Brightness in effect. Latched. |
 | client | `hardware/led_control_enable` | `std_srvs/SetBool` | Only with `led_control_handshake: true`. |
 | pub | `diagnostics` | `diagnostic_msgs/DiagnosticArray` | Hardware id `Bumper Led`. |
@@ -358,18 +358,18 @@ Parameters (`config/ardennes_driver.yaml`): `frame_timeout` `0.1` s, `global_bri
 Subscribes `udp_write/led_channel_<n>` and sends to the LED board: channel 1 →
 `192.168.77.202:3334`, channel 2 → `192.168.77.201:3333`.
 
-Source: `isaacbot_led/launch/isaacbot_led.launch.py`, `isaacbot_led/src/infrastructure/*.cpp`,
-`isaacbot_led/src/*_parameters.yaml`, `isaacbot_led/config/*.yaml`.
-More: [isaacbot_led README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_led/README.md),
+Source: `isaacbot_amr_led/launch/isaacbot_amr_led.launch.py`, `isaacbot_amr_led/src/infrastructure/*.cpp`,
+`isaacbot_amr_led/src/*_parameters.yaml`, `isaacbot_amr_led/config/*.yaml`.
+More: [isaacbot_amr_led README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_led/README.md),
 [Teleop and LEDs](teleop-and-leds.md).
 
-## RC teleop (`isaacbot_crsf_teleop`)
+## RC teleop (`isaacbot_amr_crsf_teleop`)
 
 `isaacbot_crsf_container` holds the UDP receiver and the teleop node, with intra-process
 communication. The ELRS receiver is on the RUTX11's USB port; the router forwards its CRSF bytes
 over UDP.
 
-### `isaacbot_crsf_udp_receiver` (`isaacbot_udp_driver`, lifecycle)
+### `isaacbot_crsf_udp_receiver` (`isaacbot_amr_udp_driver`, lifecycle)
 
 | Direction | Name | Type | Description |
 |-----------|------|------|-------------|
@@ -383,15 +383,15 @@ three come from `udp_bind_ip` / `udp_port` / `udp_source_ip` in the teleop confi
 | Direction | Name | Type | Description |
 |-----------|------|------|-------------|
 | sub | `rc/raw_udp` | `udp_msgs/UdpPacket` | CRSF bytes, one datagram per message. Reliable, depth 100. |
-| sub | `hardware_interface/safety_status` | `isaacbot_msgs/SafetyStatus` | E-Stop evidence for the calibration interlock. |
+| sub | `hardware_interface/safety_status` | `isaacbot_amr_msgs/SafetyStatus` | E-Stop evidence for the calibration interlock. |
 | pub | `teleop_elrs_cmd_vel_stamped` | `geometry_msgs/TwistStamped` | Stick command, frame `base_link`. |
-| pub | `rc/channels` | `isaacbot_msgs/RcChannels` | Echo of the channel values. Best effort. |
-| pub | `rc/link` | `isaacbot_msgs/RcLinkStatus` | Echo of the link statistics. Best effort. |
-| pub | `rc/calibration/state` | `isaacbot_msgs/RcCalibrationState` | Calibration progress. Reliable, transient local. |
+| pub | `rc/channels` | `isaacbot_amr_msgs/RcChannels` | Echo of the channel values. Best effort. |
+| pub | `rc/link` | `isaacbot_amr_msgs/RcLinkStatus` | Echo of the link statistics. Best effort. |
+| pub | `rc/calibration/state` | `isaacbot_amr_msgs/RcCalibrationState` | Calibration progress. Reliable, transient local. |
 | pub | `diagnostics` | `diagnostic_msgs/DiagnosticArray` | Hardware id `RC Receiver`. |
-| srv | `rc/calibration/start` | `isaacbot_msgs/StartRcCalibration` | Start a calibration session. |
+| srv | `rc/calibration/start` | `isaacbot_amr_msgs/StartRcCalibration` | Start a calibration session. |
 | srv | `rc/calibration/sweep`, `rc/calibration/finish`, `rc/calibration/cancel` | `std_srvs/Trigger` | Calibration steps. |
-| srv | `rc/calibration/apply` | `isaacbot_msgs/SetRcCalibration` | Apply (and optionally persist) a calibration. |
+| srv | `rc/calibration/apply` | `isaacbot_amr_msgs/SetRcCalibration` | Apply (and optionally persist) a calibration. |
 | client | `hardware_interface/sw_user_e_stop_set`, `hardware_interface/sw_user_e_stop_reset`, `hardware_interface/sw_e_stop_latch_reset` | `std_srvs/Trigger` | Driven by the RC switches. |
 
 | Parameter | Value |
@@ -404,13 +404,13 @@ three come from `udp_bind_ip` / `udp_port` / `udp_source_ip` in the teleop confi
 | `link_quality_lost_below` / `link_quality_recovered_at` | `30` / `50` |
 | `rc_topics_rate_hz` | `25.0` |
 
-Source: `isaacbot_crsf_teleop/launch/isaacbot_crsf_teleop.launch.py`,
-`isaacbot_crsf_teleop/config/isaacbot_crsf_teleop.yaml`,
-`isaacbot_crsf_teleop/src/infrastructure/isaacbot_crsf_teleop_node.cpp`,
-`isaacbot_crsf_teleop/src/infrastructure/ros2_trigger_safety_switch.cpp`.
-More: [isaacbot_crsf_teleop README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_crsf_teleop/README.md).
+Source: `isaacbot_amr_crsf_teleop/launch/isaacbot_amr_crsf_teleop.launch.py`,
+`isaacbot_amr_crsf_teleop/config/isaacbot_amr_crsf_teleop.yaml`,
+`isaacbot_amr_crsf_teleop/src/infrastructure/isaacbot_crsf_teleop_node.cpp`,
+`isaacbot_amr_crsf_teleop/src/infrastructure/ros2_trigger_safety_switch.cpp`.
+More: [isaacbot_amr_crsf_teleop README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_crsf_teleop/README.md).
 
-## Localization (`isaacbot_localization`)
+## Localization (`isaacbot_amr_localization`)
 
 `robot_localization` EKFs at 50 Hz in 2D mode. Without GPS only `isaacbot_ekf_node` runs. With
 `use_gps:=true` (`ISAACBOT_SYSTEM_USE_GPS=true`) the other three nodes start too.
@@ -449,14 +449,14 @@ More: [isaacbot_crsf_teleop README](https://github.com/isaacbotsrl/isaacbot_amr_
 
 Parameters: `frequency` `10.0` Hz, `yaw_offset` `0.0`, `zero_altitude` `true`.
 
-Source: `isaacbot_localization/launch/isaacbot_localization.launch.py`,
-`isaacbot_localization/config/rel_localization.yaml`,
-`isaacbot_localization/config/rel_localization_with_gps.yaml`.
-More: [isaacbot_localization README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_localization/README.md).
+Source: `isaacbot_amr_localization/launch/isaacbot_amr_localization.launch.py`,
+`isaacbot_amr_localization/config/rel_localization.yaml`,
+`isaacbot_amr_localization/config/rel_localization_with_gps.yaml`.
+More: [isaacbot_amr_localization README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_localization/README.md).
 
 ## GPS heading (`isaacbot_gps_heading_node`)
 
-Started by `isaacbot_localization` in GPS mode.
+Started by `isaacbot_amr_localization` in GPS mode.
 
 | Direction | Name | Type | Description |
 |-----------|------|------|-------------|
@@ -470,17 +470,17 @@ Alignment parameters: `alignment.min_segment_length_m` `3.0`, `alignment.min_spe
 `alignment.required_segments` `3`, `alignment.max_offset_std_rad` `0.1`. The isaacbot must drive
 straight for a few metres before `gps/heading_imu` appears.
 
-Source: `isaacbot_gps_heading/src/infrastructure/*.cpp`,
-`isaacbot_localization/config/rel_localization_with_gps.yaml`.
-More: [isaacbot_gps_heading README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_gps_heading/README.md).
+Source: `isaacbot_amr_gps_heading/src/infrastructure/*.cpp`,
+`isaacbot_amr_localization/config/rel_localization_with_gps.yaml`.
+More: [isaacbot_amr_gps_heading README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_gps_heading/README.md).
 
-## Diagnostics (`isaacbot_diag_manager`)
+## Diagnostics (`isaacbot_amr_diag_manager`)
 
 ### `isaacbot_diag_manager_node`
 
 | Direction | Name | Type | Description |
 |-----------|------|------|-------------|
-| pub | `system_status` | `isaacbot_msgs/SystemStatus` | CPU usage and temperature, load, RAM and disk usage. |
+| pub | `system_status` | `isaacbot_amr_msgs/SystemStatus` | CPU usage and temperature, load, RAM and disk usage. |
 | pub | `diagnostics` | `diagnostic_msgs/DiagnosticArray` | Hardware id `Isaacbot PC`, task `OS status`. |
 
 Parameters: `publish_frequency` `5.0` Hz; WARN thresholds `cpu_usage_warn_threshold` `95.0` %,
@@ -497,9 +497,9 @@ Parameters: `publish_frequency` `5.0` Hz; WARN thresholds `cpu_usage_warn_thresh
 
 `pub_rate` is `1.0` Hz. Statuses from nodes not listed in the config go to `Other`.
 
-Source: `isaacbot_diag_manager/launch/system_diag.launch.py`, `isaacbot_diag_manager/config/*.yaml`,
-`isaacbot_diag_manager/src/infrastructure/*.cpp`.
-More: [isaacbot_diag_manager README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_diag_manager/README.md).
+Source: `isaacbot_amr_diag_manager/launch/system_diag.launch.py`, `isaacbot_amr_diag_manager/config/*.yaml`,
+`isaacbot_amr_diag_manager/src/infrastructure/*.cpp`.
+More: [isaacbot_amr_diag_manager README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_diag_manager/README.md).
 
 ## Web bridges
 
@@ -521,9 +521,9 @@ Allow-listed services include the E-Stop and aux-output services, `led/set_anima
 `led/stop_animation`, `led/set_brightness` and `rc/calibration/*`. Set `ISAACBOT_PLATFORM_FOXGLOVE_TOPIC_WHITELIST="['.*']"` or
 `ISAACBOT_PLATFORM_FOXGLOVE_SERVICE_WHITELIST="['.*']"` to open it up for debugging.
 
-Source: `isaacbot_bringup/launch/isaacbot_web_bridges.launch.py`, `isaacbot_bringup/README.md` (port 8765).
+Source: `isaacbot_amr_bringup/launch/isaacbot_web_bridges.launch.py`, `isaacbot_amr_bringup/README.md` (port 8765).
 
-## Custom interfaces (`isaacbot_msgs`)
+## Custom interfaces (`isaacbot_amr_msgs`)
 
 ### Messages
 
@@ -561,27 +561,27 @@ Source: `isaacbot_bringup/launch/isaacbot_web_bridges.launch.py`, `isaacbot_brin
 | `SetRcCalibration` | Apply an RC calibration. |
 | `SetDriveMode`, `SetMission`, `SaveMap`, `LoadMap`, `DeleteMap`, `SavePlace`, `DeletePlace` | Served by orchestrator nodes. |
 
-Source: `isaacbot_msgs/msg/`, `isaacbot_msgs/srv/`.
-More: [isaacbot_msgs README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_msgs/README.md).
+Source: `isaacbot_amr_msgs/msg/`, `isaacbot_amr_msgs/srv/`.
+More: [isaacbot_amr_msgs README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_msgs/README.md).
 
 ## Launch files
 
 | Package | Launch file | Key arguments |
 |---------|-------------|---------------|
-| `isaacbot_bringup` | `isaacbot_bringup.launch.py` | `namespace`, `log_level`, `use_gps`, `common_dir_path`, `disable_manager`, `exit_on_wrong_hw`, `controllers_ready_timeout` |
-| `isaacbot_bringup` | `isaacbot_web_bridges.launch.py` | none (environment `ISAACBOT_PLATFORM_FOXGLOVE_*_WHITELIST`) |
-| `isaacbot_controller` | `isaacbot_controller.launch.py` | `namespace`, `use_sim`, `robot_model`, `wheel_type`, `controller_config_path`, `extra_controller_config_path`, `common_dir_path`, `log_level` (default `DEBUG`) |
-| `isaacbot_description` | `isaacbot_load_urdf.launch.py` | `controller_config_path` (required), `namespace`, `robot_model`, `use_sim`, `wheel_type`, `wheel_config_path`, `publish_robot_state` |
-| `isaacbot_description` | `isaacbot_rviz.launch.py` | `rviz_config`, `namespace`, `use_sim` |
-| `isaacbot_twist_mux` | `isaacbot_twist_mux.launch.py` | `namespace`, `log_level`, `twist_mux_config_path`, `motion_lock_config_path`, `command_freshness_config_path` |
-| `isaacbot_safety` | `isaacbot_safety.launch.py` | `namespace`, `use_sim`, `log_level`, `led_bt_project_path`, `safety_bt_project_path`, `shutdown_hosts_config_path`, `common_dir_path` |
-| `isaacbot_battery` | `isaacbot_battery.launch.py` | `namespace`, `log_level`, `isaacbot_battery_config_path` |
-| `isaacbot_led` | `isaacbot_led.launch.py` | `namespace`, `robot_model`, `animations_config_path`, `common_dir_path`, `use_sim`, `log_level` |
-| `isaacbot_crsf_teleop` | `isaacbot_crsf_teleop.launch.py` | `namespace`, `use_sim`, `common_dir_path`, `isaacbot_crsf_config_path`, `log_level` |
-| `isaacbot_localization` | `isaacbot_localization.launch.py` | `use_ekf` (default `False`), `fuse_gps`, `publish_global_tf`, `localization_mode`, `localization_config_path`, `namespace`, `use_sim`, `common_dir_path`, `log_level` |
-| `isaacbot_diag_manager` | `system_diag.launch.py` | `namespace`, `log_level`, `system_diag_config_path`, `diagnostic_aggregator_config_path` |
-| `isaacbot_gazebo` | `simulation.launch.py` | `namespace`, `use_rviz`, `gz_gui`, `log_level` (see [Simulation](simulation.md)) |
-| `isaacbot_world` | `isaacbot_world.launch.py` | `gz_world`, `gz_gui`, `gz_headless_mode`, `gz_log_level` |
+| `isaacbot_amr_bringup` | `isaacbot_amr_bringup.launch.py` | `namespace`, `log_level`, `use_gps`, `common_dir_path`, `disable_manager`, `exit_on_wrong_hw`, `controllers_ready_timeout` |
+| `isaacbot_amr_bringup` | `isaacbot_web_bridges.launch.py` | none (environment `ISAACBOT_PLATFORM_FOXGLOVE_*_WHITELIST`) |
+| `isaacbot_amr_controller` | `isaacbot_amr_controller.launch.py` | `namespace`, `use_sim`, `robot_model`, `wheel_type`, `controller_config_path`, `extra_controller_config_path`, `common_dir_path`, `log_level` (default `DEBUG`) |
+| `isaacbot_amr_description` | `isaacbot_load_urdf.launch.py` | `controller_config_path` (required), `namespace`, `robot_model`, `use_sim`, `wheel_type`, `wheel_config_path`, `publish_robot_state` |
+| `isaacbot_amr_description` | `isaacbot_rviz.launch.py` | `rviz_config`, `namespace`, `use_sim` |
+| `isaacbot_amr_twist_mux` | `isaacbot_amr_twist_mux.launch.py` | `namespace`, `log_level`, `twist_mux_config_path`, `motion_lock_config_path`, `command_freshness_config_path` |
+| `isaacbot_amr_safety` | `isaacbot_amr_safety.launch.py` | `namespace`, `use_sim`, `log_level`, `led_bt_project_path`, `safety_bt_project_path`, `shutdown_hosts_config_path`, `common_dir_path` |
+| `isaacbot_amr_battery` | `isaacbot_amr_battery.launch.py` | `namespace`, `log_level`, `isaacbot_battery_config_path` |
+| `isaacbot_amr_led` | `isaacbot_amr_led.launch.py` | `namespace`, `robot_model`, `animations_config_path`, `common_dir_path`, `use_sim`, `log_level` |
+| `isaacbot_amr_crsf_teleop` | `isaacbot_amr_crsf_teleop.launch.py` | `namespace`, `use_sim`, `common_dir_path`, `isaacbot_crsf_config_path`, `log_level` |
+| `isaacbot_amr_localization` | `isaacbot_amr_localization.launch.py` | `use_ekf` (default `False`), `fuse_gps`, `publish_global_tf`, `localization_mode`, `localization_config_path`, `namespace`, `use_sim`, `common_dir_path`, `log_level` |
+| `isaacbot_amr_diag_manager` | `system_diag.launch.py` | `namespace`, `log_level`, `system_diag_config_path`, `diagnostic_aggregator_config_path` |
+| `isaacbot_amr_gazebo` | `simulation.launch.py` | `namespace`, `use_rviz`, `gz_gui`, `log_level` (see [Simulation](simulation.md)) |
+| `isaacbot_amr_world` | `isaacbot_amr_world.launch.py` | `gz_world`, `gz_gui`, `gz_headless_mode`, `gz_log_level` |
 
 Source: the launch files listed.
 
@@ -609,8 +609,8 @@ flowchart TB
 rad; lidar and GNSS default to the `body_link` origin. In simulation an optional static
 `world` → `isaacbot/odom` transform is added (`add_world_transform:=True`).
 
-Source: `isaacbot_description/urdf/ardennes/base.urdf.xacro`,
-`isaacbot_description/urdf/common/wheel.urdf.xacro`,
-`isaacbot_description/launch/isaacbot_load_urdf.launch.py`,
-`isaacbot_localization/config/rel_localization*.yaml`,
-`isaacbot_gazebo/launch/include/simulate_robot.launch.py`.
+Source: `isaacbot_amr_description/urdf/ardennes/base.urdf.xacro`,
+`isaacbot_amr_description/urdf/common/wheel.urdf.xacro`,
+`isaacbot_amr_description/launch/isaacbot_load_urdf.launch.py`,
+`isaacbot_amr_localization/config/rel_localization*.yaml`,
+`isaacbot_amr_gazebo/launch/include/simulate_robot.launch.py`.

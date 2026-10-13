@@ -23,7 +23,7 @@ This page lists the main hardware blocks of the Ardennes platform, how they conn
 | 15 | Router | RUTX11 Wi-Fi / GSM / GPS router | Platform LAN and Wi-Fi access point | Ethernet to the ROS controller, Wi-Fi to the LED/BMS controllers |
 | 16 | Power board and Power Guard | **TBD** | 24 V distribution. The Power Guard feeds the motor drivers | 24 V |
 
-Sources: `isaacbot_arch/ardennes_arch.drawio`, `isaacbot_safety/README.md`, `isaacbot_msgs/msg/AuxIoState.msg`, `isaacbot_description/urdf/ardennes/ardennes_macro.urdf.xacro`, `isaacbot_arch/SAFETY_CHAIN.md`, `isaacbot_hardware_interface/src/isaacbot_driver/ardennes_driver.cpp`, `isaacbot_hardware_interface/README.md`, `isaacbot_description/urdf/common/imu.urdf.xacro`, `isaacbot_battery/README.md`, `isaacbot_led/config/ardennes_udp_led_channel_2.yaml`, `isaacbot_battery/config/isaacbot_battery.yaml`, `isaacbot_led/README.md`, `isaacbot_led/config/ardennes_driver.yaml`, `isaacbot_led/config/ardennes_udp_led_channel_1.yaml`, `isaacbot_crsf_teleop/config/isaacbot_crsf_teleop.yaml`.
+Sources: `isaacbot_amr_arch/ardennes_arch.drawio`, `isaacbot_amr_safety/README.md`, `isaacbot_amr_msgs/msg/AuxIoState.msg`, `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro`, `isaacbot_amr_arch/SAFETY_CHAIN.md`, `isaacbot_amr_hardware_interface/src/isaacbot_driver/ardennes_driver.cpp`, `isaacbot_amr_hardware_interface/README.md`, `isaacbot_amr_description/urdf/common/imu.urdf.xacro`, `isaacbot_amr_battery/README.md`, `isaacbot_amr_led/config/ardennes_udp_led_channel_2.yaml`, `isaacbot_amr_battery/config/isaacbot_amr_battery.yaml`, `isaacbot_amr_led/README.md`, `isaacbot_amr_led/config/ardennes_driver.yaml`, `isaacbot_amr_led/config/ardennes_udp_led_channel_1.yaml`, `isaacbot_amr_crsf_teleop/config/isaacbot_amr_crsf_teleop.yaml`.
 
 The lidar and GNSS receiver are part of the sensor payload. They are documented in the `rover_sensors` repository, not here.
 
@@ -36,14 +36,14 @@ The A1 is a four-wheel-drive skid-steer platform. Each wheel has its own motor, 
 
 | Item | Value | Source |
 |------|-------|--------|
-| Drive layout | 4WD skid-steer, one motor per wheel | `isaacbot_controller/config/wheel_01_controller.yaml` |
-| Wheel type | Non-mecanum (`mecanum: False`), CAD part `WHEEL_CHUNK_1000_WATT_VARIANT`; tyre type **TBD** | `isaacbot_description/config/wheel_01.yaml` |
-| Tyre radius (CAD) | 0.1699 m | `isaacbot_description/config/wheel_01.yaml` |
-| Effective rolling radius (odometry) | 0.1651 m | `isaacbot_description/config/wheel_01.yaml`, `isaacbot_controller/config/wheel_01_controller.yaml` |
-| Wheel width | 0.108 m | `isaacbot_description/config/wheel_01.yaml` |
+| Drive layout | 4WD skid-steer, one motor per wheel | `isaacbot_amr_controller/config/wheel_01_controller.yaml` |
+| Wheel type | Non-mecanum (`mecanum: False`), CAD part `WHEEL_CHUNK_1000_WATT_VARIANT`; tyre type **TBD** | `isaacbot_amr_description/config/wheel_01.yaml` |
+| Tyre radius (CAD) | 0.1699 m | `isaacbot_amr_description/config/wheel_01.yaml` |
+| Effective rolling radius (odometry) | 0.1651 m | `isaacbot_amr_description/config/wheel_01.yaml`, `isaacbot_amr_controller/config/wheel_01_controller.yaml` |
+| Wheel width | 0.108 m | `isaacbot_amr_description/config/wheel_01.yaml` |
 | Gear ratio | 23.3 | `ardennes_macro.urdf.xacro` (`gear_ratio`) |
 | Gearbox efficiency | 0.70 | `ardennes_macro.urdf.xacro` (`gearbox_efficiency`) |
-| Encoder resolution | 1024 lines per motor revolution (the driver counts 4 edges per line) | `ardennes_macro.urdf.xacro` (`encoder_resolution`), `isaacbot_hardware_interface/src/domain/driver_data_snapshot.cpp`, `phidget_motor_driver.cpp` |
+| Encoder resolution | 1024 lines per motor revolution (the driver counts 4 edges per line) | `ardennes_macro.urdf.xacro` (`encoder_resolution`), `isaacbot_amr_hardware_interface/src/domain/driver_data_snapshot.cpp`, `phidget_motor_driver.cpp` |
 | Max motor speed | 2800 rpm | `ardennes_macro.urdf.xacro` (`max_rpm_motor_speed`) |
 | Motor torque constant | 0.11 N·m/A | `ardennes_macro.urdf.xacro` (`motor_torque_constant`) |
 | Motor stall current | 16 A at 24 V | comment on `motor_current_limit` in `ardennes_macro.urdf.xacro` |
@@ -55,7 +55,7 @@ The tyre radius and the odometry radius differ on purpose. The CAD radius places
 
 | Wheel | Joint | VINT hub port | Direction reversed | Source |
 |-------|-------|---------------|--------------------|--------|
-| Front left | `fl_wheel_base_to_fl_wheel_joint` | 0 | yes | `isaacbot_hardware_interface/src/isaacbot_driver/ardennes_driver.cpp` |
+| Front left | `fl_wheel_base_to_fl_wheel_joint` | 0 | yes | `isaacbot_amr_hardware_interface/src/isaacbot_driver/ardennes_driver.cpp` |
 | Front right | `fr_wheel_base_to_fr_wheel_joint` | 1 | no | same |
 | Rear left | `rl_wheel_base_to_rl_wheel_joint` | 4 | yes | same |
 | Rear right | `rr_wheel_base_to_rr_wheel_joint` | 5 | no | same |
@@ -64,7 +64,7 @@ The motors are DOBTIAN 250 W, 24 V, 120 RPM permanent-magnet brushed DC gear mot
 
 ## Block diagram
 
-The diagrams are redrawn from the "Ardennes System Definition" and network pages of `isaacbot_arch/ardennes_arch.drawio`, then checked against the code. Where the two disagree, the diagram follows the code (see the warning below).
+The diagrams are redrawn from the "Ardennes System Definition" and network pages of `isaacbot_amr_arch/ardennes_arch.drawio`, then checked against the code. Where the two disagree, the diagram follows the code (see the warning below).
 
 ### Power
 
@@ -83,7 +83,7 @@ flowchart LR
     EB["HW E-Stop button"] -->|24 V| PLC
 ```
 
-Source: `isaacbot_arch/ardennes_arch.drawio` (System Definition and Electrical Schematic pages). How the LED controllers, the router and the IMU are powered is **TBD**.
+Source: `isaacbot_amr_arch/ardennes_arch.drawio` (System Definition and Electrical Schematic pages). How the LED controllers, the router and the IMU are powered is **TBD**.
 
 ### Data
 
@@ -105,20 +105,20 @@ flowchart LR
     FLED --> FPANEL["Front SK9822 panel"]
 ```
 
-Source: `isaacbot_arch/ardennes_arch.drawio`, `isaacbot_battery/README.md`, `isaacbot_led/README.md`, `isaacbot_crsf_teleop/README.md`, `isaacbot_hardware_interface/README.md`. Addresses and ports are on [IO and network](io-and-network.md).
+Source: `isaacbot_amr_arch/ardennes_arch.drawio`, `isaacbot_amr_battery/README.md`, `isaacbot_amr_led/README.md`, `isaacbot_amr_crsf_teleop/README.md`, `isaacbot_amr_hardware_interface/README.md`. Addresses and ports are on [IO and network](io-and-network.md).
 
 !!! warning "Source conflict"
-    The hardware part of the diagram `isaacbot_arch/ardennes_arch.drawio` still connects the battery monitor to the controller over **RS485/RS232**. The code receives BMS data over **UDP** from the ESP32 bridge, which reads the Daly BMS over BLE (`isaacbot_battery/README.md`, `isaacbot_battery/launch/isaacbot_battery.launch.py`). The software part of the diagram shows `isaacbot_battery` on a UDP socket. This page follows the code.
+    The hardware part of the diagram `isaacbot_amr_arch/ardennes_arch.drawio` still connects the battery monitor to the controller over **RS485/RS232**. The code receives BMS data over **UDP** from the ESP32 bridge, which reads the Daly BMS over BLE (`isaacbot_amr_battery/README.md`, `isaacbot_amr_battery/launch/isaacbot_amr_battery.launch.py`). The software part of the diagram shows `isaacbot_amr_battery` on a UDP socket. This page follows the code.
 
 ## Datasheets and protocol documents
 
 | Document | Covers |
 |----------|--------|
-| [DCC1000_reference.pdf](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_hardware_interface/docs/DCC1000_reference.pdf) | Phidget DCC1000 DC motor controller |
-| [MOT0110_reference.pdf](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_hardware_interface/docs/MOT0110_reference.pdf) | Phidgets Spatial MOT0110 IMU |
-| [Part 3 - Daly CAN Protocol.pdf](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_battery/docs/Part%203%20-%20Daly%20CAN%20Protocol.pdf) | Daly BMS CAN protocol |
-| [Part 4 - Daly RS485+UART Protocol.pdf](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_battery/docs/Part%204%20-%20Daly%20RS485%2BUART%20Protocol.pdf) | Daly BMS RS485/UART protocol (data units used by the bridge) |
+| [DCC1000_reference.pdf](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_hardware_interface/docs/DCC1000_reference.pdf) | Phidget DCC1000 DC motor controller |
+| [MOT0110_reference.pdf](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_hardware_interface/docs/MOT0110_reference.pdf) | Phidgets Spatial MOT0110 IMU |
+| [Part 3 - Daly CAN Protocol.pdf](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_battery/docs/Part%203%20-%20Daly%20CAN%20Protocol.pdf) | Daly BMS CAN protocol |
+| [Part 4 - Daly RS485+UART Protocol.pdf](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_battery/docs/Part%204%20-%20Daly%20RS485%2BUART%20Protocol.pdf) | Daly BMS RS485/UART protocol (data units used by the bridge) |
 
 Datasheets for the Portenta Machine Control, the motors and the MT6835 encoder board, the ELRS receiver, the VINT hub and the router are not in the repository (**TBD**).
 
-Further reading: [isaacbot_hardware_interface README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_hardware_interface/README.md), [isaacbot_description README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_description/README.md), [isaacbot_arch README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_arch/README.md).
+Further reading: [isaacbot_amr_hardware_interface README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_hardware_interface/README.md), [isaacbot_amr_description README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_description/README.md), [isaacbot_amr_arch README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_arch/README.md).

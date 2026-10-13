@@ -1,0 +1,130 @@
+// Copyright 2025 Mechatronics Academy
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#ifndef ISAACBOT_SAFETY_LED_SAFETY_NODE_HPP_
+#define ISAACBOT_SAFETY_LED_SAFETY_NODE_HPP_
+
+#include <chrono>
+#include <cstddef>
+#include <memory>
+#include <optional>
+#include <string>
+
+#include <behaviortree_cpp/behavior_tree.h>
+#include "behaviortree_cpp/bt_factory.h"
+#include "diagnostic_updater/diagnostic_updater.hpp"
+#include "rclcpp/rclcpp.hpp"
+#include <nav2_ros_common/lifecycle_node.hpp>
+
+#include "sensor_msgs/msg/battery_state.hpp"
+#include "sensor_msgs/msg/joy.hpp"
+#include "std_msgs/msg/bool.hpp"
+
+#include "isaacbot_amr_msgs/msg/led_animation.hpp"
+#include "isaacbot_amr_msgs/msg/safety_status.hpp"
+
+#include "isaacbot_amr_safety/behavior_tree.hpp"
+#include "isaacbot_amr_safety/domain/led_animation_policy.hpp"
+#include "isaacbot_amr_safety/infrastructure/configure_retry.hpp"
+#include "isaacbot_amr_safety/led_safety_parameters.hpp"
+
+namespace isaacbot_amr_safety
+{
+
+using BatteryStateMsg = sensor_msgs::msg::BatteryState;
+using BoolMsg = std_msgs::msg::Bool;
+using LedAnimationMsg = isaacbot_amr_msgs::msg::LedAnimation;
+using JoyMsg = sensor_msgs::msg::Joy;
+// The physical E-Stop button is plant state, so it comes from SafetyStatus.
+using GpioMsg = isaacbot_amr_msgs::msg::SafetyStatus;
+
+class LedSafetyNode : public nav2::LifecycleNode
+{
+
+public:
+  
+    LedSafetyNode(
+        const std::string & node_name, 
+        const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
+    
+    ~LedSafetyNode() 
+    {
+
+    }
+
+    void init();
+
+protected:
+
+    nav2::CallbackReturn on_configure(const rclcpp_lifecycle::State & previous_state) override;
+
+    void declareParameters();
+
+    void registerBehaviorTree();
+
+    std::map<std::string, std::any> createLedInitialBlackboard();
+
+    bool systemReady();
+
+    std::unique_ptr<BehaviorTreeSafety> led_tree_;
+
+private:
+  
+    void batteryCallback(const BatteryStateMsg::SharedPtr battery);
+    
+    void gpioCallback(const GpioMsg::SharedPtr gpio_state);
+    
+    void joyCallback(const JoyMsg::SharedPtr joy);
+    
+    void ledTreeTimerCallback();
+
+    // Evaluates the LED animation policy on led_inputs_ and writes the led_* verdicts the tree reads.
+    domain::LedAnimationDecision updateLedVerdicts();
+
+    // Diagnostics (hardware ID "Bumper Led"), on the node's single-threaded executor.
+    void diagnoseInputs(diagnostic_updater::DiagnosticStatusWrapper & status);
+    void diagnoseBehaviorTree(diagnostic_updater::DiagnosticStatusWrapper & status);
+
+    static constexpr std::size_t kDeadManButtonIndex = 4;
+
+    std::shared_ptr<led_safety::ParamListener> param_listener_;
+    led_safety::Params params_;
+
+    rclcpp::Subscription<BatteryStateMsg>::SharedPtr battery_sub_;
+    rclcpp::Subscription<GpioMsg>::SharedPtr gpio_sub_;
+    rclcpp::Subscription<JoyMsg>::SharedPtr joy_sub_;
+    rclcpp::TimerBase::SharedPtr led_tree_timer_;
+
+    domain::LedSafetyInputs led_inputs_;
+    domain::LedBatteryThresholds led_thresholds_{};
+
+    std::unique_ptr<BT::BehaviorTreeFactory> factory_;
+
+    using SteadyTime = std::chrono::steady_clock::time_point;
+    std::optional<SteadyTime> last_battery_stamp_;
+    std::optional<SteadyTime> last_gpio_stamp_;
+    std::optional<SteadyTime> last_joy_stamp_;
+    bool system_ready_{false};
+    // Set only once init() completed; a configure that threw leaves a half-built tree behind.
+    bool configured_{false};
+
+    std::unique_ptr<infrastructure::ConfigureRetry> configure_retry_;
+
+    // Last member: destroyed first, so its timer never runs a task on a half-destroyed node.
+    std::unique_ptr<diagnostic_updater::Updater> diagnostic_updater_;
+};
+
+}  // namespace isaacbot_amr_safety
+
+#endif  // ISAACBOT_SAFETY_LED_SAFETY_NODE_HPP_

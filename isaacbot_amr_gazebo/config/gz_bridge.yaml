@@ -1,0 +1,97 @@
+# For detailed information on configuring the parameter_bridge, please refer to:
+# https://github.com/gazebosim/ros_gz/tree/ros2/ros_gz_bridge#example-5-configuring-the-bridge-via-yaml
+#
+# <namespace> is replaced by simulate_robot.launch.py. The ROS side mirrors what the real
+# isaacbot publishes, so the orchestrator runs unchanged against the simulation.
+
+- topic_name: /clock
+  ros_type_name: rosgraph_msgs/msg/Clock
+  gz_type_name: gz.msgs.Clock
+  direction: GZ_TO_ROS
+
+# Gazebo GUI Teleop -> twist_mux teleop input (same priority as the Foxglove joystick).
+- ros_topic_name: /<namespace>/teleop_foxglove_cmd_vel_stamped
+  gz_topic_name: /<namespace>/teleop_gz_cmd_vel
+  ros_type_name: geometry_msgs/msg/TwistStamped
+  gz_type_name: gz.msgs.Twist
+  direction: GZ_TO_ROS
+
+# Lidar (RS16 stand-in): the point cloud the rover_rs16_lidar driver publishes.
+# <namespace>/scan is sliced out of it by pointcloud_to_laserscan.
+- ros_topic_name: /<namespace>/rslidar_points
+  gz_topic_name: /<namespace>/lidar/points
+  ros_type_name: sensor_msgs/msg/PointCloud2
+  gz_type_name: gz.msgs.PointCloudPacked
+  direction: GZ_TO_ROS
+
+# Depth camera (RealSense D435i stand-in, ISAACBOT_SYSTEM_USE_CAMERA): the cloud rover_sensors'
+# rover_realsense (depth_image_proc) publishes. Without the camera nothing is published on the gz side.
+- ros_topic_name: /<namespace>/camera/depth/points
+  gz_topic_name: /<namespace>/camera/depth/points
+  ros_type_name: sensor_msgs/msg/PointCloud2
+  gz_type_name: gz.msgs.PointCloudPacked
+  direction: GZ_TO_ROS
+
+# GNSS (RUTX11 stand-in): the fix the rover_gps driver publishes.
+- ros_topic_name: /<namespace>/gps/fix
+  gz_topic_name: /<namespace>/gps/fix
+  ros_type_name: sensor_msgs/msg/NavSatFix
+  gz_type_name: gz.msgs.NavSat
+  direction: GZ_TO_ROS
+
+# Gazebo GUI "Isaacbot Safety" panel (isaacbot_amr_gazebo_plugins) -> sim_safety_plc: the maintained
+# HW E-Stop button and the SW E-Stop / SW reset / latch reset buttons.
+- ros_topic_name: /<namespace>/sim_safety/hw_e_stop_button
+  gz_topic_name: /<namespace>/sim_safety/hw_e_stop_button
+  ros_type_name: std_msgs/msg/Bool
+  gz_type_name: gz.msgs.Boolean
+  direction: GZ_TO_ROS
+
+- ros_topic_name: /<namespace>/sim_safety/sw_e_stop_set
+  gz_topic_name: /<namespace>/sim_safety/sw_e_stop_set
+  ros_type_name: std_msgs/msg/Empty
+  gz_type_name: gz.msgs.Empty
+  direction: GZ_TO_ROS
+
+- ros_topic_name: /<namespace>/sim_safety/sw_e_stop_reset
+  gz_topic_name: /<namespace>/sim_safety/sw_e_stop_reset
+  ros_type_name: std_msgs/msg/Empty
+  gz_type_name: gz.msgs.Empty
+  direction: GZ_TO_ROS
+
+- ros_topic_name: /<namespace>/sim_safety/latch_reset
+  gz_topic_name: /<namespace>/sim_safety/latch_reset
+  ros_type_name: std_msgs/msg/Empty
+  gz_type_name: gz.msgs.Empty
+  direction: GZ_TO_ROS
+
+# sim_safety_plc / isaacbot_motion_lock_node -> the panel's lamps and result line.
+- ros_topic_name: /<namespace>/sim_safety/sw_e_stop
+  gz_topic_name: /<namespace>/sim_safety/sw_e_stop
+  ros_type_name: std_msgs/msg/Bool
+  gz_type_name: gz.msgs.Boolean
+  direction: ROS_TO_GZ
+
+- ros_topic_name: /<namespace>/sim_safety/latch_active
+  gz_topic_name: /<namespace>/sim_safety/latch_active
+  ros_type_name: std_msgs/msg/Bool
+  gz_type_name: gz.msgs.Boolean
+  direction: ROS_TO_GZ
+
+- ros_topic_name: /<namespace>/sim_safety/contactor_engaged
+  gz_topic_name: /<namespace>/sim_safety/contactor_engaged
+  ros_type_name: std_msgs/msg/Bool
+  gz_type_name: gz.msgs.Boolean
+  direction: ROS_TO_GZ
+
+- ros_topic_name: /<namespace>/motion_lock
+  gz_topic_name: /<namespace>/motion_lock
+  ros_type_name: std_msgs/msg/Bool
+  gz_type_name: gz.msgs.Boolean
+  direction: ROS_TO_GZ
+
+- ros_topic_name: /<namespace>/sim_safety/result
+  gz_topic_name: /<namespace>/sim_safety/result
+  ros_type_name: std_msgs/msg/String
+  gz_type_name: gz.msgs.StringMsg
+  direction: ROS_TO_GZ

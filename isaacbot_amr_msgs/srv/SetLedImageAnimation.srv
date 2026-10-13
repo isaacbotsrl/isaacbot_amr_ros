@@ -1,0 +1,7 @@
+isaacbot_amr_msgs/LedImageAnimation front
+isaacbot_amr_msgs/LedImageAnimation rear
+bool interrupting
+bool repeating
+---
+bool success
+string message

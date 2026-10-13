@@ -8,20 +8,20 @@ ROS names on this page are relative to the robot namespace `isaacbot`. For examp
 
 | Item | Value | Source |
 |------|-------|--------|
-| Chemistry | LiFePO4 (`POWER_SUPPLY_TECHNOLOGY_LIFE`) | `isaacbot_battery/src/infrastructure/battery_msg_conversions.cpp`; drawio label `LiPoFe4` |
-| Nominal voltage | 24 V | `isaacbot_arch/ardennes_arch.drawio` (battery and power board links) |
-| Design capacity | 40 Ah | `isaacbot_battery/config/isaacbot_battery.yaml` (`design_capacity`) |
-| Reported serial number | `224KA141600043` | `isaacbot_battery/config/isaacbot_battery.yaml` (`serial_number`) |
-| Cell count | Reported by the BMS at runtime; pack value **TBD** | `isaacbot_battery/include/isaacbot_battery/domain/bms_frame.hpp` |
-| BMS | Daly, model **TBD** | `isaacbot_battery/README.md` |
-| Main switch | "Disable Power Switch" on the battery monitor; part and location **TBD** | `isaacbot_arch/ardennes_arch.drawio` |
+| Chemistry | LiFePO4 (`POWER_SUPPLY_TECHNOLOGY_LIFE`) | `isaacbot_amr_battery/src/infrastructure/battery_msg_conversions.cpp`; drawio label `LiPoFe4` |
+| Nominal voltage | 24 V | `isaacbot_amr_arch/ardennes_arch.drawio` (battery and power board links) |
+| Design capacity | 40 Ah | `isaacbot_amr_battery/config/isaacbot_amr_battery.yaml` (`design_capacity`) |
+| Reported serial number | `224KA141600043` | `isaacbot_amr_battery/config/isaacbot_amr_battery.yaml` (`serial_number`) |
+| Cell count | Reported by the BMS at runtime; pack value **TBD** | `isaacbot_amr_battery/include/isaacbot_amr_battery/domain/bms_frame.hpp` |
+| BMS | Daly, model **TBD** | `isaacbot_amr_battery/README.md` |
+| Main switch | "Disable Power Switch" on the battery monitor; part and location **TBD** | `isaacbot_amr_arch/ardennes_arch.drawio` |
 | Runtime | **TBD** (no measured figure on hardware) | none |
 
 !!! note "Simulation values"
-    `isaacbot_description/config/battery.yaml` and `urdf/common/battery.urdf.xacro` configure the Gazebo `LinearBatteryPlugin`. They are **simulation only** and do not describe the real pack: 40 Ah, 70 % initial charge, 8 h charging time, 160 W constant load ("about 6 hours"), 41.4 V.
+    `isaacbot_amr_description/config/battery.yaml` and `urdf/common/battery.urdf.xacro` configure the Gazebo `LinearBatteryPlugin`. They are **simulation only** and do not describe the real pack: 40 Ah, 70 % initial charge, 8 h charging time, 160 W constant load ("about 6 hours"), 41.4 V.
 
 !!! warning "Source conflict"
-    The simulated battery uses 41.4 V (`isaacbot_description/urdf/common/battery.urdf.xacro`). The real platform is 24 V (`isaacbot_arch/ardennes_arch.drawio`, `motor_supply_voltage` 24.0 in `isaacbot_description/urdf/ardennes/ardennes_macro.urdf.xacro`). Only the simulation uses 41.4 V.
+    The simulated battery uses 41.4 V (`isaacbot_amr_description/urdf/common/battery.urdf.xacro`). The real platform is 24 V (`isaacbot_amr_arch/ardennes_arch.drawio`, `motor_supply_voltage` 24.0 in `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro`). Only the simulation uses 41.4 V.
 
 ## Power distribution
 
@@ -52,20 +52,20 @@ flowchart LR
 
 | Item | Value | Source |
 |------|-------|--------|
-| UDP endpoint (bind address on the ROS controller) | `192.168.1.201:4444` | `isaacbot_battery/config/isaacbot_battery.yaml` |
-| Payload | 392 bytes (385 data + 7 alarm bytes) | `isaacbot_battery/include/isaacbot_battery/domain/bms_frame.hpp` |
-| BMS watchdog | 10000 ms without a valid frame | `isaacbot_battery/config/isaacbot_battery.yaml` (`watchdog_timeout_ms`) |
+| UDP endpoint (bind address on the ROS controller) | `192.168.1.201:4444` | `isaacbot_amr_battery/config/isaacbot_amr_battery.yaml` |
+| Payload | 392 bytes (385 data + 7 alarm bytes) | `isaacbot_amr_battery/include/isaacbot_amr_battery/domain/bms_frame.hpp` |
+| BMS watchdog | 10000 ms without a valid frame | `isaacbot_amr_battery/config/isaacbot_amr_battery.yaml` (`watchdog_timeout_ms`) |
 | Frame rate from the bridge | **TBD** (set by the ESP32 firmware) | none |
 
 | Topic | Type | QoS | Content |
 |-------|------|-----|---------|
 | `battery/battery_status` | `sensor_msgs/BatteryState` | depth 5 | Voltage, current, SoC, residual charge (Ah), hottest temperature sensor, cell voltages (V), status, health |
-| `battery/charging_status` | `isaacbot_msgs/ChargingStatus` | depth 5 | `charging` (BMS status 1), pack current, charger type `WIRED` while charging |
+| `battery/charging_status` | `isaacbot_amr_msgs/ChargingStatus` | depth 5 | `charging` (BMS status 1), pack current, charger type `WIRED` while charging |
 | `diagnostics` | `diagnostic_msgs/DiagnosticArray` | default | Hardware id `IsaacbotBattery`: tasks `Battery errors`, `Battery status` |
 
-Source: `isaacbot_battery/src/infrastructure/ros2_battery_state_publisher.cpp`, `isaacbot_battery/src/domain/battery_classifier.cpp`.
+Source: `isaacbot_amr_battery/src/infrastructure/ros2_battery_state_publisher.cpp`, `isaacbot_amr_battery/src/domain/battery_classifier.cpp`.
 
-Status and health mapping in `isaacbot_battery`:
+Status and health mapping in `isaacbot_amr_battery`:
 
 | BatteryState field | Rule |
 |--------------------|------|
@@ -76,14 +76,14 @@ Status and health mapping in `isaacbot_battery`:
 | `temperature` | Hottest sensor (`tempMax`), so one hot cell is enough to trip a threshold |
 | `capacity` | NaN: the BMS does not report the last full capacity |
 
-Source: `isaacbot_battery/src/domain/battery_classifier.cpp`.
+Source: `isaacbot_amr_battery/src/domain/battery_classifier.cpp`.
 
 The bridge sends an all-zero frame when it has no BMS data. The node ignores that frame and wrong-size packets. After 10 s without a valid frame it publishes `present: false`, health `WATCHDOG_TIMER_EXPIRE`, status `UNKNOWN`, and NaN for charge, capacity and percentage.
 
 !!! warning
-    A silent BMS trips the software E-Stop. The watchdog state maps to health `WATCHDOG_TIMER_EXPIRE`, and `isaacbot_safety` answers that with `TRIP_E_STOP` (see below). If the ESP32 bridge or its Wi-Fi link is down for 10 s, the isaacbot stops.
+    A silent BMS trips the software E-Stop. The watchdog state maps to health `WATCHDOG_TIMER_EXPIRE`, and `isaacbot_amr_safety` answers that with `TRIP_E_STOP` (see below). If the ESP32 bridge or its Wi-Fi link is down for 10 s, the isaacbot stops.
 
-More detail: [isaacbot_battery README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_battery/README.md).
+More detail: [isaacbot_amr_battery README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_battery/README.md).
 
 ## Battery thresholds
 
@@ -98,9 +98,9 @@ More detail: [isaacbot_battery README](https://github.com/isaacbotsrl/isaacbot_a
 | Health `OVERHEAT` and temperature above 50.0 °C (`battery.temp.critical`) | `TRIP_E_STOP` | Calls `hardware_interface/sw_user_e_stop_set` |
 | Anything else | none | none |
 
-Source: `isaacbot_safety/src/domain/battery_safety_policy.cpp`, `isaacbot_safety/config/isaacbot_safety.yaml`.
+Source: `isaacbot_amr_safety/src/domain/battery_safety_policy.cpp`, `isaacbot_amr_safety/config/isaacbot_amr_safety.yaml`.
 
-The temperature limits apply only when the BMS has raised an overheat alarm. `isaacbot_safety` does not trip on low SoC by itself: low SoC acts through the BMS `DEAD` health. The CPU and driver temperature parameters in `isaacbot_safety.yaml` (`cpu.temp.*`, `driver.temp.*`) are declared but not used.
+The temperature limits apply only when the BMS has raised an overheat alarm. `isaacbot_amr_safety` does not trip on low SoC by itself: low SoC acts through the BMS `DEAD` health. The CPU and driver temperature parameters in `isaacbot_amr_safety.yaml` (`cpu.temp.*`, `driver.temp.*`) are declared but not used.
 
 ### LED indications (`isaacbot_led_safety_node`)
 
@@ -113,7 +113,7 @@ The temperature limits apply only when the BMS has raised an overheat alarm. `is
 | Status `UNKNOWN` (includes the BMS watchdog) | `ERROR` | none |
 | Charging and health `OVERHEAT` | `ERROR` | none |
 
-Source: `isaacbot_safety/config/led_safety.yaml`, `isaacbot_safety/README.md`. The animations themselves are described in [Teleop and LEDs](../software/teleop-and-leds.md).
+Source: `isaacbot_amr_safety/config/led_safety.yaml`, `isaacbot_amr_safety/README.md`. The animations themselves are described in [Teleop and LEDs](../software/teleop-and-leds.md).
 
 ## Shutdown and power-down
 
@@ -131,19 +131,19 @@ The `IsaacbotShutdown` behavior tree then runs:
 
 | Parameter | Value | Source |
 |-----------|-------|--------|
-| `shutdown.command_timeout` | 15.0 s | `isaacbot_safety/config/isaacbot_safety.yaml` |
+| `shutdown.command_timeout` | 15.0 s | `isaacbot_amr_safety/config/isaacbot_amr_safety.yaml` |
 | `shutdown.retry_backoff` | 30.0 s | same |
 | `shutdown.service_enabled` | `true` | same |
 
-The script can also be run by hand when the ROS stack is down: `ros2 run isaacbot_safety shutdown_ros_controller.sh --reason "Maintenance"`.
+The script can also be run by hand when the ROS stack is down: `ros2 run isaacbot_amr_safety shutdown_ros_controller.sh --reason "Maintenance"`.
 
 !!! note
     The sequence powers off the ROS controller only. The safety PLC, the power board, the motor drivers, the LED controllers and the router stay powered. The ESP32 bridge can be added to `shutdown_hosts.yaml` (example address `192.168.77.201`, port 3003), but no host is configured. How to cut main power, and the safe power-down order for the remaining devices, are **TBD**.
 
-More detail: [isaacbot_safety README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_safety/README.md), [Safety](../safety.md).
+More detail: [isaacbot_amr_safety README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_safety/README.md), [Safety](../safety.md).
 
 ## Charging
 
-`isaacbot_battery` reports charging from the BMS charge/discharge status and marks the charger as `WIRED`. The charger model, charging voltage and current, charge connector, charging time and charging procedure are **TBD**: none of them are in the repository.
+`isaacbot_amr_battery` reports charging from the BMS charge/discharge status and marks the charger as `WIRED`. The charger model, charging voltage and current, charge connector, charging time and charging procedure are **TBD**: none of them are in the repository.
 
-Source: `isaacbot_battery/src/domain/battery_classifier.cpp`.
+Source: `isaacbot_amr_battery/src/domain/battery_classifier.cpp`.

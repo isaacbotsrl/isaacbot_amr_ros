@@ -80,7 +80,7 @@ and the payload sensors (lidar, GNSS, cameras) live in other repositories:
 ## Gallery
 
 Photos of the real isaacbot are **TBD**. The images in this manual are rendered from the URDF
-meshes (`isaacbot_description/meshes/`) with `docs/tools/render_meshes.py`.
+meshes (`isaacbot_amr_description/meshes/`) with `docs/tools/render_meshes.py`.
 
 <div class="grid" markdown>
 

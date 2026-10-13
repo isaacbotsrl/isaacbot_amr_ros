@@ -25,10 +25,10 @@ flowchart LR
 1. **`twist_mux`** (`isaacbot_twist_mux_node`) is the only publisher of `cmd_vel`. The highest-priority fresh input wins.
 2. **`isaacbot_motion_lock_node`** closes the mux on any E-Stop or stale safety state. **`isaacbot_command_freshness_node`** drops Driver UI commands that arrive late.
 3. **`isaacbot_drive_controller`** (`diff_drive_controller/DiffDriveController`) turns `cmd_vel` into left and right wheel speeds and publishes wheel odometry.
-4. **Four `isaacbot_controller/SeededPidController`s** close the speed loop on each wheel's encoder velocity.
-5. **`isaacbot_hardware_interface/ArdennesSystem`** sends the velocity commands to four Phidget DCC1000 motor controllers and owns the safety PLC link.
+4. **Four `isaacbot_amr_controller/SeededPidController`s** close the speed loop on each wheel's encoder velocity.
+5. **`isaacbot_amr_hardware_interface/ArdennesSystem`** sends the velocity commands to four Phidget DCC1000 motor controllers and owns the safety PLC link.
 
-Source: `isaacbot_twist_mux/config/isaacbot_twist_mux.yaml`, `isaacbot_twist_mux/launch/isaacbot_twist_mux.launch.py`, `isaacbot_controller/config/wheel_01_controller.yaml`, `isaacbot_hardware_interface/README.md`.
+Source: `isaacbot_amr_twist_mux/config/isaacbot_amr_twist_mux.yaml`, `isaacbot_amr_twist_mux/launch/isaacbot_amr_twist_mux.launch.py`, `isaacbot_amr_controller/config/wheel_01_controller.yaml`, `isaacbot_amr_hardware_interface/README.md`.
 
 ## Command arbitration (twist_mux)
 
@@ -36,7 +36,7 @@ All inputs are `geometry_msgs/TwistStamped` (`use_stamped: true`). The launch fi
 
 | Input | Topic | Priority | Timeout | Source |
 |---|---|---:|---:|---|
-| `cmd_elrs` | `teleop_elrs_cmd_vel_stamped` | 110 | 0.5 s | ELRS RC teleop (`isaacbot_crsf_teleop`) |
+| `cmd_elrs` | `teleop_elrs_cmd_vel_stamped` | 110 | 0.5 s | ELRS RC teleop (`isaacbot_amr_crsf_teleop`) |
 | `joystick` | `teleop_foxglove_cmd_vel_stamped` | 100 | 0.5 s | Foxglove virtual joystick, calibration tools |
 | `driver_interface` | `teleop_driver_interface_cmd_vel_fresh_stamped` | 8 | 0.3 s | Driver UI, via `isaacbot_command_freshness_node` |
 | `nav` | `nav_cmd_vel_stamped` | 5 | 0.5 s | Nav 2 (orchestrator computer) |
@@ -49,7 +49,7 @@ An input is masked when its priority is below the lock's, so at 200 an active lo
 
 The Driver UI, the drive modes and Nav 2 live in other repositories (`rover_drive_interface`, `rover_orchestrator`).
 
-Source: `isaacbot_twist_mux/config/isaacbot_twist_mux.yaml`, `isaacbot_twist_mux/README.md`.
+Source: `isaacbot_amr_twist_mux/config/isaacbot_amr_twist_mux.yaml`, `isaacbot_amr_twist_mux/README.md`.
 
 ### Motion lock
 
@@ -65,7 +65,7 @@ Source: `isaacbot_twist_mux/config/isaacbot_twist_mux.yaml`, `isaacbot_twist_mux
 | `use_sw_e_stop_latch_status` | `true` | Latched relay locks |
 | `require_motor_contactor_engaged` | `false` | Contactor open locks (unverified on hardware, off) |
 
-Source: `isaacbot_twist_mux/config/isaacbot_motion_lock.yaml`. See [Safety](../safety.md#motion-gates) for the full gate list.
+Source: `isaacbot_amr_twist_mux/config/isaacbot_motion_lock.yaml`. See [Safety](../safety.md#motion-gates) for the full gate list.
 
 ### Command freshness
 
@@ -81,7 +81,7 @@ The Driver UI's commands cross a websocket, which can hold them during a Wi-Fi s
 
 It reports a `Command freshness` diagnostic, WARN while it is dropping commands.
 
-Source: `isaacbot_twist_mux/config/isaacbot_command_freshness.yaml`, `isaacbot_twist_mux/README.md`.
+Source: `isaacbot_amr_twist_mux/config/isaacbot_command_freshness.yaml`, `isaacbot_amr_twist_mux/README.md`.
 
 ## Kinematic limits
 
@@ -98,14 +98,14 @@ Source: `isaacbot_twist_mux/config/isaacbot_command_freshness.yaml`, `isaacbot_t
 | Wheel joint velocity limit (URDF) | 10.958 rad/s |
 | Hardware full-duty wheel speed (PID `u_clamp`) | 12.58 rad/s |
 
-Source: `isaacbot_controller/config/wheel_01_controller.yaml`, `isaacbot_description/urdf/common/wheel.urdf.xacro`.
+Source: `isaacbot_amr_controller/config/wheel_01_controller.yaml`, `isaacbot_amr_description/urdf/common/wheel.urdf.xacro`.
 
 Because the two axes are limited separately, the outer wheel's rim speed can reach v + ω × (effective track) / 2. The config comment gives 0.95 + 1.5 × 0.5102 = 1.715 m/s (10.39 rad/s at r = 0.1651 m), under the URDF joint limit. RC teleop additionally scales stick commands so the outer rim stays under `max_wheel_rim_speed` (1.7 m/s).
 
 `test/test_wheel_geometry.py` checks two budgets. The outer wheel reference must stay under the URDF joint limit (10.39 ≤ 10.958 rad/s). The reference plus the PID's full integral must stay under full duty: 10.39 + `i_clamp_max` 2.0 = 12.39 ≤ `u_clamp_max` 12.58 rad/s.
 
 !!! warning "Source conflict"
-    The effective track width is `wheel_separation` × `wheel_separation_multiplier` = 0.617 × 1.659 = 1.0236 m from `isaacbot_controller/config/wheel_01_controller.yaml`. The comment in the same file says the product is 1.020 m (it assumes a separation of 0.615 m), and `isaacbot_crsf_teleop/config/isaacbot_crsf_teleop.yaml` uses `effective_track_width: 1.0204` (0.62602 × 1.63). The controller uses 0.617 × 1.659.
+    The effective track width is `wheel_separation` × `wheel_separation_multiplier` = 0.617 × 1.659 = 1.0236 m from `isaacbot_amr_controller/config/wheel_01_controller.yaml`. The comment in the same file says the product is 1.020 m (it assumes a separation of 0.615 m), and `isaacbot_amr_crsf_teleop/config/isaacbot_amr_crsf_teleop.yaml` uses `effective_track_width: 1.0204` (0.62602 × 1.63). The controller uses 0.617 × 1.659.
 
 ## Rates
 
@@ -119,9 +119,9 @@ Because the two axes are limited separately, the outer wheel's rim speed can rea
 | Encoder updates (DCC1000) | 10 Hz (every 100 ms at most) | |
 | EKF (`isaacbot_ekf_node`) | 50 Hz | |
 
-Every controller rate must divide the manager's 50 Hz (`isaacbot_controller/test/test_wheel_geometry.py`).
+Every controller rate must divide the manager's 50 Hz (`isaacbot_amr_controller/test/test_wheel_geometry.py`).
 
-Source: `isaacbot_controller/config/wheel_01_controller.yaml`, `isaacbot_controller/README.md`, `isaacbot_description/urdf/ardennes/ardennes_macro.urdf.xacro`, `isaacbot_localization/config/rel_localization.yaml`.
+Source: `isaacbot_amr_controller/config/wheel_01_controller.yaml`, `isaacbot_amr_controller/README.md`, `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro`, `isaacbot_amr_localization/config/rel_localization.yaml`.
 
 ## Wheel geometry and the separation multiplier
 
@@ -133,13 +133,13 @@ Source: `isaacbot_controller/config/wheel_01_controller.yaml`, `isaacbot_control
 | `wheel_separation_multiplier` | 1.659 |
 | `left_wheel_radius_multiplier` / `right_wheel_radius_multiplier` | 1.0 / 1.0 |
 
-Source: `isaacbot_controller/config/wheel_01_controller.yaml`, `isaacbot_description/config/wheel_01.yaml` (must match, enforced by `test/test_wheel_geometry.py`).
+Source: `isaacbot_amr_controller/config/wheel_01_controller.yaml`, `isaacbot_amr_description/config/wheel_01.yaml` (must match, enforced by `test/test_wheel_geometry.py`).
 
 **Why the multiplier exists.** The Ardennes is a four-wheel skid-steer platform. When it turns, the wheels slip sideways, so the body turns more slowly than an ideal two-wheel differential drive with the same track would. `diff_drive_controller` models the ideal case. `wheel_separation_multiplier` scales the track to an effective value so the wheel speeds commanded for a turn, and the yaw rate the odometry reports, match the real rotation. The value depends on the surface. Measure it with `wheel_odom_calibration` (below) on the surface the isaacbot mostly drives on.
 
 ## Odometry
 
-`isaacbot_drive_controller` publishes wheel odometry on `odometry/wheels` (frame `odom` to `base_footprint`) and **does not publish TF** (`enable_odom_tf: false`). The EKF in `isaacbot_localization` (`isaacbot_ekf_node`, `robot_localization`) fuses the wheel body velocities (vx, vy) with the IMU yaw rate, publishes the `odom` → `base_footprint` transform and the filtered odometry on `odom`.
+`isaacbot_drive_controller` publishes wheel odometry on `odometry/wheels` (frame `odom` to `base_footprint`) and **does not publish TF** (`enable_odom_tf: false`). The EKF in `isaacbot_amr_localization` (`isaacbot_ekf_node`, `robot_localization`) fuses the wheel body velocities (vx, vy) with the IMU yaw rate, publishes the `odom` → `base_footprint` transform and the filtered odometry on `odom`.
 
 | Item | Value |
 |---|---|
@@ -149,7 +149,7 @@ Source: `isaacbot_controller/config/wheel_01_controller.yaml`, `isaacbot_descrip
 | EKF TF | `odom` → `base_footprint` (`publish_tf: true`) |
 | EKF inputs | `odometry/wheels` (vx, vy), `imu/data` (yaw rate) |
 
-Source: `isaacbot_controller/config/wheel_01_controller.yaml`, `isaacbot_localization/config/rel_localization.yaml`, `isaacbot_localization/launch/isaacbot_localization.launch.py`.
+Source: `isaacbot_amr_controller/config/wheel_01_controller.yaml`, `isaacbot_amr_localization/config/rel_localization.yaml`, `isaacbot_amr_localization/launch/isaacbot_amr_localization.launch.py`.
 
 ## Hardware interface
 
@@ -168,14 +168,14 @@ Source: `isaacbot_controller/config/wheel_01_controller.yaml`, `isaacbot_localiz
 
 On any E-Stop or latched fault, `write()` keeps sending **zero** commands so the DCC1000 watchdog stays fed. A tripped motor watchdog is latched and is cleared only by `hardware_interface/sw_e_stop_latch_reset`.
 
-Source: `isaacbot_description/urdf/ardennes/ardennes_macro.urdf.xacro`, `isaacbot_hardware_interface/README.md`.
+Source: `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro`, `isaacbot_amr_hardware_interface/README.md`.
 
 !!! note "URDF comment conflict"
     The URDF comment for `motor_current_limit` describes 10 A, but the value set is 15.0 A. The hardware interface uses 15.0 A.
 
 ## Wheel PID controller
 
-Each wheel has a `isaacbot_controller/SeededPidController`, built on the stock `pid_controller/PidController`. It adds two things:
+Each wheel has a `isaacbot_amr_controller/SeededPidController`, built on the stock `pid_controller/PidController`. It adds two things:
 
 - **State seeding.** On activation it seeds its exported state from the hardware, so the chained `diff_drive` never reads NaN on its first cycle. Without it, `controller_manager` deactivated the whole chain on every activation on the real isaacbot.
 - **The wheel speed loop.** Each wheel's command comes from `WheelSpeedLoop`, which adds the options below on top of the PID. With every option off, its output is identical to `control_toolbox::Pid` (a gtest checks this).
@@ -208,9 +208,9 @@ The feedforward carries most of the command, and the PID trims load, battery and
 !!! warning "Reference model fitted at a different motor ramp"
     The reference model was fitted at `motor_acceleration` 10.0 (0.15 s / 0.08 s, 2026-10-02) and again at 1.0 (0.40 s / 0.12 s, 2026-10-06). The URDF now sets 2.0 and the model has not been re-fitted for it, nor have the acceleration limits (1.4 m/s², 1.3 rad/s², measured at 1.0). The config says to re-fit the model whenever the motor ramp changes: run `wheel_step_response` on the ground and adjust the delay and time constant. If the model is slower than the plant, the integral winds the wrong way on every rise and leaves a slow tail.
 
-Source: `isaacbot_controller/config/wheel_01_controller.yaml`, `isaacbot_controller/include/isaacbot_controller/seeded_pid_controller.hpp`, `isaacbot_controller/src/seeded_pid_controller.cpp`, `isaacbot_controller/include/isaacbot_controller/wheel_speed_loop.hpp`, `isaacbot_description/urdf/ardennes/ardennes_macro.urdf.xacro`.
+Source: `isaacbot_amr_controller/config/wheel_01_controller.yaml`, `isaacbot_amr_controller/include/isaacbot_amr_controller/seeded_pid_controller.hpp`, `isaacbot_amr_controller/src/seeded_pid_controller.cpp`, `isaacbot_amr_controller/include/isaacbot_amr_controller/wheel_speed_loop.hpp`, `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro`.
 
-Details: [isaacbot_controller README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_controller/README.md) and [wheel PID tuning notes](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_controller/docs/wheel_pid_tuning_notes.md). The tuning notes cover the earlier lifted-wheel tuning of p, i and d. The ground tune of the clamps and the wheel loop options is in the comment above the gains in `wheel_01_controller.yaml`.
+Details: [isaacbot_amr_controller README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_controller/README.md) and [wheel PID tuning notes](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_controller/docs/wheel_pid_tuning_notes.md). The tuning notes cover the earlier lifted-wheel tuning of p, i and d. The ground tune of the clamps and the wheel loop options is in the comment above the gains in `wheel_01_controller.yaml`.
 
 ## Calibration tools
 
@@ -224,7 +224,7 @@ Run them in this order:
 1. **Wheel-speed loop** (`wheel_step_response`). Steps the linear speed (default 0.2, 0.4, 0.6, 0.8, −0.4 m/s) and the angular speed (0.5, 1.0, −1.0 rad/s), and reports overshoot, steady-state error and dead time per wheel. It also reports body acceleration limits derived from the largest wheel acceleration (`margin` 0.8). Target: overshoot under 10 % and steady-state error under 3 %. Run with the wheels lifted first, then on the ground.
 
     ```bash
-    ros2 run isaacbot_controller wheel_step_response --ros-args -r __ns:=/isaacbot -p enable_motion:=true
+    ros2 run isaacbot_amr_controller wheel_step_response --ros-args -r __ns:=/isaacbot -p enable_motion:=true
     ```
 
 2. **Acceleration limits.** Use the limits reported in step 1 to set `linear.x` / `angular.z` acceleration in `wheel_01_controller.yaml`.
@@ -232,16 +232,16 @@ Run them in this order:
 3. **Skid-steer calibration** (`wheel_odom_calibration`). `mode:=spin` spins in place at several rates (default ±0.3, ±0.6, ±1.0 rad/s), compares the rotation the wheel speeds explain with the IMU gyro and reports `wheel_separation_multiplier`. The IMU is mounted upside down, so the tool negates the gyro yaw rate (`imu_yaw_sign` −1). If every spin segment is rejected while the isaacbot clearly turned, re-run with `-p imu_yaw_sign:=1`. `mode:=straight` drives until wheel odometry reads `distance`; tape-measure the real distance `d` and set both wheel radius multipliers to `d / distance`.
 
     ```bash
-    ros2 run isaacbot_controller wheel_odom_calibration --ros-args -r __ns:=/isaacbot -p mode:=spin -p enable_motion:=true
-    ros2 run isaacbot_controller wheel_odom_calibration --ros-args -r __ns:=/isaacbot -p mode:=straight -p distance:=5.0 -p enable_motion:=true
+    ros2 run isaacbot_amr_controller wheel_odom_calibration --ros-args -r __ns:=/isaacbot -p mode:=spin -p enable_motion:=true
+    ros2 run isaacbot_amr_controller wheel_odom_calibration --ros-args -r __ns:=/isaacbot -p mode:=straight -p distance:=5.0 -p enable_motion:=true
     ```
 
 Both tools default to the controller config's geometry: `wheel_separation` 0.617, and in `wheel_step_response` also `wheel_separation_multiplier` 1.659. If you change the config, pass the new values as parameters (for example `-p wheel_separation:=0.617`).
 
-Source: `isaacbot_controller/README.md`, `isaacbot_controller/isaacbot_controller/wheel_step_response.py`, `isaacbot_controller/isaacbot_controller/wheel_odom_calibration.py`, `isaacbot_controller/isaacbot_controller/drive_session.py`.
+Source: `isaacbot_amr_controller/README.md`, `isaacbot_amr_controller/isaacbot_amr_controller/wheel_step_response.py`, `isaacbot_amr_controller/isaacbot_amr_controller/wheel_odom_calibration.py`, `isaacbot_amr_controller/isaacbot_amr_controller/drive_session.py`.
 
 ## Further reading
 
-- [isaacbot_twist_mux README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_twist_mux/README.md)
-- [isaacbot_hardware_interface README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_hardware_interface/README.md)
-- [isaacbot_localization README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_localization/README.md)
+- [isaacbot_amr_twist_mux README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_twist_mux/README.md)
+- [isaacbot_amr_hardware_interface README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_hardware_interface/README.md)
+- [isaacbot_amr_localization README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_localization/README.md)

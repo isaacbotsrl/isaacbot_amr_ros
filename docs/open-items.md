@@ -49,14 +49,14 @@ The manual uses the value the code runs with. The other source should be correct
 
 | Topic | Value used by the code | Other value | Files |
 |---|---|---|---|
-| Track width | 0.617 m (CAD wheel joints; the tyre contact patches are 0.6136 m apart) | 0.615 m "measured" | `isaacbot_description/config/wheel_01.yaml`, `isaacbot_controller/config/wheel_01_controller.yaml` (comment) |
-| Effective track (track × multiplier) | 0.617 × 1.659 = 1.0236 m | 1.020 m (controller comment); 1.0204 m (`effective_track_width` in `isaacbot_crsf_teleop/config/isaacbot_crsf_teleop.yaml`) | `isaacbot_controller/config/wheel_01_controller.yaml` |
-| `motor_current_limit` | 15.0 A | 10 A in the URDF comment and in the `utils.hpp` comment | `isaacbot_description/urdf/ardennes/ardennes_macro.urdf.xacro` |
+| Track width | 0.617 m (CAD wheel joints; the tyre contact patches are 0.6136 m apart) | 0.615 m "measured" | `isaacbot_amr_description/config/wheel_01.yaml`, `isaacbot_amr_controller/config/wheel_01_controller.yaml` (comment) |
+| Effective track (track × multiplier) | 0.617 × 1.659 = 1.0236 m | 1.020 m (controller comment); 1.0204 m (`effective_track_width` in `isaacbot_amr_crsf_teleop/config/isaacbot_amr_crsf_teleop.yaml`) | `isaacbot_amr_controller/config/wheel_01_controller.yaml` |
+| `motor_current_limit` | 15.0 A | 10 A in the URDF comment and in the `utils.hpp` comment | `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro` |
 | Maximum angular speed | 1.5 rad/s | "1.7 m/s2" (SYS-SR-004 answer; also a unit error) | `wheel_01_controller.yaml`, `rover_platform_mbse/system/*.xlsx` |
-| Battery voltage | 24 V (`motor_supply_voltage`) | 41.4 V in the simulated battery | `ardennes_macro.urdf.xacro`, `isaacbot_description/urdf/common/battery.urdf.xacro` |
-| BMS link | BLE → ESP32 → UDP | RS485/RS232 serial link (hardware part of the architecture diagram) | `isaacbot_battery/`, `isaacbot_arch/ardennes_arch.drawio` |
-| Motor power switching | One contactor with an auxiliary contact | Four relays K1–K4 on QX 0.0, no auxiliary contact (schematic) | `isaacbot_arch/SAFETY_CHAIN.md`, `isaacbot_arch/ardennes_arch.drawio` |
-| IMU hub port | -1 (any) is used when opening the device | 0 in the URDF, default 2 in the parameters | `isaacbot_hardware_interface/src/phidget_imu_sensor.cpp` |
+| Battery voltage | 24 V (`motor_supply_voltage`) | 41.4 V in the simulated battery | `ardennes_macro.urdf.xacro`, `isaacbot_amr_description/urdf/common/battery.urdf.xacro` |
+| BMS link | BLE → ESP32 → UDP | RS485/RS232 serial link (hardware part of the architecture diagram) | `isaacbot_amr_battery/`, `isaacbot_amr_arch/ardennes_arch.drawio` |
+| Motor power switching | One contactor with an auxiliary contact | Four relays K1–K4 on QX 0.0, no auxiliary contact (schematic) | `isaacbot_amr_arch/SAFETY_CHAIN.md`, `isaacbot_amr_arch/ardennes_arch.drawio` |
+| IMU hub port | -1 (any) is used when opening the device | 0 in the URDF, default 2 in the parameters | `isaacbot_amr_hardware_interface/src/phidget_imu_sensor.cpp` |
 | SYS-SR-001 mass limit | — | The requirement text says ≤ 60 kg *excluding* payload; the Open Questions sheet answers that payload *is* included | `rover_platform_mbse/system/ROVER-A1-ROVER_ROS_SYS-SR-V-002.xlsx` |
 | MBSE baseline | Current values above | 100 Hz control and other non-CAD values (the CAD geometry and masses were re-read 2026-10-07) | `rover_platform_mbse/data/platform_parameters.json` (baseline 35aeb3e) |
 
@@ -67,7 +67,7 @@ These come from reading the code while writing the manual. They are not document
 - The wheel PIDs' reference model (`integral_reference_delay` 0.40 s / `_time_constant` 0.12 s)
   was fitted on the ground with `motor_acceleration` 1.0 (2026-10-06). The URDF now sets 2.0 and
   the model has not been re-fitted, nor have the acceleration limits (1.4 m/s², 1.3 rad/s²)
-  (`isaacbot_controller/config/wheel_01_controller.yaml`).
+  (`isaacbot_amr_controller/config/wheel_01_controller.yaml`).
 - `velocity_command_zero_tolerance` is still 0.4 rad/s. The reason for it (a frozen PID
   integral) is gone while `stop_at_zero_reference` is on, so it can come down toward 0.01 once
   that is verified on the isaacbot.
@@ -75,8 +75,8 @@ These come from reading the code while writing the manual. They are not document
   or a held latch leaves the LEDs on `READY`.
 - The software motor-driver-fault input (`COIL_3`) is only asserted during start-up; nothing
   asserts it at runtime.
-- The Foxglove layout (`isaacbot_foxglove/`) uses topics the bridge whitelist in
-  `isaacbot_bringup/launch/isaacbot_web_bridges.launch.py` leaves out, among them its joystick topic
+- The Foxglove layout (`isaacbot_amr_foxglove/`) uses topics the bridge whitelist in
+  `isaacbot_amr_bringup/launch/isaacbot_web_bridges.launch.py` leaves out, among them its joystick topic
   `teleop_foxglove_cmd_vel_stamped`. The whitelist is deliberate: the web joystick goes through
   `teleop_web_cmd_vel_stamped` and `rover_drive_mode`. The layout should follow, or those panels
   stay empty unless `ISAACBOT_PLATFORM_FOXGLOVE_TOPIC_WHITELIST` is opened.

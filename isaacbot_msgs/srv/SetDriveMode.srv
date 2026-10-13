@@ -1,9 +1,0 @@
-# Request a driving mode from rover_drive_mode (rover_orchestrator).
-# Refused, with the reason in message, when the mode's prerequisites are missing
-# (e.g. AUTOMATIC without the mission manager).
-
-uint8 mode      # isaacbot_msgs/DriveMode MANUAL, ASSISTED or AUTOMATIC
----
-bool success
-string message
-uint8 mode      # Mode in force after the call

@@ -1,0 +1,5 @@
+isaacbot_amr_msgs/LedAnimation animation
+bool repeating
+---
+bool success
+string message

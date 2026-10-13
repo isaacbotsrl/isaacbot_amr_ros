@@ -1,0 +1,140 @@
+# isaacbot_amr_gazebo
+
+Runs Ardennes in Gazebo Sim (`gz sim`): the world, the spawned robot with `gz_ros2_control`, the
+same controllers, EKFs and twist_mux as the real isaacbot, simulated stand-ins for the sensor
+payload (RS16 lidar, RUTX11 GNSS), a ROS–Gazebo bridge and RViz.
+
+The ROS side mirrors what the platform and the sensor containers publish on the isaacbot, so the
+orchestrator (`rover_navigation`, `rover_mission_manager`) runs against the simulation unchanged
+apart from `use_sim_time`.
+
+## Building
+
+```bash
+export ISAACBOT_AMR_ROS_BUILD_TYPE=simulation
+sudo apt install ros-$ROS_DISTRO-gz-ros2-control ros-$ROS_DISTRO-ros-gz-bridge   # or rosdep
+colcon build --symlink-install --packages-up-to isaacbot_amr_metapackage rover_autonomy \
+  --cmake-args -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
+```
+
+Run the simulation on a local middleware: an inherited `ZENOH_CONFIG_OVERRIDE` pointing at the
+isaacbot's router would join the simulated nodes to the real isaacbot.
+
+## Launch Files
+
+- `simulation.launch.py` - entry point. It starts:
+  - `isaacbot_amr_world`'s `isaacbot_amr_world.launch.py` (Gazebo with `config/teleop.config` as the GUI layout)
+  - `isaacbot_amr_description`'s `isaacbot_rviz.launch.py` (unless `use_rviz:=False`)
+  - `include/simulate_robot.launch.py`
+
+  Everything runs with `use_sim_time`.
+- `include/simulate_robot.launch.py` - per-robot part:
+  - `include/spawn_robot.launch.py` spawns the URDF at `x`/`y`/`z`/`roll`/`pitch`/`yaw`
+    (default `0, -2.0, 0.2`). The model is named after the namespace, else `ardennes`.
+  - `isaacbot_amr_controller` with `use_sim:=True`, so `gz_ros2_control` owns the controller manager.
+    `config/sim_wheel_pid.yaml` is loaded after the real controller config. It sets the wheel
+    PIDs' `d` to 0: Gazebo's wheels have none of the encoder/motor lag that gain is tuned for,
+    and with it the loop oscillates between its limits. For the same reason it sets
+    `integral_reference_delay` and `integral_reference_time_constant` to 0, so the integral works
+    on the plain error. It also sets `isaacbot_drive_controller`'s `wheel_radius` to 0.1699 m, the
+    CAD tyre radius the simulated wheel cylinders roll on, instead of the real tyre's 0.1651 m;
+    without it the simulated wheel odometry under-reports distance by ~2.9 %.
+  - `isaacbot_amr_localization` with `use_sim:=True use_ekf:=True`; `fuse_gps` follows `use_gps`, which
+    adds `isaacbot_gps_heading_node`, `isaacbot_navsat_transform_node` and `isaacbot_ekf_global_node`.
+  - `isaacbot_amr_twist_mux` (mux + `isaacbot_motion_lock_node`), as on the isaacbot:
+    `nav_cmd_vel_stamped` / teleop → `cmd_vel`, gated by `motion_lock`.
+  - `sim_safety_plc` (`scripts/sim_safety_plc.py`, latch logic in `scripts/sim_safety_plc_model.py`):
+    the safety PLC stand-in. It publishes `hardware_interface/safety_status` and
+    `hardware_interface/safety_command_echo`, which `isaacbot_motion_lock_node` needs to open the lock.
+    It models the set-dominant E-Stop latch and serves the isaacbot's
+    `hardware_interface/sw_user_e_stop_set`, `sw_user_e_stop_reset` and `sw_e_stop_latch_reset`.
+    The Gazebo **Isaacbot Safety** panel (`isaacbot_amr_gazebo_plugins`) drives it with the HW E-STOP
+    (maintained; releasing it also resets the latch, like the isaacbot's HW reset button), SW E-STOP,
+    SW RESET and RESET LATCH buttons, over `sim_safety/*` in `gz_bridge`.
+    While the latch is set it publishes zero `cmd_vel` in place of the open contactor.
+    The latch starts clear (`latch_set_at_startup:=false`).
+  - `gz_bridge` (`ros_gz_bridge/parameter_bridge`) configured by `config/gz_bridge.yaml`.
+  - `isaacbot_rs16_lidar_scan` (`pointcloud_to_laserscan`): `scan` sliced from `rslidar_points`
+    with the real driver's settings (±0.25 m, 360° at 0.5°, 0.2–20 m).
+  - `static_tf_publisher`: an optional `world → <namespace>/odom` transform at the spawn pose
+    (`add_world_transform:=True`).
+
+| Argument | Default | Description |
+|----------|---------|-------------|
+| `namespace` | `$ISAACBOT_SYSTEM_NAMESPACE`, else empty | Namespace of the robot's nodes and topics. |
+| `use_gps` | `$ISAACBOT_SYSTEM_USE_GPS`, else `false` | Fuse the simulated GNSS (dual EKF + navsat_transform). |
+| `publish_global_tf` | `$ISAACBOT_SYSTEM_GPS_MAP_TF`, else `false` | `isaacbot_ekf_global_node` broadcasts `map → odom`. |
+| `use_rviz` | `True` | Start RViz (`simulation.launch.py`). |
+| `gz_gui` | `config/teleop.config` | Gazebo GUI layout; `{namespace}` in the file is replaced with `namespace`. |
+| `gz_headless_mode` | `False` | Run Gazebo server-only with headless rendering (`isaacbot_amr_world`). |
+| `log_level` | `INFO` | Logging level. |
+
+`isaacbot_amr_safety`, `isaacbot_amr_led`, `isaacbot_amr_battery`, `isaacbot_amr_crsf_teleop` and `isaacbot_amr_diag_manager` are
+not started in simulation.
+
+## Simulated sensors
+
+Defined in `isaacbot_amr_description` (`urdf/common/lidar.urdf.xacro`, `gps.urdf.xacro`), sim only.
+Frames carry the namespace prefix, like `robot_state_publisher`'s TF.
+
+| Sensor | Stand-in for | ROS topic | Frame |
+|--------|--------------|-----------|-------|
+| `gpu_lidar`, 16 rings ±15°, 360° at 0.5°, 0.2–20 m, 10 Hz | `rover_rs16_lidar` | `<ns>/rslidar_points` (`PointCloud2`), `<ns>/scan` (`LaserScan`) | `<ns>/lidar_link` |
+| `navsat`, 5 Hz, σ 5 cm | `rover_gps` (RUTX11) | `<ns>/gps/fix` (`NavSatFix`) | `<ns>/gps_link` |
+| `imu`, 50 Hz | Phidget IMU | `<ns>/imu/data` (via `isaacbot_imu_broadcaster`) | `<ns>/imu_link` |
+
+In simulation only, `body_link` gets a box collision over the `base.stl` bounds, so the body
+collides with obstacles. The hardware URDF keeps visual-only geometry.
+
+The lidar uses the `ISAACBOT_SYSTEM_MOUNT_LIDAR_*` mount pose; with none set it sits 0.68 m above `body_link`,
+high enough that its lowest ring (-15°) clears the body and the front arch. A custom mount lower
+than about 0.65 m makes the isaacbot see itself (0.62 m was verified to hit the arch). The GNSS uses `ISAACBOT_SYSTEM_MOUNT_GPS_*`. The world's `<spherical_coordinates>` sets
+the datum (50.088384 N, 19.939128 E).
+
+## Config Files
+
+- `gz_bridge.yaml` - bridged topics. `<namespace>` is substituted at launch.
+
+  | ROS topic | Gazebo topic | Direction |
+  |-----------|--------------|-----------|
+  | `/clock` | `/clock` | Gazebo → ROS |
+  | `/<namespace>/teleop_foxglove_cmd_vel_stamped` (`TwistStamped`) | `/<namespace>/teleop_gz_cmd_vel` (`gz.msgs.Twist`) | Gazebo → ROS (GUI teleop into twist_mux) |
+  | `/<namespace>/rslidar_points` (`PointCloud2`) | `/<namespace>/lidar/points` | Gazebo → ROS |
+  | `/<namespace>/gps/fix` (`NavSatFix`) | `/<namespace>/gps/fix` (`gz.msgs.NavSat`) | Gazebo → ROS |
+
+- `teleop.config` - Gazebo GUI layout with a teleop panel that publishes to
+  `{namespace}/teleop_gz_cmd_vel`.
+
+## Running
+
+`scripts/isaacbot_sim.sh` (installed as `lib/isaacbot_amr_gazebo/isaacbot_sim.sh`) runs the simulation from a
+fresh terminal, whatever `~/.bashrc` set up for the isaacbot. It sets
+`ISAACBOT_AMR_ROS_BUILD_TYPE=simulation` and `ISAACBOT_SYSTEM_NAMESPACE` (default `isaacbot`), drops
+`ZENOH_CONFIG_OVERRIDE`, and starts a zenoh router bound to `127.0.0.1:7447`, which it stops on
+exit. It also checks that the apt packages are installed. Run as-is, it starts the simulation;
+sourced, it only prepares the current shell, e.g. for a second terminal:
+
+```bash
+# terminal 1: simulation (--build builds the workspace first; extra args go to the launch file)
+~/ros2_ws/rover_a1/src/isaacbot_amr_ros/isaacbot_amr_gazebo/scripts/isaacbot_sim.sh --build
+ISAACBOT_SYSTEM_USE_GPS=true ~/ros2_ws/rover_a1/src/isaacbot_amr_ros/isaacbot_amr_gazebo/scripts/isaacbot_sim.sh use_rviz:=False
+
+# terminal 2: orchestrator / ros2 CLI on the same local middleware
+source ~/ros2_ws/rover_a1/src/isaacbot_amr_ros/isaacbot_amr_gazebo/scripts/isaacbot_sim.sh
+ros2 launch rover_navigation bringup.launch.py use_sim_time:=True localization_source:=slam
+```
+
+It uses rmw_zenoh because FastDDS inter-process discovery does not work on the WSL host.
+
+Manually, with the environment already set up:
+
+```bash
+ros2 launch isaacbot_amr_gazebo simulation.launch.py
+ISAACBOT_SYSTEM_NAMESPACE=isaacbot ISAACBOT_SYSTEM_USE_GPS=true ros2 launch isaacbot_amr_gazebo simulation.launch.py use_rviz:=False
+
+# then the orchestrator, e.g.
+ros2 launch rover_navigation bringup.launch.py use_sim_time:=True localization_source:=slam
+```
+
+With `ISAACBOT_SYSTEM_USE_GPS=true`, `gps/heading_imu` (and so `odometry/gps` / `odometry/global`) only
+appears after the isaacbot has driven straight for a few metres, exactly as on the isaacbot.

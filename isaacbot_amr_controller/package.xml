@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>isaacbot_amr_controller</name>
+  <version>1.0.1</version>
+  <description>ROS2 controllers configuration for isaacbot</description>
+  <maintainer email="potlogradu@gmail.com">radupotlog</maintainer>
+  <license>Apache License 2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
+
+  <depend>controller_interface</depend>
+  <depend>geometry_msgs</depend>
+  <depend>pid_controller</depend>
+  <depend>pluginlib</depend>
+  <depend>realtime_tools</depend>
+
+  <exec_depend>controller_manager</exec_depend>
+  <exec_depend>diff_drive_controller</exec_depend>
+  <exec_depend>imu_sensor_broadcaster</exec_depend>
+  <exec_depend>joint_state_broadcaster</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>nav2_common</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>control_msgs</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>xacro</exec_depend>
+
+  <!-- Isaacbot dependency -->
+  <exec_depend>isaacbot_amr_description</exec_depend>
+  <exec_depend>isaacbot_amr_utils</exec_depend>
+  
+  <!-- Isaacbot real hardware dependency -->
+  <exec_depend condition="$ISAACBOT_AMR_ROS_BUILD_TYPE == hardware">isaacbot_amr_hardware_interface</exec_depend>
+
+  <test_depend>ament_cmake_gtest</test_depend>
+  <test_depend>control_toolbox</test_depend>
+  <test_depend>ament_cmake_pytest</test_depend>
+  <test_depend>ament_index_python</test_depend>
+  <test_depend>python3-yaml</test_depend>
+  <test_depend>rclpy</test_depend>
+  <test_depend>rmw_zenoh_cpp</test_depend>
+  <test_depend>rcl_interfaces</test_depend>
+  <test_depend>std_msgs</test_depend>
+  <test_depend>controller_manager_msgs</test_depend>
+  <test_depend>hardware_interface</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

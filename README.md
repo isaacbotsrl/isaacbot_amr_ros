@@ -8,61 +8,61 @@ Mechatronics Academy's Ardennes ROS2.
 
 **Bringup & simulation**
 
-- [`isaacbot_bringup`](isaacbot_bringup/README.md) - top-level launch files that start the whole
+- [`isaacbot_amr_bringup`](isaacbot_amr_bringup/README.md) - top-level launch files that start the whole
   stack on real hardware.
-- [`isaacbot_gazebo`](isaacbot_gazebo/README.md) - Gazebo Sim bringup: the robot with
+- [`isaacbot_amr_gazebo`](isaacbot_amr_gazebo/README.md) - Gazebo Sim bringup: the robot with
   `gz_ros2_control`, the same controllers, EKFs and twist_mux as the real isaacbot, simulated
   lidar and GNSS, the ROS–Gazebo bridge and RViz.
-- [`isaacbot_world`](isaacbot_world/README.md) - Gazebo Sim worlds for the simulation.
-- [`isaacbot_description`](isaacbot_description/README.md) - URDF/xacro model: links, joints,
+- [`isaacbot_amr_world`](isaacbot_amr_world/README.md) - Gazebo Sim worlds for the simulation.
+- [`isaacbot_amr_description`](isaacbot_amr_description/README.md) - URDF/xacro model: links, joints,
   meshes, sensors and the `<ros2_control>` hardware components.
-- [`isaacbot_metapackage`](isaacbot_metapackage/README.md) - metapackage pulling in the entry point
+- [`isaacbot_amr_metapackage`](isaacbot_amr_metapackage/README.md) - metapackage pulling in the entry point
   for the build type, plus the `vcs` `.repos` dependency lists.
 
 **Control & hardware**
 
-- [`isaacbot_hardware_interface`](isaacbot_hardware_interface/README.md) - ros2_control plugins
+- [`isaacbot_amr_hardware_interface`](isaacbot_amr_hardware_interface/README.md) - ros2_control plugins
   `ArdennesSystem` (wheel motors and safety controller) and `PhidgetImuSensor`.
-- [`isaacbot_controller`](isaacbot_controller/README.md) - ros2_control controller configuration
+- [`isaacbot_amr_controller`](isaacbot_amr_controller/README.md) - ros2_control controller configuration
   and launch.
-- [`isaacbot_twist_mux`](isaacbot_twist_mux/README.md) - velocity command arbitration with
+- [`isaacbot_amr_twist_mux`](isaacbot_amr_twist_mux/README.md) - velocity command arbitration with
   `twist_mux`, plus `isaacbot_motion_lock_node`.
-- [`isaacbot_crsf_teleop`](isaacbot_crsf_teleop/README.md) - CRSF (ExpressLRS) RC teleop, software
+- [`isaacbot_amr_crsf_teleop`](isaacbot_amr_crsf_teleop/README.md) - CRSF (ExpressLRS) RC teleop, software
   E-Stop switches and RC link failsafe.
 
 **Localization**
 
-- [`isaacbot_localization`](isaacbot_localization/README.md) - `robot_localization` EKFs fusing
+- [`isaacbot_amr_localization`](isaacbot_amr_localization/README.md) - `robot_localization` EKFs fusing
   wheel odometry and IMU, optionally GPS (`ISAACBOT_SYSTEM_USE_GPS`).
-- [`isaacbot_gps_heading`](isaacbot_gps_heading/README.md) - ENU heading from GNSS course for
+- [`isaacbot_amr_gps_heading`](isaacbot_amr_gps_heading/README.md) - ENU heading from GNSS course for
   `navsat_transform_node`.
 
 **Safety, power & status**
 
-- [`isaacbot_safety`](isaacbot_safety/README.md) - behavior-tree safety supervision: software
+- [`isaacbot_amr_safety`](isaacbot_amr_safety/README.md) - behavior-tree safety supervision: software
   E-Stop, shutdown and LED animation selection.
-- [`isaacbot_battery`](isaacbot_battery/README.md) - decodes BMS telemetry received over UDP and
+- [`isaacbot_amr_battery`](isaacbot_amr_battery/README.md) - decodes BMS telemetry received over UDP and
   publishes the battery state.
-- [`isaacbot_led`](isaacbot_led/README.md) - SK9822 bumper LED panels: animation controller and
+- [`isaacbot_amr_led`](isaacbot_amr_led/README.md) - SK9822 bumper LED panels: animation controller and
   driver.
-- [`isaacbot_diag_manager`](isaacbot_diag_manager/README.md) - the isaacbot's diagnostic nodes.
+- [`isaacbot_amr_diag_manager`](isaacbot_amr_diag_manager/README.md) - the isaacbot's diagnostic nodes.
 
 **Interfaces, transport & utilities**
 
-- [`isaacbot_msgs`](isaacbot_msgs/README.md) - custom messages and services.
-- [`isaacbot_utils`](isaacbot_utils/README.md) - shared header-only C++ utilities and Python launch
+- [`isaacbot_amr_msgs`](isaacbot_amr_msgs/README.md) - custom messages and services.
+- [`isaacbot_amr_utils`](isaacbot_amr_utils/README.md) - shared header-only C++ utilities and Python launch
   helpers.
-- [`isaacbot_transport`](isaacbot_transport/README.md) - hard fork of `transport_drivers`: serial,
-  UDP and Modbus TCP drivers on top of `isaacbot_io_context`.
-- [`isaacbot_modbus`](isaacbot_modbus/README.md) - vendored Modbus library for modern C++.
+- [`isaacbot_amr_transport`](isaacbot_amr_transport/README.md) - hard fork of `transport_drivers`: serial,
+  UDP and Modbus TCP drivers on top of `isaacbot_amr_io_context`.
+- [`isaacbot_amr_modbus`](isaacbot_amr_modbus/README.md) - vendored Modbus library for modern C++.
 
 **Not ROS packages**
 
-- [`isaacbot_arch`](isaacbot_arch/README.md) - firmware architecture docs and diagrams, including
+- [`isaacbot_amr_arch`](isaacbot_amr_arch/README.md) - firmware architecture docs and diagrams, including
   the safety chain.
-- [`isaacbot_foxglove`](isaacbot_foxglove/README.md) - Foxglove dashboard layout for the `isaacbot`
+- [`isaacbot_amr_foxglove`](isaacbot_amr_foxglove/README.md) - Foxglove dashboard layout for the `isaacbot`
   namespace.
-- [`isaacbot_scripts`](isaacbot_scripts/README.md) - development PC helper scripts
+- [`isaacbot_amr_scripts`](isaacbot_amr_scripts/README.md) - development PC helper scripts
   (`setup_isaacbot_pc.sh`).
 - [`rover_platform_mbse`](rover_platform_mbse/README.md) - MATLAB/Simulink MBSE project for
   the platform: System Composer architecture, per-package software requirements
@@ -84,10 +84,10 @@ git clone -b master https://github.com/isaacbotsrl/isaacbot_amr_ros.git src/isaa
 
 One step: write the **isaacbot-pc setup** block into `~/.bashrc`. It covers ROS, the workspace
 overlay, `ISAACBOT_*`, and the Zenoh settings to reach the isaacbot at `192.168.1.201`. It's safe to
-re-run; see [isaacbot_scripts/README.md](isaacbot_scripts/README.md) for the options.
+re-run; see [isaacbot_amr_scripts/README.md](isaacbot_amr_scripts/README.md) for the options.
 
 ```bash
-src/isaacbot_amr_ros/isaacbot_scripts/setup_isaacbot_pc.sh
+src/isaacbot_amr_ros/isaacbot_amr_scripts/setup_isaacbot_pc.sh
 source ~/.bashrc
 ```
 
@@ -113,7 +113,7 @@ export ISAACBOT_AMR_ROS_BUILD_TYPE=simulation
 ### Clone dependency
 
 ```bash
-vcs import src < src/isaacbot_amr_ros/isaacbot_metapackage/${ISAACBOT_AMR_ROS_BUILD_TYPE}_deps.repos
+vcs import src < src/isaacbot_amr_ros/isaacbot_amr_metapackage/${ISAACBOT_AMR_ROS_BUILD_TYPE}_deps.repos
 ```
 
 ### Build
@@ -142,7 +142,7 @@ cd ../../..
 
 ```bash
 source /opt/ros/$ROS_DISTRO/setup.bash
-colcon build --symlink-install --packages-up-to isaacbot_metapackage --cmake-args -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
+colcon build --symlink-install --packages-up-to isaacbot_amr_metapackage --cmake-args -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
 
 source install/setup.bash
 ```
@@ -152,13 +152,13 @@ source install/setup.bash
 #### Real isaacbot:
 
 ```bash
-ros2 launch isaacbot_bringup isaacbot_bringup.launch.py
+ros2 launch isaacbot_amr_bringup isaacbot_amr_bringup.launch.py
 ```
 
 #### Simulated isaacbot:
 
 ```bash
-src/isaacbot_amr_ros/isaacbot_gazebo/scripts/isaacbot_sim.sh
+src/isaacbot_amr_ros/isaacbot_amr_gazebo/scripts/isaacbot_sim.sh
 ```
 
 ### Testing

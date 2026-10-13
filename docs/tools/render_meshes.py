@@ -21,7 +21,7 @@ Run from the repository root:
     uv run --with trimesh,matplotlib,numpy python docs/tools/render_meshes.py
 
 Writes docs/assets/images/ardennes_iso.png, ardennes_top.png and ardennes_side.png. The wheel
-placement follows isaacbot_description: wheels at (+/- wheelbase/2, +/- wheel_separation/2,
+placement follows isaacbot_amr_description: wheels at (+/- wheelbase/2, +/- wheel_separation/2,
 wheel_mount_point_z) in body_link, and body_link at tyre_radius - wheel_mount_point_z above the
 ground (base_footprint).
 """
@@ -39,10 +39,10 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection  # noqa: E402
 from PIL import Image  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
-DESC = ROOT / 'isaacbot_description'
+DESC = ROOT / 'isaacbot_amr_description'
 OUT = ROOT / 'docs' / 'assets' / 'images'
 
-WHEEL_MOUNT_POINT_Z = 0.037363  # isaacbot_description/urdf/ardennes/ardennes_macro.urdf.xacro
+WHEEL_MOUNT_POINT_Z = 0.037363  # isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro
 
 BODY_COLOUR = (0.79, 0.82, 0.93)
 WHEEL_COLOUR = (0.18, 0.18, 0.20)

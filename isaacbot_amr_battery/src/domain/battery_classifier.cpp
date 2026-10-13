@@ -1,0 +1,253 @@
+// Copyright 2025 Mechatronics Academy
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include "isaacbot_amr_battery/domain/battery_classifier.hpp"
+
+#include <algorithm>
+#include <array>
+#include <cstddef>
+#include <cstring>
+#include <limits>
+#include <string>
+#include <vector>
+
+namespace isaacbot_amr_battery::domain
+{
+
+namespace
+{
+
+// Bitfields cannot be addressed with pointers-to-member, hence one accessor per alarm.
+using AlarmAccessor = bool (*)(const BmsAlarms &);
+
+struct AlarmEntry
+{
+    const char * name;
+    AlarmAccessor is_active;
+};
+
+#define ISAACBOT_BATTERY_ALARM(field) \
+    AlarmEntry{#field, [](const BmsAlarms & a) -> bool {return a.field;}}
+
+constexpr std::array kAlarmTable{
+    ISAACBOT_BATTERY_ALARM(levelOneCellVoltageTooHigh),
+    ISAACBOT_BATTERY_ALARM(levelTwoCellVoltageTooHigh),
+    ISAACBOT_BATTERY_ALARM(levelOneCellVoltageTooLow),
+    ISAACBOT_BATTERY_ALARM(levelTwoCellVoltageTooLow),
+    ISAACBOT_BATTERY_ALARM(levelOnePackVoltageTooHigh),
+    ISAACBOT_BATTERY_ALARM(levelTwoPackVoltageTooHigh),
+    ISAACBOT_BATTERY_ALARM(levelOnePackVoltageTooLow),
+    ISAACBOT_BATTERY_ALARM(levelTwoPackVoltageTooLow),
+
+    ISAACBOT_BATTERY_ALARM(levelOneChargeTempTooHigh),
+    ISAACBOT_BATTERY_ALARM(levelTwoChargeTempTooHigh),
+    ISAACBOT_BATTERY_ALARM(levelOneChargeTempTooLow),
+    ISAACBOT_BATTERY_ALARM(levelTwoChargeTempTooLow),
+    ISAACBOT_BATTERY_ALARM(levelOneDischargeTempTooHigh),
+    ISAACBOT_BATTERY_ALARM(levelTwoDischargeTempTooHigh),
+    ISAACBOT_BATTERY_ALARM(levelOneDischargeTempTooLow),
+    ISAACBOT_BATTERY_ALARM(levelTwoDischargeTempTooLow),
+
+    ISAACBOT_BATTERY_ALARM(levelOneChargeCurrentTooHigh),
+    ISAACBOT_BATTERY_ALARM(levelTwoChargeCurrentTooHigh),
+    ISAACBOT_BATTERY_ALARM(levelOneDischargeCurrentTooHigh),
+    ISAACBOT_BATTERY_ALARM(levelTwoDischargeCurrentTooHigh),
+    ISAACBOT_BATTERY_ALARM(levelOneStateOfChargeTooHigh),
+    ISAACBOT_BATTERY_ALARM(levelTwoStateOfChargeTooHigh),
+    ISAACBOT_BATTERY_ALARM(levelOneStateOfChargeTooLow),
+    ISAACBOT_BATTERY_ALARM(levelTwoStateOfChargeTooLow),
+
+    ISAACBOT_BATTERY_ALARM(levelOneCellVoltageDifferenceTooHigh),
+    ISAACBOT_BATTERY_ALARM(levelTwoCellVoltageDifferenceTooHigh),
+    ISAACBOT_BATTERY_ALARM(levelOneTempSensorDifferenceTooHigh),
+    ISAACBOT_BATTERY_ALARM(levelTwoTempSensorDifferenceTooHigh),
+
+    ISAACBOT_BATTERY_ALARM(chargeFETTemperatureTooHigh),
+    ISAACBOT_BATTERY_ALARM(dischargeFETTemperatureTooHigh),
+    ISAACBOT_BATTERY_ALARM(failureOfChargeFETTemperatureSensor),
+    ISAACBOT_BATTERY_ALARM(failureOfDischargeFETTemperatureSensor),
+    ISAACBOT_BATTERY_ALARM(failureOfChargeFETAdhesion),
+    ISAACBOT_BATTERY_ALARM(failureOfDischargeFETAdhesion),
+    ISAACBOT_BATTERY_ALARM(failureOfChargeFETTBreaker),
+    ISAACBOT_BATTERY_ALARM(failureOfDischargeFETBreaker),
+
+    ISAACBOT_BATTERY_ALARM(failureOfAFEAcquisitionModule),
+    ISAACBOT_BATTERY_ALARM(failureOfVoltageSensorModule),
+    ISAACBOT_BATTERY_ALARM(failureOfTemperatureSensorModule),
+    ISAACBOT_BATTERY_ALARM(failureOfEEPROMStorageModule),
+    ISAACBOT_BATTERY_ALARM(failureOfRealtimeClockModule),
+    ISAACBOT_BATTERY_ALARM(failureOfPrechargeModule),
+    ISAACBOT_BATTERY_ALARM(failureOfVehicleCommunicationModule),
+    ISAACBOT_BATTERY_ALARM(failureOfIntranetCommunicationModule),
+
+    ISAACBOT_BATTERY_ALARM(failureOfCurrentSensorModule),
+    ISAACBOT_BATTERY_ALARM(failureOfMainVoltageSensorModule),
+    ISAACBOT_BATTERY_ALARM(failureOfShortCircuitProtection),
+    ISAACBOT_BATTERY_ALARM(failureOfLowVoltageNoCharging),
+};
+
+#undef ISAACBOT_BATTERY_ALARM
+
+std::size_t clampCount(int reported, std::size_t max)
+{
+    return reported <= 0 ? 0 : std::min(static_cast<std::size_t>(reported), max);
+}
+
+}  // namespace
+
+bool isNoDataFrame(const BmsFrame & frame)
+{
+    static const BmsData kZeroData{};
+    static const BmsAlarms kZeroAlarms{};
+
+    return std::memcmp(&frame.data, &kZeroData, sizeof(BmsData)) == 0 &&
+           std::memcmp(&frame.alarms, &kZeroAlarms, sizeof(BmsAlarms)) == 0;
+}
+
+BatteryHealth classifyBatteryHealth(const BmsAlarms & alarms)
+{
+    BatteryHealth health = BatteryHealth::Good;
+
+    if (alarms.levelOnePackVoltageTooLow || alarms.levelOneCellVoltageTooLow ||
+        alarms.levelOneStateOfChargeTooLow)
+    {
+        health = BatteryHealth::Dead;
+    } else if (alarms.levelTwoPackVoltageTooHigh || alarms.levelTwoStateOfChargeTooHigh) {
+        health = BatteryHealth::Overvoltage;
+    }
+
+    if (alarms.levelOneChargeTempTooHigh || alarms.levelOneDischargeTempTooHigh) {
+        health = BatteryHealth::Overheat;
+    } else if (alarms.levelOneChargeTempTooLow || alarms.levelOneDischargeTempTooLow) {
+        health = BatteryHealth::Cold;
+    }
+
+    return health;
+}
+
+std::vector<std::string> describeAlarms(const BmsAlarms & alarms)
+{
+    std::vector<std::string> active;
+
+    for (const auto & entry : kAlarmTable) {
+        if (entry.is_active(alarms)) {
+            active.emplace_back(entry.name);
+        }
+    }
+
+    return active;
+}
+
+ChargeState classifyChargeState(const BmsData & data)
+{
+    switch (data.chargeDischargeStatus) {
+        case 0:
+            return ChargeState::NotCharging;
+        case 1:
+            return (data.packSOC / 100.0f) >= kFullChargeThreshold ?
+                   ChargeState::Full : ChargeState::Charging;
+        case 2:
+            return ChargeState::Discharging;
+        default:
+            return ChargeState::Unknown;
+    }
+}
+
+ChargingInfo toChargingInfo(const BmsData & data)
+{
+    ChargingInfo info;
+    info.charging = data.chargeDischargeStatus == 1;
+    info.current = data.packCurrent;
+    info.battery_current = data.packCurrent;
+    info.charger_type = (data.chargeDischargeStatus == 1) ?
+                        ChargerType::Wired : ChargerType::Unknown;
+    return info;
+}
+
+std::size_t validCellCount(const BmsData & data)
+{
+    return clampCount(data.numberOfCells, kBmsMaxCells);
+}
+
+std::size_t validTempSensorCount(const BmsData & data)
+{
+    return clampCount(data.numOfTempSensors, kBmsMaxTempSensors);
+}
+
+BatteryReading toBatteryReading(const BmsFrame & frame, const BatteryIdentity & identity)
+{
+    const BmsData & data = frame.data;
+
+    BatteryReading reading;
+    reading.voltage = data.packVoltage;
+    reading.temperature = data.tempMax;
+    reading.current = data.packCurrent;
+    reading.charge = static_cast<float>(data.resCapacitymAh) / 1000.0f;  // mAh -> Ah
+    // The BMS reports no last-full capacity; BatteryState marks unmeasured values NaN.
+    reading.capacity = std::numeric_limits<float>::quiet_NaN();
+    reading.design_capacity = identity.design_capacity;
+    reading.percentage = data.packSOC / 100.0f;
+    reading.present = true;
+    reading.serial_number = identity.serial_number;
+
+    // Element-wise copies: the arrays are members of a packed struct and may be unaligned.
+    const std::size_t cell_count = validCellCount(data);
+    reading.cell_voltages.reserve(cell_count);
+    for (std::size_t i = 0; i < cell_count; ++i) {
+        reading.cell_voltages.push_back(data.cellVmV[i] / 1000.0f);  // mV -> V
+    }
+
+    const std::size_t temp_count = validTempSensorCount(data);
+    reading.cell_temperatures.reserve(temp_count);
+    for (std::size_t i = 0; i < temp_count; ++i) {
+        reading.cell_temperatures.push_back(static_cast<float>(data.cellTemperature[i]));
+    }
+
+    reading.charge_state = classifyChargeState(data);
+    reading.health = classifyBatteryHealth(frame.alarms);
+    return reading;
+}
+
+BatteryReport buildBatteryReport(const BmsFrame & frame, const BatteryIdentity & identity)
+{
+    BatteryReport report;
+    report.reading = toBatteryReading(frame, identity);
+    report.charging = toChargingInfo(frame.data);
+    report.errors = describeAlarms(frame.alarms);
+    return report;
+}
+
+BatteryReport staleBatteryReport(
+    const BatteryIdentity & identity, std::size_t cell_count, std::size_t temp_sensor_count)
+{
+    BatteryReport report;
+    report.reading.charge = std::numeric_limits<float>::quiet_NaN();
+    report.reading.capacity = std::numeric_limits<float>::quiet_NaN();
+    // NaN, not the 0.0 default: consumers read 0.0 as a flat pack, and rover_mission_manager
+    // aborted any running mission on it the moment the BMS watchdog expired.
+    report.reading.percentage = std::numeric_limits<float>::quiet_NaN();
+    report.reading.design_capacity = identity.design_capacity;
+    report.reading.present = false;
+    report.reading.serial_number = identity.serial_number;
+    report.reading.cell_voltages.assign(std::min(cell_count, kBmsMaxCells), 0.0f);
+    report.reading.cell_temperatures.assign(std::min(temp_sensor_count, kBmsMaxTempSensors), 0.0f);
+    // Unknown: isaacbot_amr_safety then ignores the stale temperature / percentage and the LED tree
+    // shows its error animation.
+    report.reading.charge_state = ChargeState::Unknown;
+    report.reading.health = BatteryHealth::WatchdogTimerExpired;
+    report.errors = {kWatchdogExpiredError};
+    return report;
+}
+
+}  // namespace isaacbot_amr_battery::domain

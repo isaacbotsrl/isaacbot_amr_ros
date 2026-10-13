@@ -26,7 +26,7 @@ The safety PLC (Arduino Portenta Machine Control) has 12 general-purpose digital
 | `aux_input_4` | DIO10 | input | `COIL_18` | `inputs[4]` |
 | `aux_input_5` | DIO11 | input | `COIL_19` | `inputs[5]` |
 
-Source: `isaacbot_arch/SAFETY_CHAIN.md` §2, `isaacbot_hardware_interface/src/isaacbot_safety_controller/isaacbot_safety_controller.cpp`, `isaacbot_msgs/msg/AuxIoState.msg`.
+Source: `isaacbot_amr_arch/SAFETY_CHAIN.md` §2, `isaacbot_amr_hardware_interface/src/isaacbot_safety_controller/isaacbot_safety_controller.cpp`, `isaacbot_amr_msgs/msg/AuxIoState.msg`.
 
 Electrical ratings of the DIO pins (voltage levels, output current, input thresholds) and the connector pinout are **TBD**.
 
@@ -43,11 +43,11 @@ ros2 service call /isaacbot/hardware_interface/aux_output_0/set std_srvs/srv/Set
 - Aux writes use the link without priority, so they never delay the watchdog heartbeat or an E-Stop write.
 - The PLC refreshes the DIO pins on its 100 ms task.
 
-Source: `isaacbot_hardware_interface/src/isaacbot_system/isaacbot_system.cpp`, `isaacbot_arch/SAFETY_CHAIN.md` §2.
+Source: `isaacbot_amr_hardware_interface/src/isaacbot_system/isaacbot_system.cpp`, `isaacbot_amr_arch/SAFETY_CHAIN.md` §2.
 
 ### Reading the state
 
-`hardware_interface/aux_io_state` (`isaacbot_msgs/AuxIoState`) is published at 20 Hz with QoS reliable, volatile, keep last 1.
+`hardware_interface/aux_io_state` (`isaacbot_amr_msgs/AuxIoState`) is published at 20 Hz with QoS reliable, volatile, keep last 1.
 
 | Field | Meaning |
 |-------|---------|
@@ -61,7 +61,7 @@ Source: `isaacbot_hardware_interface/src/isaacbot_system/isaacbot_system.cpp`, `
 ros2 topic echo /isaacbot/hardware_interface/aux_io_state
 ```
 
-Source: `isaacbot_msgs/msg/AuxIoState.msg`, `isaacbot_hardware_interface/src/system_ros_interface/system_ros_interface.cpp`, `driver_states_update_frequency` in `isaacbot_description/urdf/ardennes/ardennes_macro.urdf.xacro`.
+Source: `isaacbot_amr_msgs/msg/AuxIoState.msg`, `isaacbot_amr_hardware_interface/src/system_ros_interface/system_ros_interface.cpp`, `driver_states_update_frequency` in `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro`.
 
 !!! note
     The aux IO topic and services exist only on real hardware. In simulation `gz_ros2_control` replaces `ArdennesSystem` and nothing talks to the PLC.
@@ -73,13 +73,13 @@ The `ArdennesSystem` hardware plugin owns the link from two background threads: 
 | Item | Value | Source |
 |------|-------|--------|
 | Address | `192.168.88.11:502` | `ardennes_macro.urdf.xacro` (`modbus_host`, `modbus_port`) |
-| Unit id | 255 | `isaacbot_transport/isaacbot_modbus_driver/include/isaacbot_modbus_driver/application/modbus_discrete_io_client.hpp` |
-| Function codes | FC1 read coils, FC2 read discrete inputs, FC5 write single coil | `isaacbot_arch/SAFETY_CHAIN.md` §2 |
+| Unit id | 255 | `isaacbot_amr_transport/isaacbot_amr_modbus_driver/include/isaacbot_amr_modbus_driver/application/modbus_discrete_io_client.hpp` |
+| Function codes | FC1 read coils, FC2 read discrete inputs, FC5 write single coil | `isaacbot_amr_arch/SAFETY_CHAIN.md` §2 |
 | Response timeout | 150 ms | `ardennes_macro.urdf.xacro` (`modbus_response_timeout_ms`) |
 | Connection retry | forever (`0`), 1000 ms apart | `modbus_connection_retry_count`, `modbus_connection_retry_delay_ms` |
 | IO poll period | 100 ms (10 Hz), 4 batched transactions | `safety_io_poll_period_ms` |
 | Watchdog heartbeat toggle | 200 ms (5 Hz) on `COIL_1` | `safety_wdg_kick_period_ms` |
-| PLC watchdog window | about 1 s (measured) | `isaacbot_arch/SAFETY_CHAIN.md` §3 |
+| PLC watchdog window | about 1 s (measured) | `isaacbot_amr_arch/SAFETY_CHAIN.md` §3 |
 | Latch reset pulse | 100 ms | `safety_latch_reset_pulse_ms` |
 | Safety and aux topics publish rate | 20 Hz | `driver_states_update_frequency` |
 
@@ -108,9 +108,9 @@ If the heartbeat stops for longer than the PLC watchdog window, the PLC latches 
 
     The PLC IDE labels the DIO points "Modbus Coil 9..20" because it counts from 1. The PDU address counts from 0, so DIO00 is address 8. Check the mapping on the hardware after changing the PLC program: `mbpoll -t 0 -0 -r 0 -c 20`.
 
-    Source: `isaacbot_arch/SAFETY_CHAIN.md` §2, `isaacbot_hardware_interface/src/isaacbot_safety_controller/isaacbot_safety_controller.cpp` (`kCoilReadBlocks`).
+    Source: `isaacbot_amr_arch/SAFETY_CHAIN.md` §2, `isaacbot_amr_hardware_interface/src/isaacbot_safety_controller/isaacbot_safety_controller.cpp` (`kCoilReadBlocks`).
 
-More detail: [SAFETY_CHAIN.md](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_arch/SAFETY_CHAIN.md), [isaacbot_hardware_interface README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_hardware_interface/README.md), [isaacbot_modbus_driver README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_transport/isaacbot_modbus_driver/README.md).
+More detail: [SAFETY_CHAIN.md](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_arch/SAFETY_CHAIN.md), [isaacbot_amr_hardware_interface README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_hardware_interface/README.md), [isaacbot_amr_modbus_driver README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_transport/isaacbot_amr_modbus_driver/README.md).
 
 ## Platform network
 
@@ -118,18 +118,18 @@ The platform has two IP networks. The safety PLC sits on a dedicated Ethernet li
 
 | Device | Interface | IP address | Ports | Source |
 |--------|-----------|------------|-------|--------|
-| ROS controller | ETH0 (PLC link) | `192.168.88.10/24` | none | `isaacbot_arch/ardennes_arch.drawio` |
+| ROS controller | ETH0 (PLC link) | `192.168.88.10/24` | none | `isaacbot_amr_arch/ardennes_arch.drawio` |
 | Safety PLC | ETH0 | `192.168.88.11/24` | 502/TCP Modbus | `ardennes_macro.urdf.xacro`, drawio |
-| ROS controller | ETH1 (router LAN) | `192.168.1.201/24` | 4444/UDP BMS telemetry in | `isaacbot_battery/config/isaacbot_battery.yaml`, drawio |
-| ROS controller | same | `192.168.1.201` | 10111/UDP ELRS CRSF in, from `192.168.1.1` only | `isaacbot_crsf_teleop/config/isaacbot_crsf_teleop.yaml` |
-| ROS controller | same | `192.168.1.201` | 7447/TCP Zenoh router | `isaacbot_scripts/setup_isaacbot_pc.sh` |
-| ROS controller | web bridge | bind address not set in isaacbot_amr_ros (upstream default) | 8765/TCP Foxglove bridge (`isaacbot_foxglove_bridge`) | `isaacbot_bringup/README.md` |
-| ROS controller | web bridge | bind address not set in isaacbot_amr_ros (upstream default) | 9090/TCP rosbridge (`isaacbot_amr_rosbridge_websocket`) | `isaacbot_bringup/launch/isaacbot_web_bridges.launch.py` |
+| ROS controller | ETH1 (router LAN) | `192.168.1.201/24` | 4444/UDP BMS telemetry in | `isaacbot_amr_battery/config/isaacbot_amr_battery.yaml`, drawio |
+| ROS controller | same | `192.168.1.201` | 10111/UDP ELRS CRSF in, from `192.168.1.1` only | `isaacbot_amr_crsf_teleop/config/isaacbot_amr_crsf_teleop.yaml` |
+| ROS controller | same | `192.168.1.201` | 7447/TCP Zenoh router | `isaacbot_amr_scripts/setup_isaacbot_pc.sh` |
+| ROS controller | web bridge | bind address not set in isaacbot_amr_ros (upstream default) | 8765/TCP Foxglove bridge (`isaacbot_foxglove_bridge`) | `isaacbot_amr_bringup/README.md` |
+| ROS controller | web bridge | bind address not set in isaacbot_amr_ros (upstream default) | 9090/TCP rosbridge (`isaacbot_amr_rosbridge_websocket`) | `isaacbot_amr_bringup/launch/isaacbot_web_bridges.launch.py` |
 | ROS controller | WLAN0 | `192.168.77.203/24` | none | drawio |
-| RUTX11 router | LAN | `192.168.1.1/24` | sends ELRS CRSF (Serial Utilities, Over IP UDP) to `192.168.1.201:10111` | drawio, `isaacbot_crsf_teleop/scripts/rutx11_elrs_udp_forwarding.sh` |
+| RUTX11 router | LAN | `192.168.1.1/24` | sends ELRS CRSF (Serial Utilities, Over IP UDP) to `192.168.1.201:10111` | drawio, `isaacbot_amr_crsf_teleop/scripts/rutx11_elrs_udp_forwarding.sh` |
 | RUTX11 router | Wi-Fi AP | `192.168.77.1/24` | none | drawio |
-| ESP32 BMS bridge / rear LED controller | Wi-Fi | `192.168.77.201` | 3333/UDP LED channel 2 (rear panel) in; 3003 shutdown endpoint (optional, not configured) | `isaacbot_led/config/ardennes_udp_led_channel_2.yaml`, `isaacbot_safety/config/shutdown_hosts.yaml` |
-| Front LED controller | Wi-Fi | `192.168.77.202` | 3334/UDP LED channel 1 (front panel) in | `isaacbot_led/config/ardennes_udp_led_channel_1.yaml` |
+| ESP32 BMS bridge / rear LED controller | Wi-Fi | `192.168.77.201` | 3333/UDP LED channel 2 (rear panel) in; 3003 shutdown endpoint (optional, not configured) | `isaacbot_amr_led/config/ardennes_udp_led_channel_2.yaml`, `isaacbot_amr_safety/config/shutdown_hosts.yaml` |
+| Front LED controller | Wi-Fi | `192.168.77.202` | 3334/UDP LED channel 1 (front panel) in | `isaacbot_amr_led/config/ardennes_udp_led_channel_1.yaml` |
 
 The ROS controller addresses `192.168.88.10` and `192.168.77.203`, and the router addresses, appear only in the architecture diagram, not in a config file. The router's uplink is site-specific and not covered here.
 
@@ -137,9 +137,9 @@ The ROS controller addresses `192.168.88.10` and `192.168.77.203`, and the route
 
 | Device | Connection | Settings | Source |
 |--------|------------|----------|--------|
-| Phidgets MOT0110 IMU | USB, opened directly (not through the VINT hub) | Data interval 8 ms, Madgwick filter, magnetometer off, ENU world frame | `isaacbot_description/urdf/common/imu.urdf.xacro`, `isaacbot_hardware_interface/src/isaacbot_sensors/phidget_imu_sensor.cpp` |
-| Phidgets VINT hub | USB | DCC1000 boards on hub ports 0 (FL), 1 (FR), 4 (RL), 5 (RR); any hub serial number (`-1`) | `isaacbot_hardware_interface/src/isaacbot_driver/ardennes_driver.cpp` |
-| ExpressLRS (CRSF) receiver | USB-UART adapter on the **RUTX11** USB port, not the ROS controller | 460800 8N1, set in the router's Serial Utilities | `isaacbot_crsf_teleop/README.md`, `isaacbot_crsf_teleop/scripts/rutx11_elrs_udp_forwarding.sh` |
+| Phidgets MOT0110 IMU | USB, opened directly (not through the VINT hub) | Data interval 8 ms, Madgwick filter, magnetometer off, ENU world frame | `isaacbot_amr_description/urdf/common/imu.urdf.xacro`, `isaacbot_amr_hardware_interface/src/isaacbot_sensors/phidget_imu_sensor.cpp` |
+| Phidgets VINT hub | USB | DCC1000 boards on hub ports 0 (FL), 1 (FR), 4 (RL), 5 (RR); any hub serial number (`-1`) | `isaacbot_amr_hardware_interface/src/isaacbot_driver/ardennes_driver.cpp` |
+| ExpressLRS (CRSF) receiver | USB-UART adapter on the **RUTX11** USB port, not the ROS controller | 460800 8N1, set in the router's Serial Utilities | `isaacbot_amr_crsf_teleop/README.md`, `isaacbot_amr_crsf_teleop/scripts/rutx11_elrs_udp_forwarding.sh` |
 
 !!! warning "ELRS adapter on the router"
     Teltonika does not publish which USB-UART chips RutOS supports. Check `ls /dev/ttyUSB*` on the router after plugging the adapter in; FTDI and CP210x adapters are the safest choice. The receiver stays at 460800 baud.

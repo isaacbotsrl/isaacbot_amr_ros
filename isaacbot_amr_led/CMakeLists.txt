@@ -1,0 +1,256 @@
+cmake_minimum_required(VERSION 3.10)
+project(isaacbot_amr_led)
+
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+set(PACKAGE_DEPENDENCIES
+    ament_cmake
+    ament_index_cpp
+    diagnostic_updater
+    generate_parameter_library
+    lifecycle_msgs
+    udp_msgs
+    isaacbot_amr_msgs
+    isaacbot_amr_utils
+    pluginlib
+    rclcpp
+    rclcpp_components
+    rclcpp_lifecycle
+    sensor_msgs
+    std_msgs
+    std_srvs
+    yaml-cpp
+)
+
+foreach(PACKAGE IN ITEMS ${PACKAGE_DEPENDENCIES})
+  find_package(${PACKAGE} REQUIRED)
+endforeach()
+
+include_directories(include)
+
+# --- Domain: entities, animations, SK9822 encoder, ports. No ROS, no I/O. --
+
+add_library(isaacbot_led_domain SHARED
+    src/domain/animation/image_animation.cpp
+    src/domain/animation/moving_image_animation.cpp
+    src/domain/led_components/led_panel.cpp
+    src/domain/led_components/led_segment.cpp
+    src/domain/led_components/segment_converter.cpp
+    src/domain/led_components/segment_layer.cpp
+    src/domain/led_components/segment_queue_layer.cpp
+    src/domain/sk9822_frame_encoder.cpp
+)
+
+target_include_directories(isaacbot_led_domain PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include/${PROJECT_NAME}>
+)
+
+# isaacbot_amr_utils is only used for its header-only YAML helpers.
+target_include_directories(isaacbot_led_domain PUBLIC ${isaacbot_amr_utils_INCLUDE_DIRS})
+
+target_link_libraries(isaacbot_led_domain yaml-cpp)
+
+# --- Application: use cases. No ROS. ----------------------------------------
+
+add_library(isaacbot_led_application SHARED
+    src/application/encode_frame_use_case.cpp
+    src/application/get_led_state_use_case.cpp
+    src/application/led_control_handshake.cpp
+    src/application/render_tick_use_case.cpp
+    src/application/set_animation_use_case.cpp
+    src/application/set_brightness_use_case.cpp
+    src/application/stop_animation_use_case.cpp
+    src/application/validate_animation_catalog_use_case.cpp
+)
+
+target_link_libraries(isaacbot_led_application isaacbot_led_domain)
+
+# --- Infrastructure: pluginlib, YAML config, ROS nodes. ----------------------
+
+# PngImageFileSource (the domain's IImageSource). An object library: built into the plugin library
+# and into the tests that read real images, so the installed plugin needs no extra shared library
+# at run time (colcon test doesn't put isaacbot_amr_led's own lib/ on LD_LIBRARY_PATH).
+add_library(isaacbot_led_png_image_source OBJECT src/infrastructure/png_image_file_source.cpp)
+set_target_properties(isaacbot_led_png_image_source PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+pluginlib_export_plugin_description_file(${PROJECT_NAME} plugins.xml)
+
+add_library(animation_plugins SHARED src/infrastructure/animation_plugins.cpp
+            $<TARGET_OBJECTS:isaacbot_led_png_image_source>)
+
+target_link_libraries(animation_plugins
+    ${pluginlib_TARGETS}
+)
+
+target_link_libraries(animation_plugins isaacbot_led_domain png)
+
+generate_parameter_library(led_driver_parameters
+                           src/led_driver_parameters.yaml
+)
+
+add_library(led_driver_node_component SHARED
+    src/infrastructure/led_driver_node.cpp
+)
+
+target_link_libraries(led_driver_node_component
+    ${diagnostic_updater_TARGETS}
+    ${lifecycle_msgs_TARGETS}
+    ${udp_msgs_TARGETS}
+    ${isaacbot_amr_msgs_TARGETS}
+    ${rclcpp_TARGETS}
+    ${rclcpp_components_TARGETS}
+    ${rclcpp_lifecycle_TARGETS}
+    ${sensor_msgs_TARGETS}
+    ${std_msgs_TARGETS}
+    ${std_srvs_TARGETS}
+)
+
+target_link_libraries(led_driver_node_component
+                      isaacbot_led_application
+                      led_driver_parameters
+)
+target_include_directories(led_driver_node_component PUBLIC ${isaacbot_amr_utils_INCLUDE_DIRS})
+
+generate_parameter_library(led_controller_parameters
+                           src/led_controller_parameters.yaml)
+
+add_library(
+    led_controller_node_component SHARED
+    src/infrastructure/led_controller_node.cpp
+    src/infrastructure/led_controller_diagnostics.cpp
+    src/infrastructure/pluginlib_animation_factory.cpp
+    src/infrastructure/yaml_led_config.cpp
+)
+
+target_link_libraries(led_controller_node_component
+    ${ament_index_cpp_TARGETS}
+    ${diagnostic_updater_TARGETS}
+    ${isaacbot_amr_msgs_TARGETS}
+    ${pluginlib_TARGETS}
+    ${rclcpp_TARGETS}
+    ${rclcpp_components_TARGETS}
+    ${sensor_msgs_TARGETS}
+)
+target_include_directories(led_controller_node_component PUBLIC ${isaacbot_amr_utils_INCLUDE_DIRS})
+
+target_link_libraries(led_controller_node_component
+                      isaacbot_led_application
+                      led_controller_parameters
+                      yaml-cpp
+)
+
+# Declare the include path on every exported target, not only via the
+# domain library it happens to link.
+foreach(TARGET_NAME IN ITEMS isaacbot_led_application animation_plugins
+                             led_driver_node_component led_controller_node_component)
+  target_include_directories(${TARGET_NAME} PUBLIC
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+      $<INSTALL_INTERFACE:include/${PROJECT_NAME}>
+  )
+endforeach()
+
+rclcpp_components_register_node(
+    led_driver_node_component PLUGIN
+    "isaacbot_amr_led::LedDriverNode" EXECUTABLE led_driver_node
+)
+
+rclcpp_components_register_node(
+    led_controller_node_component PLUGIN
+    "isaacbot_amr_led::LedControllerNode" EXECUTABLE led_controller_node
+)
+
+# --- Tests -------------------------------------------------------------------
+
+if(BUILD_TESTING)
+  find_package(ament_cmake_gmock REQUIRED)
+
+  # Unit tests of the domain and application layers link no ROS library.
+  function(isaacbot_led_add_test name source)
+    ament_add_gmock(${name} ${source})
+    target_link_libraries(${name} ${ARGN})
+  endfunction()
+
+  isaacbot_led_add_test(test_animation test/unit/domain/test_animation.cpp isaacbot_led_domain)
+  isaacbot_led_add_test(test_image_animation test/unit/domain/test_image_animation.cpp isaacbot_led_domain)
+  isaacbot_led_add_test(test_led_panel test/unit/domain/test_led_panel.cpp isaacbot_led_domain)
+  isaacbot_led_add_test(test_led_segment test/unit/domain/test_led_segment.cpp isaacbot_led_domain)
+  isaacbot_led_add_test(test_segment_layers test/unit/domain/test_segment_layers.cpp isaacbot_led_domain)
+  isaacbot_led_add_test(test_segment_converter test/unit/domain/test_segment_converter.cpp isaacbot_led_domain)
+  isaacbot_led_add_test(test_sk9822_frame_encoder test/unit/domain/test_sk9822_frame_encoder.cpp isaacbot_led_domain)
+
+  isaacbot_led_add_test(test_set_animation_use_case
+                     test/unit/application/test_set_animation_use_case.cpp isaacbot_led_application)
+  isaacbot_led_add_test(test_render_tick_use_case
+                     test/unit/application/test_render_tick_use_case.cpp isaacbot_led_application)
+  isaacbot_led_add_test(test_encode_frame_use_case
+                     test/unit/application/test_encode_frame_use_case.cpp isaacbot_led_application)
+  isaacbot_led_add_test(test_stop_animation_use_case
+                     test/unit/application/test_stop_animation_use_case.cpp isaacbot_led_application)
+  isaacbot_led_add_test(test_set_brightness_use_case
+                     test/unit/application/test_set_brightness_use_case.cpp isaacbot_led_application)
+  isaacbot_led_add_test(test_get_led_state_use_case
+                     test/unit/application/test_get_led_state_use_case.cpp isaacbot_led_application)
+  isaacbot_led_add_test(test_validate_animation_catalog_use_case
+                     test/unit/application/test_validate_animation_catalog_use_case.cpp isaacbot_led_application)
+  isaacbot_led_add_test(test_led_control_handshake
+                     test/unit/application/test_led_control_handshake.cpp isaacbot_led_application)
+
+  isaacbot_led_add_test(test_yaml_led_config
+                     test/unit/infrastructure/test_yaml_led_config.cpp led_controller_node_component)
+  target_compile_definitions(test_yaml_led_config PRIVATE ISAACBOT_LED_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+
+  isaacbot_led_add_test(test_shipped_blinkers
+                     test/unit/infrastructure/test_shipped_blinkers.cpp led_controller_node_component)
+  target_compile_definitions(test_shipped_blinkers PRIVATE ISAACBOT_LED_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+  target_sources(test_shipped_blinkers PRIVATE $<TARGET_OBJECTS:isaacbot_led_png_image_source>)
+  target_link_libraries(test_shipped_blinkers png)
+
+  isaacbot_led_add_test(test_png_image_file_source
+                     test/unit/infrastructure/test_png_image_file_source.cpp isaacbot_led_domain png)
+  target_sources(test_png_image_file_source PRIVATE $<TARGET_OBJECTS:isaacbot_led_png_image_source>)
+  target_compile_definitions(test_png_image_file_source PRIVATE ISAACBOT_LED_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+
+  isaacbot_led_add_test(test_led_controller_diagnostics
+                     test/unit/infrastructure/test_led_controller_diagnostics.cpp
+                     led_controller_node_component)
+
+  isaacbot_led_add_test(test_led_driver_node
+                     test/integration/test_led_driver_node.cpp led_driver_node_component)
+
+  # pluginlib finds the animation plugins through the ament index: point it at this package's
+  # install prefix, so the test doesn't depend on a sourced workspace.
+  ament_add_gmock(test_led_controller_node test/integration/test_led_controller_node.cpp
+                  TIMEOUT 120 APPEND_ENV AMENT_PREFIX_PATH=${CMAKE_INSTALL_PREFIX})
+  target_link_libraries(test_led_controller_node led_controller_node_component)
+  target_compile_definitions(test_led_controller_node PRIVATE ISAACBOT_LED_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+
+  # The launch file's composition: one container, driver + controller + UDP senders intra-process.
+  # FindPackageShare('isaacbot_amr_led') needs this package's own install prefix on the ament index.
+  find_package(ament_cmake_pytest REQUIRED)
+  ament_add_pytest_test(test_launch_structure test/test_launch_structure.py
+                        APPEND_ENV AMENT_PREFIX_PATH=${CMAKE_INSTALL_PREFIX})
+endif()
+
+install(
+    TARGETS isaacbot_led_domain isaacbot_led_application animation_plugins
+            led_driver_node_component led_driver_parameters
+            led_controller_node_component led_controller_parameters
+    EXPORT export_${PROJECT_NAME}
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION bin
+)
+
+install(DIRECTORY animations config launch
+        DESTINATION share/${PROJECT_NAME})
+
+install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
+
+ament_export_dependencies(${PACKAGE_DEPENDENCIES})
+ament_export_include_directories(include/${PROJECT_NAME})
+ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+
+ament_package()

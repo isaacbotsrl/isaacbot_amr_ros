@@ -30,14 +30,14 @@ A value marked **derived** is computed from those files, and the formula is give
 
 !!! warning "Source conflict: track width"
     The URDF and the drive controller use `wheel_separation: 0.617` m. The comment in
-    `isaacbot_controller/config/wheel_01_controller.yaml` and the MBSE data say the measured track
+    `isaacbot_amr_controller/config/wheel_01_controller.yaml` and the MBSE data say the measured track
     is 0.615 m. The manual uses 0.617 m, the value the code runs with.
 
-Sources: `isaacbot_description/config/wheel_01.yaml`,
-`isaacbot_description/urdf/ardennes/ardennes_macro.urdf.xacro` (`wheel_mount_point_z`),
+Sources: `isaacbot_amr_description/config/wheel_01.yaml`,
+`isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro` (`wheel_mount_point_z`),
 the SolidWorks mass properties of ARDENNES_1000_WATT_VARIANT (2026-10-08, per-part mass properties
 with the mass overrides: mass, centre of mass, inertia),
-`isaacbot_description/meshes/` (dimensions computed by `docs/tools/render_meshes.py`),
+`isaacbot_amr_description/meshes/` (dimensions computed by `docs/tools/render_meshes.py`),
 `rover_platform_mbse/system/ROVER-A1-ROVER_ROS_SYS-SR-V-002.xlsx` (sheets *Requirements*
 and *Mass Properties*), `rover_platform_mbse/data/sys_sr_compliance.json` (Nav 2 footprint).
 
@@ -55,8 +55,8 @@ and *Mass Properties*), `rover_platform_mbse/data/sys_sr_compliance.json` (Nav 2
 The odometry uses the effective radius, which is smaller than the CAD radius: the tyre deflects
 under load. The CAD radius sets the wheel collision cylinder and the height of `base_link`.
 
-Sources: `isaacbot_description/config/wheel_01.yaml`, `isaacbot_description/README.md` (13-inch wheel),
-`isaacbot_description/urdf/common/wheel.urdf.xacro`.
+Sources: `isaacbot_amr_description/config/wheel_01.yaml`, `isaacbot_amr_description/README.md` (13-inch wheel),
+`isaacbot_amr_description/urdf/common/wheel.urdf.xacro`.
 
 ## Traction
 
@@ -86,16 +86,16 @@ above the limits in `wheel_01_controller.yaml`.
     The requirement sets the linear limit at 1.0 m/s. The answer for the angular limit in the
     requirements spreadsheet reads "1.7 m/s2". The code limits the angular speed to 1.5 rad/s.
 
-Sources: `isaacbot_controller/config/wheel_01_controller.yaml`,
-`isaacbot_description/urdf/ardennes/ardennes_macro.urdf.xacro` (`<ros2_control>` parameters),
-`isaacbot_description/urdf/common/wheel.urdf.xacro`.
+Sources: `isaacbot_amr_controller/config/wheel_01_controller.yaml`,
+`isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro` (`<ros2_control>` parameters),
+`isaacbot_amr_description/urdf/common/wheel.urdf.xacro`.
 
 ## Battery
 
 | Parameter | Value | Notes |
 |---|---|---|
-| Chemistry | LiFePO4 | From the architecture diagram `isaacbot_arch/ardennes_arch.drawio` |
-| Design capacity | 40 Ah | `isaacbot_battery/config/isaacbot_battery.yaml` |
+| Chemistry | LiFePO4 | From the architecture diagram `isaacbot_amr_arch/ardennes_arch.drawio` |
+| Design capacity | 40 Ah | `isaacbot_amr_battery/config/isaacbot_amr_battery.yaml` |
 | Motor supply voltage | 24 V | `motor_supply_voltage`, `ardennes_macro.urdf.xacro` |
 | Nominal pack voltage | **TBD** | |
 | Energy | **TBD** | |
@@ -114,6 +114,6 @@ Sources: `isaacbot_controller/config/wheel_01_controller.yaml`,
 The lidar, GNSS and cameras are payload: they belong to the `rover_sensors` repository and are
 not part of this manual.
 
-Sources: `isaacbot_description/urdf/common/imu.urdf.xacro`,
-`isaacbot_controller/config/wheel_01_controller.yaml`,
-`isaacbot_description/urdf/ardennes/ardennes_macro.urdf.xacro`.
+Sources: `isaacbot_amr_description/urdf/common/imu.urdf.xacro`,
+`isaacbot_amr_controller/config/wheel_01_controller.yaml`,
+`isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro`.
