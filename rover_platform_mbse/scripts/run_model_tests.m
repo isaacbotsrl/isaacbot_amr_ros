@@ -5,7 +5,7 @@ function results = run_model_tests()
 %   KnownDeviation test starts passing (then the deviation is fixed: remove the tag
 %   and update the compliance data).
 
-% Copyright 2026 Mechatronics Academy
+% Copyright 2026 IsaacBot
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
 % you may not use this file except in compliance with the License.

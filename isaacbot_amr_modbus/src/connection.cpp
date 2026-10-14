@@ -13,7 +13,7 @@ using namespace MB::TCP;
 
 namespace {
 
-// Modified 2026 by Mechatronics Academy: the MBAP header was assembled inline three times
+// Modified 2026 by IsaacBot: the MBAP header was assembled inline three times
 // (sendRequest / sendResponse / sendException) with a length encoding that was wrong in
 // two ways - it pushed `reinterpret_cast<const uint16_t *>(&size)[1]`, i.e. the HIGH half
 // of a uint32_t (always 0 for real frames), then a truncated low half, into a
@@ -46,7 +46,7 @@ std::vector<uint8_t> buildMbapFrame(const uint16_t messageID, const std::vector<
     return frame;
 }
 
-// Modified 2026 by Mechatronics Academy: ::send()'s return value was ignored, so a
+// Modified 2026 by IsaacBot: ::send()'s return value was ignored, so a
 // partial write on a full socket buffer emitted a truncated frame with no error. Loop
 // until the whole frame is out.
 void sendAll(const int sockfd, const std::vector<uint8_t> &frame) {
@@ -83,7 +83,7 @@ Connection::~Connection() {
     _sockfd = -1;
 }
 
-// Modified 2026 by Mechatronics Academy: wait for the socket to become readable, then
+// Modified 2026 by IsaacBot: wait for the socket to become readable, then
 // read exactly one whole MBAP frame. The previous code did a single ::recv() into a
 // 1024-byte buffer and assumed a complete frame had arrived, with the result unchecked
 // for short reads. Shared by awaitRequest / awaitResponse / awaitRawMessage so all three
@@ -133,7 +133,7 @@ std::vector<uint8_t> Connection::recvExactly(const std::size_t count) {
 }
 
 std::vector<uint8_t> Connection::sendRequest(const MB::ModbusRequest &req) {
-    // Modified 2026 by Mechatronics Academy: advance the transaction id per request. It
+    // Modified 2026 by IsaacBot: advance the transaction id per request. It
     // was never incremented, so every frame on the wire carried id 0 and awaitResponse()'s
     // id check was degenerate: after one timeout the next call would accept the PREVIOUS
     // transaction's buffered payload and return a stale reading with no error.
@@ -213,7 +213,7 @@ Connection Connection::with(std::string addr, int port) {
     server.sin_addr   = {inet_addr(addr.c_str())};
 
     if (::connect(sock, reinterpret_cast<struct sockaddr *>(&server), sizeof(server)) < 0) {
-        // Modified 2026 by Mechatronics Academy: close the socket before throwing.
+        // Modified 2026 by IsaacBot: close the socket before throwing.
         // Upstream fixed this in 397a169 ("Fix file descriptor leak on connection
         // failure"); fork commit c5d53cb flattened src/TCP/ -> src/ and dropped the fix
         // in the process. With the isaacbot's shipped URDF (retry forever, 1 s delay) an

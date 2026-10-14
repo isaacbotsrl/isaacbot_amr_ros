@@ -5,7 +5,7 @@ needs the isaacbot's heading to place GPS fixes in the map frame. The IMU's magn
 not reliable near the drive motors, so this package derives the heading from GNSS course instead.
 
 This is localization logic, not a sensor driver. The GPS driver and the fix-health diagnostics
-live in the sensor payload (`isaacbot_amr_sensors/isaacbot_amr_gps`, container `rover-a1-sensors`). This
+live in the sensor payload (`isaacbot_amr_sensors/isaacbot_amr_gps`, container `ardennes-sensors`). This
 package only consumes `gps/fix`, so any GNSS receiver that publishes a reliable `NavSatFix`
 works; `navsat_transform_node` needs it reliable too. A receiver with its own true heading (dual
 antenna) can skip this node and feed its heading to `navsat_transform_node` directly.

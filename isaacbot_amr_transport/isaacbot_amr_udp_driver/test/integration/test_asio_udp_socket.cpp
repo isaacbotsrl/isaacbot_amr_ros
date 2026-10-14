@@ -14,7 +14,7 @@
 //
 // Developed by LeoDrive, 2021
 //
-// Modified 2026 by Mechatronics Academy: merges udp_driver's test_udp_socket.cpp,
+// Modified 2026 by IsaacBot: merges udp_driver's test_udp_socket.cpp,
 // test_udp_data.cpp and test_udp_driver.cpp (ros-drivers/transport_drivers v1.2.0). All
 // three hardcoded 127.0.0.1:8000, so they could not run concurrently; each case here
 // takes a distinct port derived from the pid, which also keeps parallel colcon runs on

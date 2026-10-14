@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copyright 2026 Mechatronics Academy
+# Copyright 2026 IsaacBot
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -66,7 +66,7 @@ Writes the "isaacbot-pc setup" block into ~/.bashrc (replacing an existing one i
   --remove             delete the block
   -h, --help           this help
 
-The PC joins the isaacbot's graph as a direct Zenoh client of the router in rover-a1-zenoh-router
+The PC joins the isaacbot's graph as a direct Zenoh client of the router in ardennes-zenoh-router
 (ZENOH_CONFIG_OVERRIDE). isaacbot_amr_gazebo/scripts/isaacbot_amr_sim.sh clears that for the local simulation.
 EOF
 }
@@ -117,7 +117,7 @@ export ROS_DOMAIN_ID=$DOMAIN_ID
 
 # ROS_LOCALHOST_ONLY (deprecated) and ROS_AUTOMATIC_DISCOVERY_RANGE are FastDDS-era leftovers
 # that confine nodes to a private graph - clear them. Then join the isaacbot's graph directly:
-# every node is a Zenoh client of the router in rover-a1-zenoh-router. No local router is used.
+# every node is a Zenoh client of the router in ardennes-zenoh-router. No local router is used.
 # isaacbot_amr_gazebo/scripts/isaacbot_amr_sim.sh clears this override for the local simulation (it runs its
 # own router on 127.0.0.1:7447); unset it too for off-isaacbot tests.
 unset ROS_LOCALHOST_ONLY ROS_AUTOMATIC_DISCOVERY_RANGE

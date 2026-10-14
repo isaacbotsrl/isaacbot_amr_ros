@@ -57,7 +57,7 @@ The manual uses the value the code runs with. The other source should be correct
 | BMS link | BLE → ESP32 → UDP | RS485/RS232 serial link (hardware part of the architecture diagram) | `isaacbot_amr_battery/`, `isaacbot_amr_arch/ardennes_arch.drawio` |
 | Motor power switching | One contactor with an auxiliary contact | Four relays K1–K4 on QX 0.0, no auxiliary contact (schematic) | `isaacbot_amr_arch/SAFETY_CHAIN.md`, `isaacbot_amr_arch/ardennes_arch.drawio` |
 | IMU hub port | -1 (any) is used when opening the device | 0 in the URDF, default 2 in the parameters | `isaacbot_amr_hardware_interface/src/phidget_imu_sensor.cpp` |
-| SYS-SR-001 mass limit | — | The requirement text says ≤ 60 kg *excluding* payload; the Open Questions sheet answers that payload *is* included | `rover_platform_mbse/system/ROVER-A1-ROVER_ROS_SYS-SR-V-002.xlsx` |
+| SYS-SR-001 mass limit | — | The requirement text says ≤ 60 kg *excluding* payload; the Open Questions sheet answers that payload *is* included | `rover_platform_mbse/system/ARDENNES-ROVER_ROS_SYS-SR-V-002.xlsx` |
 | MBSE baseline | Current values above | 100 Hz control and other non-CAD values (the CAD geometry and masses were re-read 2026-10-07) | `rover_platform_mbse/data/platform_parameters.json` (baseline 35aeb3e) |
 
 ## Behaviour worth reviewing

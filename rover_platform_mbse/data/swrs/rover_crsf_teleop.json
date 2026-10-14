@@ -1,7 +1,7 @@
 {
   "package": "rover_crsf_teleop",
   "prefix": "CRSF",
-  "document": "ROVER-A1-ROVER_CRSF_TELEOP-SWRS-V-001",
+  "document": "ARDENNES-ROVER_CRSF_TELEOP-SWRS-V-001",
   "title": "rover_crsf_teleop Software Requirements Specification",
   "scope": "rover_crsf_teleop provides line-of-sight RC teleoperation over an ExpressLRS/CRSF receiver. The receiver is wired through a USB-UART adapter to the RUTX11 router, whose Serial Utilities (Over IP: UDP client, raw mode, 460800 8N1) forward the raw CRSF bytes as UDP datagrams to 192.168.1.201:10111. A lifecycle component (RoverCrsfTeleopNode) decodes that byte stream as published by rover_udp_driver's UdpReceiverNode (rover_crsf_udp_receiver, accepting datagrams from the router, 192.168.1.1, only; both in one single-threaded container), maps two stick channels to TwistStamped commands on the highest-priority twist_mux input (teleop_elrs_cmd_vel_stamped) at 50 Hz, maps two switch channels onto the hardware interface's software E-Stop set/reset and latch-reset services, applies an RC-link failsafe (zero burst then silence), and offers an E-Stop-interlocked per-channel stick calibration with persistence.",
   "requirements": [

@@ -1,4 +1,4 @@
-# Modified 2026 by Mechatronics Academy: split the single Modbus_Core target in two, and
+# Modified 2026 by IsaacBot: split the single Modbus_Core target in two, and
 # changed the header install from flat to include/MB/.
 #
 # The split: the request/response/exception/CRC codec is pure std C++17 with no syscalls,

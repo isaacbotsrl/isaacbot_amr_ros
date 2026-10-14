@@ -1,7 +1,7 @@
 {
   "package": "rover_twist_mux",
   "prefix": "MUX",
-  "document": "ROVER-A1-ROVER_TWIST_MUX-SWRS-V-001",
+  "document": "ARDENNES-ROVER_TWIST_MUX-SWRS-V-001",
   "title": "rover_twist_mux Software Requirements Specification",
   "scope": "rover_twist_mux arbitrates the rover's velocity command sources. It configures and launches the upstream twist_mux node (the sole publisher of cmd_vel) with four prioritised, time-limited TwistStamped inputs (ELRS RC, Foxglove joystick, Driver UI, Nav 2) and one safety lock, and it provides two adapters: rover_motion_lock_node, which maps the safety PLC state (hardware_interface/safety_status + safety_command_echo) onto the fail-safe-closed motion_lock (std_msgs/Bool) that masks every input, and rover_command_freshness_node, which drops Driver UI commands delivered late by a stalled websocket. It is gate 2 of the five motion gates in rover_arch/SAFETY_CHAIN.md; the contactor and the hardware interface's write() gate are independent of it.",
   "requirements": [

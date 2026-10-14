@@ -3,7 +3,7 @@ function v = testVerifies()
 %   Returns a struct array: file, name ('tClass/testMethod'), fnLine, tagLine, ids,
 %   knownDeviation (true when the method sits in a TestTags = {'KnownDeviation'} block).
 
-% Copyright 2026 Mechatronics Academy
+% Copyright 2026 IsaacBot
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
 % you may not use this file except in compliance with the License.

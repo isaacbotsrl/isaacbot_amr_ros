@@ -1,4 +1,4 @@
-// Copyright 2026 Mechatronics Academy
+// Copyright 2026 IsaacBot
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -47,7 +47,7 @@ DiscreteReply ModbusTcpTransport::transact(const DiscreteRequest & request)
 
 MB::ModbusResponse ModbusTcpTransport::sendRequest(const MB::ModbusRequest & req)
 {
-    // Modified 2026 by Mechatronics Academy: dropped a try/catch that caught
+    // Modified 2026 by IsaacBot: dropped a try/catch that caught
     // MB::ModbusException into an unused variable and immediately rethrew it.
     connection_.sendRequest(req);
 
@@ -56,7 +56,7 @@ MB::ModbusResponse ModbusTcpTransport::sendRequest(const MB::ModbusRequest & req
 
 void ModbusTcpTransport::close()
 {
-    // Modified 2026 by Mechatronics Academy: this used to be an explicit no-op with a
+    // Modified 2026 by IsaacBot: this used to be an explicit no-op with a
     // comment saying the connection could be closed "if needed". Combined with the
     // missing virtual destructor on the port, that meant nothing ever closed the socket.
     // MB::TCP::Connection is RAII and closes in its own destructor; assigning a default

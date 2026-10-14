@@ -3,7 +3,7 @@
 #   isaacbot_amr_ekf_global_node       map  -> odom        wheels + IMU yaw rate + GPS position
 #   isaacbot_amr_navsat_transform_node gps/fix + gps/heading_imu + odometry/global -> odometry/gps
 #   isaacbot_amr_gps_heading_node      gps/fix + odom -> gps/heading_imu (ENU heading from GNSS course)
-# gps/fix comes from the sensor payload (rover-a1-sensors container). isaacbot_amr_gps_heading_node
+# gps/fix comes from the sensor payload (ardennes-sensors container). isaacbot_amr_gps_heading_node
 # publishes gps/heading_imu only after it aligned the odom yaw to ENU from the GNSS course while
 # driving straight; until then navsat_transform has no transform, and the global filter runs on
 # wheels + IMU only.

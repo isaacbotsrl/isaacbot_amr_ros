@@ -1,14 +1,14 @@
 function build_requirements(opts)
 %BUILD_REQUIREMENTS Build the Requirements Toolbox sets in requirements/.
 %   ROVER_ROS_SYS-SR.slreqx  system requirements, updated in place from
-%                            system/ROVER-A1-ROVER_ROS_SYS-SR-V-002.xlsx on every run
+%                            system/ARDENNES-ROVER_ROS_SYS-SR-V-002.xlsx on every run
 %                            (the xlsx is the system-level master).
 %   SWRS_<PREFIX>.slreqx     one software requirements specification per package,
 %                            created from data/swrs/<package>.json. Once created, the
 %                            .slreqx is the master and is NOT overwritten unless
 %                            build_requirements('Rebuild', true).
 
-% Copyright 2026 Mechatronics Academy
+% Copyright 2026 IsaacBot
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
 % you may not use this file except in compliance with the License.
@@ -82,7 +82,7 @@ end
 slreq.clear();
 
 %% System requirements from the xlsx
-xlsx = fullfile(root, 'system', 'ROVER-A1-ROVER_ROS_SYS-SR-V-002.xlsx');
+xlsx = fullfile(root, 'system', 'ARDENNES-ROVER_ROS_SYS-SR-V-002.xlsx');
 C = readcell(xlsx, 'Sheet', 'Requirements');
 hdr = string(C(1, :));
 col = @(name) find(startsWith(hdr, name), 1);
@@ -92,8 +92,8 @@ if isfile(sysFile)
 else
     rs = slreq.new(sysFile);
 end
-rs.Description = ['ROVER-A1 rover_ros platform system requirements, imported from ' ...
-    'system/ROVER-A1-ROVER_ROS_SYS-SR-V-002.xlsx (the master). Re-run build_requirements after editing the xlsx.'];
+rs.Description = ['ARDENNES rover_ros platform system requirements, imported from ' ...
+    'system/ARDENNES-ROVER_ROS_SYS-SR-V-002.xlsx (the master). Re-run build_requirements after editing the xlsx.'];
 sysAttrs = {'Category', 'VerificationMethod', 'AcceptanceCriteria', 'Priority', 'Status', ...
     'TraceDependsOn', 'OriginalText', 'Comments'};
 sysCols = {'Category', 'Verification Method', 'Acceptance Criteria', 'Priority', 'Status', ...

@@ -2,7 +2,7 @@ function c = items(x)
 %ITEMS Return a jsondecode array as a cell array of structs, whether jsondecode
 %   produced a struct array (uniform fields) or a cell array (mixed fields).
 
-% Copyright 2026 Mechatronics Academy
+% Copyright 2026 IsaacBot
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
 % you may not use this file except in compliance with the License.

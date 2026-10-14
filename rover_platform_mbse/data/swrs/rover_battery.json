@@ -1,7 +1,7 @@
 {
   "package": "rover_battery",
   "prefix": "BAT",
-  "document": "ROVER-A1-ROVER_BATTERY-SWRS-V-001",
+  "document": "ARDENNES-ROVER_BATTERY-SWRS-V-001",
   "title": "rover_battery Software Requirements Specification",
   "scope": "rover_battery decodes the Daly BMS telemetry that the ESP32 rover_led_bms_ble_controller forwards over UDP (392-byte payload, received by rover_udp_driver's UdpReceiverNode on 192.168.1.201:4444 in the same component container) and publishes the rover's battery state as sensor_msgs/BatteryState on battery/battery_status and rover_msgs/ChargingStatus on battery/charging_status, with a health classification from the BMS alarm bits, a data watchdog, and diagnostics. It is the battery input of rover_safety (battery E-Stop and shutdown policy, LED battery animations). State-of-charge thresholds live in the BMS configuration, not in this package.",
   "requirements": [

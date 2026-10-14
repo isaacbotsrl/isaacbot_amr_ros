@@ -9,7 +9,7 @@ function report = check_traceability()
 %       nor a model test
 %   Planned - a Proposed SWR verified by Test (its test comes with the implementation).
 
-% Copyright 2026 Mechatronics Academy
+% Copyright 2026 IsaacBot
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
 % you may not use this file except in compliance with the License.

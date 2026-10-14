@@ -19,7 +19,7 @@ function build_mode_manager()
 %   Thresholds: SYS-SR-017 gives [TBD]. ASSUMPTION: the rover_led_safety thresholds
 %   (led_battery_low, led_battery_critical) are used until the TBDs are set.
 
-% Copyright 2026 Mechatronics Academy
+% Copyright 2026 IsaacBot
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
 % you may not use this file except in compliance with the License.

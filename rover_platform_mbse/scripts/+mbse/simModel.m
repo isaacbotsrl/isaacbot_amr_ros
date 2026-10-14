@@ -5,7 +5,7 @@ function y = simModel(model, t, U, overrides)
 %   field per logged output (column vector, same length as the sim time vector) and
 %   the time vector in y.t.
 
-% Copyright 2026 Mechatronics Academy
+% Copyright 2026 IsaacBot
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
 % you may not use this file except in compliance with the License.

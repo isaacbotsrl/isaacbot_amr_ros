@@ -1,4 +1,4 @@
-// Copyright 2026 Mechatronics Academy
+// Copyright 2026 IsaacBot
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -68,7 +68,7 @@ struct ContactInfo
 
 struct CoilInfo
 {
-    // Modified 2026 by Mechatronics Academy: dropped the const qualifiers these three
+    // Modified 2026 by IsaacBot: dropped the const qualifiers these three
     // members carried. They made CoilInfo non-assignable, which is why the safety
     // controller's coil table could only ever be brace-initialised. The struct is passed
     // by const reference everywhere, so the constness bought nothing.

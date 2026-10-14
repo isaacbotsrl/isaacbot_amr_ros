@@ -38,7 +38,7 @@ Sources: `isaacbot_amr_description/config/wheel_01.yaml`,
 the SolidWorks mass properties of ARDENNES_1000_WATT_VARIANT (2026-10-08, per-part mass properties
 with the mass overrides: mass, centre of mass, inertia),
 `isaacbot_amr_description/meshes/` (dimensions computed by `docs/tools/render_meshes.py`),
-`rover_platform_mbse/system/ROVER-A1-ROVER_ROS_SYS-SR-V-002.xlsx` (sheets *Requirements*
+`rover_platform_mbse/system/ARDENNES-ROVER_ROS_SYS-SR-V-002.xlsx` (sheets *Requirements*
 and *Mass Properties*), `rover_platform_mbse/data/sys_sr_compliance.json` (Nav 2 footprint).
 
 ## Wheels

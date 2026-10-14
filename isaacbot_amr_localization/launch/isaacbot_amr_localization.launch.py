@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2025 Mechatronics Academy
+# Copyright 2025 IsaacBot
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ def generate_launch_description():
         description=(
             "Fuse GPS: adds isaacbot_amr_gps_heading_node, isaacbot_amr_ekf_global_node (map -> odom) and "
             "isaacbot_amr_navsat_transform_node, and loads the _with_gps config. The GPS driver "
-            "(gps/fix) is part of the sensor payload (rover-a1-sensors container)."
+            "(gps/fix) is part of the sensor payload (ardennes-sensors container)."
         ),
     )
     fuse_gps_bool = PythonExpression(

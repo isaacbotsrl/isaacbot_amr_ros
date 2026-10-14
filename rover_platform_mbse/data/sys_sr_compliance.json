@@ -1,5 +1,5 @@
 {
-  "document": "ROVER-A1-ROVER_ROS_SYS-SR-COMPLIANCE-V-001",
+  "document": "ARDENNES-ROVER_ROS_SYS-SR-COMPLIANCE-V-001",
   "date": "2026-09-27",
   "baseline": "src/rover_ros master 35aeb3e; SYS-SR V-002",
   "verdicts": [

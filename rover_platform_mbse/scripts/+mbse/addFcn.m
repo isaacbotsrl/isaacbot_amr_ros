@@ -3,7 +3,7 @@ function blk = addFcn(path, code, paramNames, position)
 %   paramNames become non-tunable Parameter data resolved from the model
 %   workspace (the P struct built from data/platform_parameters.json).
 
-% Copyright 2026 Mechatronics Academy
+% Copyright 2026 IsaacBot
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
 % you may not use this file except in compliance with the License.

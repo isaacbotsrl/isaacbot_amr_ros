@@ -1,10 +1,10 @@
 site_name: Ardennes Platform Manual
-site_description: Hardware and software manual for the Mechatronics Academy Ardennes mobile platform (isaacbot_amr_ros).
+site_description: Hardware and software manual for the IsaacBot Ardennes mobile platform (isaacbot_amr_ros).
 site_url: https://isaacbotsrl.github.io/isaacbot_amr_ros/
 repo_url: https://github.com/isaacbotsrl/isaacbot_amr_ros
 repo_name: isaacbotsrl/isaacbot_amr_ros
 edit_uri: edit/main/docs/
-copyright: Mechatronics Academy
+copyright: IsaacBot
 
 exclude_docs: |
   tools/

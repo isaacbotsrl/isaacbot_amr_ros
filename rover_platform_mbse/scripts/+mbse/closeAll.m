@@ -2,7 +2,7 @@ function closeAll()
 %CLOSEALL Close every model, dictionary, profile, allocation set and requirement
 %   set without saving. A "save changes?" dialog would block the MCP session.
 
-% Copyright 2026 Mechatronics Academy
+% Copyright 2026 IsaacBot
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
 % you may not use this file except in compliance with the License.

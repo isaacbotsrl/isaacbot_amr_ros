@@ -14,7 +14,7 @@
 //
 // Developed by Evan Flynn, 2021
 //
-// Modified 2026 by Mechatronics Academy: moved out of
+// Modified 2026 by IsaacBot: moved out of
 // io_context/include/msg_converters/udp_msgs.hpp (ros-drivers/transport_drivers v1.2.0)
 // and de-inlined, so isaacbot_amr_io_context no longer depends on udp_msgs.
 

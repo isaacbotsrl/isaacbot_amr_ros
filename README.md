@@ -7,7 +7,7 @@
 
 # isaacbot_amr_ros
 
-Mechatronics Academy's Ardennes ROS2.
+IsaacBot's Ardennes ROS2.
 
 **Bringup & simulation**
 
@@ -78,8 +78,8 @@ Mechatronics Academy's Ardennes ROS2.
 ### Create workspace
 
 ```bash
-mkdir -p ~/ros2_ws/rover_a1
-cd ~/ros2_ws/rover_a1
+mkdir -p ~/ros2_ws/ardennes
+cd ~/ros2_ws/ardennes
 git clone -b master https://github.com/isaacbotsrl/isaacbot_amr_ros.git src/isaacbot_amr_ros
 ```
 
@@ -239,8 +239,8 @@ Actions**.
 A complete isaacbot is three repositories, one per container:
 
 - [`isaacbot_amr_ros`](https://github.com/isaacbotsrl/isaacbot_amr_ros) - this one, the platform
-  (`rover-a1-platform`).
+  (`ardennes-platform`).
 - [`isaacbot_amr_sensors`](https://github.com/isaacbotsrl/isaacbot_amr_sensors) - the sensor payload,
-  GNSS and lidar drivers (`rover-a1-sensors`).
+  GNSS and lidar drivers (`ardennes-sensors`).
 - [`isaacbot_amr_orchestrator`](https://github.com/isaacbotsrl/isaacbot_amr_orchestrator) - the autonomy
-  stack, Nav 2 and mission supervision (`rover-a1-orchestrator`).
+  stack, Nav 2 and mission supervision (`ardennes-orchestrator`).

@@ -1,4 +1,4 @@
-// Copyright 2026 Mechatronics Academy
+// Copyright 2026 IsaacBot
 // Licensed under: MIT License <http://opensource.org/licenses/MIT>
 
 //

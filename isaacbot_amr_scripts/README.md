@@ -13,9 +13,9 @@ Writes the **isaacbot-pc setup** block into `~/.bashrc`. The block sets up:
 - `~/.local/bin` and `~/balena/bin` on PATH, and `QT_QPA_PLATFORM=xcb`.
 
 ```bash
-~/ros2_ws/rover_a1/src/isaacbot_amr_ros/isaacbot_amr_scripts/setup_isaacbot_amr_pc.sh              # defaults below
-~/ros2_ws/rover_a1/src/isaacbot_amr_ros/isaacbot_amr_scripts/setup_isaacbot_amr_pc.sh --isaacbot-ip 10.0.0.5 --dry-run
-~/ros2_ws/rover_a1/src/isaacbot_amr_ros/isaacbot_amr_scripts/setup_isaacbot_amr_pc.sh --remove
+~/ros2_ws/ardennes/src/isaacbot_amr_ros/isaacbot_amr_scripts/setup_isaacbot_amr_pc.sh              # defaults below
+~/ros2_ws/ardennes/src/isaacbot_amr_ros/isaacbot_amr_scripts/setup_isaacbot_amr_pc.sh --isaacbot-ip 10.0.0.5 --dry-run
+~/ros2_ws/ardennes/src/isaacbot_amr_ros/isaacbot_amr_scripts/setup_isaacbot_amr_pc.sh --remove
 source ~/.bashrc   # or open a new terminal
 ```
 
@@ -40,7 +40,7 @@ source ~/.bashrc   # or open a new terminal
 
 ### How the PC joins the isaacbot's graph
 
-Every ROS node on the PC is a **direct Zenoh client** of the router in `rover-a1-zenoh-router`, via
+Every ROS node on the PC is a **direct Zenoh client** of the router in `ardennes-zenoh-router`, via
 `ZENOH_CONFIG_OVERRIDE='mode="client";connect/endpoints=["tcp/<isaacbot-ip>:7447"]'`. No local
 router runs. This is deliberate:
 - **The simulation stays isolated.** `isaacbot_amr_gazebo/scripts/isaacbot_amr_sim.sh` clears the override and

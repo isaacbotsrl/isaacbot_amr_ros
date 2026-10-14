@@ -14,7 +14,7 @@
 //
 // Developed by Evan Flynn, 2021
 //
-// Modified 2026 by Mechatronics Academy: moved out of io_context and de-inlined.
+// Modified 2026 by IsaacBot: moved out of io_context and de-inlined.
 
 #include "isaacbot_amr_udp_driver/infrastructure/udp_packet_conversions.hpp"
 

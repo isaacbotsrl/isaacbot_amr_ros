@@ -116,11 +116,11 @@ sourced, it only prepares the current shell, e.g. for a second terminal:
 
 ```bash
 # terminal 1: simulation (--build builds the workspace first; extra args go to the launch file)
-~/ros2_ws/rover_a1/src/isaacbot_amr_ros/isaacbot_amr_gazebo/scripts/isaacbot_amr_sim.sh --build
-ISAACBOT_AMR_SYSTEM_USE_GPS=true ~/ros2_ws/rover_a1/src/isaacbot_amr_ros/isaacbot_amr_gazebo/scripts/isaacbot_amr_sim.sh use_rviz:=False
+~/ros2_ws/ardennes/src/isaacbot_amr_ros/isaacbot_amr_gazebo/scripts/isaacbot_amr_sim.sh --build
+ISAACBOT_AMR_SYSTEM_USE_GPS=true ~/ros2_ws/ardennes/src/isaacbot_amr_ros/isaacbot_amr_gazebo/scripts/isaacbot_amr_sim.sh use_rviz:=False
 
 # terminal 2: orchestrator / ros2 CLI on the same local middleware
-source ~/ros2_ws/rover_a1/src/isaacbot_amr_ros/isaacbot_amr_gazebo/scripts/isaacbot_amr_sim.sh
+source ~/ros2_ws/ardennes/src/isaacbot_amr_ros/isaacbot_amr_gazebo/scripts/isaacbot_amr_sim.sh
 ros2 launch isaacbot_amr_navigation bringup.launch.py use_sim_time:=True localization_source:=slam
 ```
 

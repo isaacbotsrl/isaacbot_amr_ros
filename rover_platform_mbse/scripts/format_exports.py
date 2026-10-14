@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2026 Mechatronics Academy
+# Copyright 2026 IsaacBot
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 """Apply the SYS-SR workbook style to the spreadsheets in export/.
 
 MATLAB (export_requirements.m) writes plain cells; this gives them the look of
-system/ROVER-A1-ROVER_ROS_SYS-SR-V-002.xlsx: Arial 10, white bold header on dark blue,
+system/ARDENNES-ROVER_ROS_SYS-SR-V-002.xlsx: Arial 10, white bold header on dark blue,
 hair borders, wrapped top-aligned text, frozen header row and an auto filter.
 Verdict / result cells are colour-coded.
 

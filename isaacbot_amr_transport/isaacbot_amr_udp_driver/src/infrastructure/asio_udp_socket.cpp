@@ -14,7 +14,7 @@
 //
 // Developed by LeoDrive, 2021
 //
-// Modified 2026 by Mechatronics Academy: relayouted from udp_driver/src/udp_socket.cpp
+// Modified 2026 by IsaacBot: relayouted from udp_driver/src/udp_socket.cpp
 // (ros-drivers/transport_drivers v1.2.0). Three defects fixed while moving - see
 // asyncSend(), asyncReceiveHandler() and send()/receive(). Later: close() waits for the
 // socket's handlers (AsyncOpGuard), so the owner can destroy what the callback uses; reads

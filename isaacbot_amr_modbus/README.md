@@ -135,7 +135,7 @@ Headers install to `<prefix>/include/MB/`, so includes read `#include <MB/modbus
 This tree is a hard fork; upstream is no longer merged. Beyond fork commit `c5d53cb`
 (which removed `example/`, `tests/` and all Serial/RTU support, and flattened
 `include/MB/TCP/*` into `include/MB/*`), the following changed here. Each site carries a
-`// Modified 2026 by Mechatronics Academy:` comment.
+`// Modified 2026 by IsaacBot:` comment.
 
 * **Packaging.** Added `package.xml` and `ament_package()`. Previously this was a
   plain-CMake project that colcon skipped entirely, so it had to be

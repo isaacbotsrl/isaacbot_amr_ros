@@ -1,7 +1,7 @@
 function n = sanitize(s)
 %SANITIZE Turn a topic or port label into a valid System Composer name.
 
-% Copyright 2026 Mechatronics Academy
+% Copyright 2026 IsaacBot
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
 % you may not use this file except in compliance with the License.
