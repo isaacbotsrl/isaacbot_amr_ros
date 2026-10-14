@@ -8,7 +8,7 @@ This chapter covers how the Ardennes stops, who and what can stop it, how to res
     - **The isaacbot starts E-stopped.** Every start of the hardware interface leaves the safety latch set. You must reset the latch before the isaacbot moves (see [Reset after start-up](#reset-after-start-up)).
     - **The RC transmitter has the highest command priority.** The person with line of sight holding the transmitter has the last word. The RC transmitter, the Foxglove joystick and MANUAL mode bypass the lidar obstacle guards by design.
     - **The front and rear LEDs show the `E_STOP` animation only for the hardware button.** A software E-Stop or a held latch does *not* change the LEDs (see [LED status](#led-status)).
-    - **The stop distance has not been measured.** It is **TBD**. The motor driver's on-board ramp (`motor_acceleration`) also applies when slowing down, so it makes every stop longer, E-Stop included.
+    - **The stop distance has not been measured.** It is **TBD**. The DCC1020's on-board motion profile (`motor_acceleration_rpm_s`, **TBD**, board default until tuned) also applies when slowing down, so it shapes every software stop.
     - **Lift the wheels off the ground for first tests and tuning runs.** The calibration tools only move the isaacbot when you pass `-p enable_motion:=true`.
 
 ROS names on this page are relative to the robot namespace `isaacbot`. For example, `hardware_interface/sw_user_e_stop_set` is `/isaacbot/hardware_interface/sw_user_e_stop_set`.
@@ -30,7 +30,7 @@ flowchart LR
   L --> K["Motor contactor"]
   K -->|"aux contact (COIL_0)"| FB["motor_contactor_engaged"]
   L -->|"COIL_5"| LS["latch status"]
-  K --> M["4x DCC1000 motor drivers"]
+  K --> M["4x DCC1020 motor drivers"]
 ```
 
 Two properties matter:
@@ -102,7 +102,7 @@ The hardware interface node `isaacbot_amr_hardware_controller` offers three `std
 |---|---|---|
 | `hardware_interface/sw_user_e_stop_set` | Asserts the SW user E-Stop (`COIL_2`), which trips the latch | Modbus write fails |
 | `hardware_interface/sw_user_e_stop_reset` | Releases the SW user E-Stop | Hardware interface not ACTIVE; any wheel velocity command above `velocity_command_zero_tolerance` (0.4 rad/s); any measured wheel velocity above `velocity_state_zero_tolerance` (0.05 rad/s) |
-| `hardware_interface/sw_e_stop_latch_reset` | Pulses `COIL_4` for `safety_latch_reset_pulse_ms` (100 ms). Also clears latched motor-failsafe and welded-contactor faults and re-arms the motor drivers' watchdog | Hardware interface not ACTIVE |
+| `hardware_interface/sw_e_stop_latch_reset` | Pulses `COIL_4` for `safety_latch_reset_pulse_ms` (100 ms). Also clears latched motor-failsafe, DCC1020 E-Stop / stall / energy-dump and welded-contactor faults: it re-opens each motor channel, re-arms its watchdog and engages it again | Hardware interface not ACTIVE |
 
 Source: `isaacbot_amr_hardware_interface/src/isaacbot_amr_system/isaacbot_amr_system.cpp` (`resetEStop()`, `resetEStopLatch()`, `areVelocityCommandsNearZero()`), `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro`.
 
@@ -162,7 +162,7 @@ Five independent gates stand between a velocity command and a turning wheel, fro
 |---|---|---|---|
 | 1 | Motor contactor | Hardware | Cuts motor power when the latch is set. |
 | 2 | Motion lock | `isaacbot_amr_twist_mux` / `isaacbot_amr_motion_lock_node` | Publishes `motion_lock` (`std_msgs/Bool`) at 10 Hz. `twist_mux` lock priority 200 masks every input. Locked before the first message, when either safety topic is older than `gpio_timeout` (1.0 s), when `link_healthy` is false, or when any enabled stop condition is active. A stale lock (0.5 s) also counts as locked. |
-| 3 | Hardware interface `write()` | `isaacbot_amr_hardware_interface` | On any E-Stop or latched hardware fault it sends **zeros** to the motor drivers rather than going silent, so the drivers' own failsafe (`motor_failsafe_timeout_ms`, 500 ms) keeps being fed. |
+| 3 | Hardware interface `write()` | `isaacbot_amr_hardware_interface` | On any E-Stop or latched hardware fault it sends **zeros** to the motor drivers rather than going silent, so the drivers' own failsafe (`motor_failsafe_timeout_ms`, 500 ms) keeps being fed. The zeros go through each motor's command worker, so a stalled RT loop still starves the watchdog and trips it. |
 | 4 | Contactor plausibility check | `ContactorMonitor` | Latch active and contactor still engaged for more than 500 ms is a latched, fatal "welded contactor" fault. Cleared only by `sw_e_stop_latch_reset`. |
 | 5 | `IsMotionLocked` BT condition | Navigation stack (another repo) | Aborts a navigation tree rather than driving into a closed mux. |
 
@@ -190,7 +190,7 @@ The driving modes (MANUAL, ASSISTED, AUTOMATIC) and the lidar collision monitors
 | `twist_mux` input timeouts | 0.3 s (Driver UI), 0.5 s (others) | `isaacbot_amr_twist_mux/config/isaacbot_amr_twist_mux.yaml` |
 | `diff_drive` `cmd_vel_timeout` | 0.5 s | `isaacbot_amr_controller/config/wheel_01_controller.yaml` |
 | Motor driver hardware watchdog | 500 ms | `motor_failsafe_timeout_ms`, URDF |
-| Motor driver hardware watchdog on/off | on | `motor_failsafe_enabled`, URDF, optional. Off only on instrumented builds: a stalled `write()` loop then leaves the last duty command in place, and the PLC heartbeat (its own thread) does not catch a loop-only stall. Keep wheels lifted or speeds low and the RC E-Stop within reach |
+| Motor driver hardware watchdog on/off | on | `motor_failsafe_enabled`, URDF, optional. Off only on instrumented builds: a stalled `write()` loop then leaves the last velocity target in place, and the PLC heartbeat (its own thread) does not catch a loop-only stall. Keep wheels lifted or speeds low and the RC E-Stop within reach |
 | Contactor drop-out tolerance | 500 ms | `contactor_monitor.hpp` |
 | RC frame timeout / zero burst | 200 ms / 300 ms | `isaacbot_amr_crsf_teleop/config/isaacbot_amr_crsf_teleop.yaml` |
 
@@ -297,8 +297,9 @@ The full animation catalog and the LED services are in [Teleop and LEDs](softwar
 From `isaacbot_amr_arch/SAFETY_CHAIN.md` §6, plus what the code shows:
 
 - **The PLC cannot say why it tripped.** `SafetyStatus.latch_cause` exists but reads `LATCH_CAUSE_UNKNOWN` until the PLC program latches the cause into readable coils.
-- **The command-side reset deadband is still wide.** `velocity_command_zero_tolerance` is 0.4 rad/s. It was set that way because the wheel PIDs' frozen integral (then `i_clamp_max` 0.25 / 0.33) kept the command above zero while motion was inhibited. The wheel PIDs now run with `stop_at_zero_reference`, which sends exactly 0 and clears the integral at a zero reference, so that reason no longer holds. The tolerance has not been lowered yet. The measured-velocity check (0.05 rad/s) closes the actual hazard in the meantime.
-- **Don't turn off `stop_at_zero_reference` on the real isaacbot.** Without it, the frozen integral can hold the command at up to `i_clamp_max` (now 2.0 rad/s) while motion is inhibited. That is above the 0.4 rad/s tolerance, so the E-Stop could not be reset, and the DCC1000 would not brake.
+- **The command-side reset deadband is still wide.** `velocity_command_zero_tolerance` is 0.4 rad/s. It was set that way because the host wheel PIDs' frozen integral kept the command above zero while motion was inhibited. Since the DCC1020 swap there are no host wheel PIDs, so `diff_drive`'s zero command reaches the hardware as exactly 0 and that reason no longer holds. The tolerance has not been lowered yet. The measured-velocity check (0.05 rad/s) closes the actual hazard in the meantime.
+- **The DCC1020 hardware E-Stop input is not wired into the safety chain.** It is always enabled but still jumpered as shipped. Wiring it is an [open item](open-items.md).
+- **The new DCC1020 fault bits are diagnostics only.** Over-temperature, over-current, over-voltage, stall and bad-power show as `fault_flag.*` in diagnostics, but the `FaultFlag` message carries only `emergency_stop` and `motor_setup_fault`.
 - **No end-to-end test** that an asserted `motion_lock` stops `cmd_vel` at the mux.
 - **The lidar guards are obstacle avoidance, not protection.** One 2D scan slice misses low and overhanging obstacles. MANUAL, RC and Foxglove bypass them. No measured stop distance yet.
 - **`ros2_control`'s GPIO mechanism is not used** for the safety IO (deliberate).

@@ -19,6 +19,7 @@ wheel geometry (it drives the URDF). diff_drive_controller needs the same
 values as plain parameters, so this test fails the build if they drift.
 """
 
+import math
 from pathlib import Path
 import re
 
@@ -47,40 +48,19 @@ def test_drive_controller_matches_description(wheel_type):
 
 
 @pytest.mark.parametrize('wheel_type', WHEEL_TYPES)
-def test_drive_controller_chains_through_declared_wheel_pids(wheel_type):
-    """Every '<pid>/<joint>' wheel name must point at a declared PID for that joint."""
+def test_drive_controller_drives_the_wheel_joints_directly(wheel_type):
+    """The DCC1020s close the speed loop, so diff_drive must not chain through host wheel PIDs."""
     config = _load(CONTROLLER_CONFIG_DIR / f'{wheel_type}_controller.yaml')['/**']
     manager = config['controller_manager']['ros__parameters']
     drive = config['isaacbot_amr_drive_controller']['ros__parameters']
     wheels = drive['left_wheel_names'] + drive['right_wheel_names']
     assert len(wheels) == 2 * drive['wheels_per_side']
     for wheel in wheels:
-        pid_name, joint = wheel.split('/', 1)
-        # Seeded, not the stock PidController: see seeded_pid_controller.hpp.
-        assert manager[pid_name]['type'] == 'isaacbot_amr_controller/SeededPidController'
-        pid = config[pid_name]['ros__parameters']
-        assert pid['dof_names'] == [joint]
-        assert pid['command_interface'] == 'velocity'
-        assert pid['reference_and_state_interfaces'] == ['velocity']
-        # Feed-forward carries the open-loop command; PI only trims it (fr is trimmed to 0.96).
-        assert 0.9 <= pid['gains'][joint]['feedforward_gain'] <= 1.0
-        # Integral is cleared on (re)activation - no stale I-term after an e-stop.
-        assert pid['gains'][joint]['save_i_term'] is False
-
-
-@pytest.mark.parametrize('wheel_type', WHEEL_TYPES)
-def test_turn_feedforward_matches_the_drive_controller(wheel_type):
-    """Each PID's turn side and track must be diff_drive's, and diff_drive must publish ω."""
-    config = _load(CONTROLLER_CONFIG_DIR / f'{wheel_type}_controller.yaml')['/**']
-    drive = config['isaacbot_amr_drive_controller']['ros__parameters']
-    track = drive['wheel_separation'] * drive['wheel_separation_multiplier']
-    assert drive['publish_limited_velocity'] is True
-    for names, side in ((drive['left_wheel_names'], -1.0), (drive['right_wheel_names'], 1.0)):
-        for wheel in names:
-            pid = config[wheel.split('/', 1)[0]]['ros__parameters']
-            assert pid['turn_side'] == side, wheel
-            assert pid['turn_track_width'] == pytest.approx(track, abs=1e-3), wheel
-            assert pid['turn_feedforward'] >= 0.0, wheel
+        assert '/' not in wheel, wheel
+        assert wheel.endswith('_wheel_joint'), wheel
+    assert not [name for name, value in manager.items()
+                if isinstance(value, dict) and
+                value.get('type') == 'isaacbot_amr_controller/SeededPidController']
 
 
 @pytest.mark.parametrize('wheel_type', WHEEL_TYPES)
@@ -101,14 +81,22 @@ def _urdf_wheel_velocity_limit():
     return float(match.group(1))
 
 
+def _urdf_hardware_param(name):
+    xacro = (Path(get_package_share_directory('isaacbot_amr_description'))
+             / 'urdf' / 'ardennes' / 'ardennes_macro.urdf.xacro').read_text(encoding='utf-8')
+    match = re.search(rf'<param name="{name}">([0-9.]+)</param>', xacro)
+    assert match, f'<param name="{name}"> not found in ardennes_macro.urdf.xacro'
+    return float(match.group(1))
+
+
 @pytest.mark.parametrize('wheel_type', WHEEL_TYPES)
 def test_drive_limits_respect_joint_velocity_limit(wheel_type):
     """Full linear + full angular must keep the outer wheel under the URDF limit.
 
-    diff_drive limits linear.x and angular.z independently. Each wheel PID adds up to
-    i_clamp_max (plus a small P term) on top of its feed-forward reference, outside u_clamp, but
-    the integral only builds while the wheel is slower than its reference - so the reference must
-    fit the joint limit, and reference + I must fit full duty (u_clamp_max).
+    diff_drive limits linear.x and angular.z independently, and the outer wheel's reference is
+    sent to its DCC1020 as-is, so it must also fit the motor-RPM clamp the driver applies
+    (max_rpm_motor_speed / gear_ratio) - beyond it the wheel would silently run slower than
+    diff_drive's kinematics assume.
     """
     config = _load(CONTROLLER_CONFIG_DIR / f'{wheel_type}_controller.yaml')['/**']
     drive = config['isaacbot_amr_drive_controller']['ros__parameters']
@@ -120,12 +108,12 @@ def test_drive_limits_respect_joint_velocity_limit(wheel_type):
     limit = _urdf_wheel_velocity_limit()
     assert wheel_reference <= limit, (
         f'outer wheel reference {wheel_reference:.2f} rad/s exceeds the URDF limit {limit} rad/s')
-    for wheel in drive['left_wheel_names'] + drive['right_wheel_names']:
-        pid_name, joint = wheel.split('/', 1)
-        gains = config[pid_name]['ros__parameters']['gains'][joint]
-        assert wheel_reference + gains['i_clamp_max'] <= gains['u_clamp_max'], (
-            f'{joint}: outer wheel reference {wheel_reference:.2f} rad/s + I '
-            f'{gains["i_clamp_max"]} exceeds full duty (u_clamp_max {gains["u_clamp_max"]} rad/s)')
+
+    target_clamp = (_urdf_hardware_param('max_rpm_motor_speed') * 2.0 * math.pi / 60.0
+                    / _urdf_hardware_param('gear_ratio'))
+    assert wheel_reference <= target_clamp, (
+        f'outer wheel reference {wheel_reference:.2f} rad/s exceeds the motor target clamp '
+        f'{target_clamp:.2f} rad/s')
 
 
 @pytest.mark.parametrize('wheel_type', WHEEL_TYPES)

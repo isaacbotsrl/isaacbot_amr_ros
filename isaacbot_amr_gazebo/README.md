@@ -32,11 +32,10 @@ isaacbot's router would join the simulated nodes to the real isaacbot.
   - `include/spawn_robot.launch.py` spawns the URDF at `x`/`y`/`z`/`roll`/`pitch`/`yaw`
     (default `0, -2.0, 0.2`). The model is named after the namespace, else `ardennes`.
   - `isaacbot_amr_controller` with `use_sim:=True`, so `gz_ros2_control` owns the controller manager.
-    `config/sim_wheel_pid.yaml` is loaded after the real controller config. It sets the wheel
-    PIDs' `d` to 0: Gazebo's wheels have none of the encoder/motor lag that gain is tuned for,
-    and with it the loop oscillates between its limits. For the same reason it sets
-    `integral_reference_delay` and `integral_reference_time_constant` to 0, so the integral works
-    on the plain error. It also sets `isaacbot_amr_drive_controller`'s `wheel_radius` to 0.1699 m, the
+    `config/sim_wheel_pid.yaml` is loaded after the real controller config. Since the DCC1020
+    swap there are no host wheel PIDs to detune (diff_drive drives `GazeboSimSystem`'s velocity
+    joints directly, the same topology as the robot), so it only sets
+    `isaacbot_amr_drive_controller`'s `wheel_radius` to 0.1699 m, the
     CAD tyre radius the simulated wheel cylinders roll on, instead of the real tyre's 0.1651 m;
     without it the simulated wheel odometry under-reports distance by ~2.9 %.
   - `isaacbot_amr_localization` with `use_sim:=True use_ekf:=True`; `fuse_gps` follows `use_gps`, which

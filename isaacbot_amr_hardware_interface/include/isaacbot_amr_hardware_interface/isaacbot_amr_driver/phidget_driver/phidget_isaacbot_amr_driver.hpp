@@ -27,7 +27,6 @@
 #include "isaacbot_amr_hardware_interface/domain/isaacbot_amr_driver.hpp"
 #include "isaacbot_amr_hardware_interface/domain/driver_data_snapshot.hpp"
 #include "isaacbot_amr_hardware_interface/isaacbot_amr_driver/phidget_driver/phidget_motor_driver.hpp"
-#include "isaacbot_amr_hardware_interface/isaacbot_amr_driver/phidget_driver/phidget_data_transformer.hpp"
 
 namespace isaacbot_amr_hardware_interface
 {
@@ -81,8 +80,6 @@ protected:
 
     virtual void defineDrivers() = 0;
 
-    PhidgetVelocityCommandDataTransformer & getCmdVelConverter();
-
     // Drive train system settings
     DrivetrainSettings drivetrain_settings_;
 
@@ -119,8 +116,6 @@ private:
     // refreshed opportunistically in getData() on uncontended lock acquisition; on contention the
     // last successfully-read snapshot is returned instead of blocking.
     std::unordered_map<DriverNames, DriverDataSnapshot> last_known_data_;
-
-    PhidgetVelocityCommandDataTransformer phidget_vel_cmd_converter_;
 
     const std::chrono::milliseconds activate_wait_time_;
 

@@ -10,7 +10,7 @@ config of its own:
 
 | Plugin (`<ros2_control>` `<plugin>`) | Base class | Hardware | Exports |
 |--------------------------------------|------------|----------|---------|
-| `isaacbot_amr_hardware_interface/ArdennesSystem` | `hardware_interface::SystemInterface` | 4× Phidget DCC1000 DC motor controllers (Phidget22 SDK), safety controller over Modbus TCP | per wheel joint: `velocity` command; `position`, `velocity`, `effort` state |
+| `isaacbot_amr_hardware_interface/ArdennesSystem` | `hardware_interface::SystemInterface` | 4× Phidget DCC1020 DC motor controllers (Phidget22 SDK, on-board speed loop), safety controller over Modbus TCP | per wheel joint: `velocity` command; `position`, `velocity`, `effort` state |
 | `isaacbot_amr_hardware_interface/PhidgetImuSensor` | `hardware_interface::SensorInterface` | Phidgets Spatial MOT0110, Madgwick orientation filter | `imu/orientation.{x,y,z,w}`, `imu/angular_velocity.*`, `imu/linear_acceleration.*` |
 
 The URDF that wires them lives in `isaacbot_amr_description`:
@@ -21,8 +21,56 @@ The URDF that wires them lives in `isaacbot_amr_description`:
 The IMU parameters are declared in `src/phidgets_spatial_parameters.yaml`. `isaacbot_amr_controller`
 starts `controller_manager` and the controllers on top of these plugins.
 
-Reference datasheets: `docs/DCC1000_reference.pdf` (motor controller),
-`docs/MOT0110_reference.pdf` (IMU).
+Reference: DCC1020 product page <https://www.phidgets.com/?prodid=1333> (motor controller),
+`docs/MOT0110_reference.pdf` (IMU). `docs/DCC1000_reference.pdf` is the previous motor controller,
+kept for reference.
+
+## Dependencies
+
+The Phidget22 SDK (`libphidget22`, `libphidget22-dev` >= 1.26) comes from the official Phidgets apt
+repo and is linked through pkg-config. It is not a rosdep key, so install it before `rosdep`:
+
+```bash
+curl -fsSL https://www.phidgets.com/downloads/setup_linux | sudo -E bash -
+sudo apt install libphidget22 libphidget22-dev
+```
+
+`phidgets_api` / `ros-lyrical-libphidget22` are no longer used: they bundle 1.19, which has no
+DCC1020 support. The IMU goes through the in-package `PhidgetSpatialDevice` wrapper over the C API.
+The balenaOS image (`isaacbot_amr_balenaos/isaacbot_amr_platform/Dockerfile`) installs the SDK the
+same way. Update each DCC1020 to firmware v104 or later with `phidget22admin` (fixes a
+data-interval change-event bug).
+
+## Motor controllers (DCC1020)
+
+One DCC1020 per wheel on VINT hub ports 0 (FL), 1 (FR), 4 (RL), 5 (RR); FL and RL are reversed.
+Each runs the wheel speed loop on board (`MotorVelocityController`: trapezoidal profile + PID).
+
+- **Command.** `write()` converts each wheel command to a motor-shaft RPM target (rad/s ×
+  `gear_ratio` × 60 / 2π), clamped to ±`max_rpm_motor_speed`. The controller is rescaled to motor
+  RPM (`rescaleFactor = 60 / (4 · encoder_resolution)`). There is no asynchronous setter, so
+  `sendCmdVel()` posts the newest target lock-free into a per-motor `LatestValueMailbox`, and a
+  per-motor command worker makes the blocking `PhidgetMotorVelocityController_setTargetVelocity`
+  call. Targets replaced before they were sent count as `dropped_pending` in the `command path`
+  diagnostic. Every send feeds the board failsafe, so a stalled RT loop still trips it.
+- **Feedback.** Velocity from the board's `OnVelocityChange` events (board minimum data interval,
+  or `motor_data_interval_ms`); joint position from the Encoder channel, or integrated from the
+  velocity if the Encoder channel cannot be opened next to the controller (to verify on hardware).
+  Current is reported in 10 mA units (`raw_current_to_amps_scale` 0.01).
+- **Activation.** `armFailsafe()` enables, feeds or re-opens the failsafe, then engages the
+  controller (`setEngaged(true)`); the board does nothing until engaged, and a trip disengages it.
+- **Faults.** Board error events set `DriverState.fault_flags` bits, shown as `fault_flag.*` in
+  diagnostics: `emergency_stop` (DCC1020 E-Stop input, latched), `over_temperature`,
+  `over_current`, `over_voltage` (also energy dump, latched), `motor_stall` (latched), `bad_power`.
+  Transient bits clear on the board's "Error Cleared" event. Latched trips (failsafe, E-Stop, stall,
+  energy dump) are cleared by `hardware_interface/sw_e_stop_latch_reset`, which re-opens the
+  channel. The `FaultFlag` message still has only `emergency_stop` and `motor_setup_fault`.
+- **Parameters.** On-board loop settings are optional URDF `<param>`s (`velocity_kp/ki/kd`,
+  `velocity_deadband_rpm`, `motor_acceleration_rpm_s`, `motor_surge_current_limit`,
+  `motor_stall_velocity_rpm`, `motor_failsafe_current_limit`, `motor_inductance`,
+  `motor_data_interval_ms`, `motor_failsafe_braking_enabled`); absent means board default, logged at
+  configure. The DCC1000 parameters `motor_acceleration` and `motor_supply_voltage` are rejected by
+  `on_init()`.
 
 ## ROS interface (`isaacbot_amr_hardware_controller` node)
 
@@ -64,9 +112,9 @@ ros2 control list_hardware_components
 domain/                    emergency stop, velocity command guard, error filter, IMU calibration,
                            driver/GPIO ports - no ROS, hardware_interface or vendor SDK
 application/               IsaacbotControlLoopUseCase - the read()/write() cycle decisions
-isaacbot_amr_driver/              Phidget motor driver adapters (Phidget22)
+isaacbot_amr_driver/              Phidget DCC1020 motor driver adapters (Phidget22), LatestValueMailbox
 isaacbot_amr_safety_controller/   safety controller E-Stop / GPIO adapter over Modbus
-isaacbot_amr_sensors/             PhidgetImuSensor
+isaacbot_amr_sensors/             PhidgetImuSensor, PhidgetSpatialDevice (C API wrapper)
 isaacbot_amr_system/              IsaacbotSystem base + ArdennesSystem (the ros2_control plugin)
 system_ros_interface/      isaacbot_amr_hardware_controller node: topics, services, diagnostics
 ```
@@ -87,4 +135,5 @@ colcon test --packages-select isaacbot_amr_hardware_interface && colcon test-res
     vendor headers.
   - `scripts/check_application_purity.sh`: the same rule for application code.
   - `scripts/check_rt_path_purity.sh`: no known-blocking Modbus or Phidget SDK calls on the
-    `read()`/`write()` real-time path.
+    `read()`/`write()` real-time path, including the blocking `PhidgetMotorVelocityController_*`
+    setters.

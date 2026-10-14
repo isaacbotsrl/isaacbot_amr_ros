@@ -29,12 +29,13 @@ The pack feeds the BMS, which feeds the power board. The power board supplies 24
 
 | Item | Value | Source |
 |------|-------|--------|
-| Motor supply voltage | 24 V | `ardennes_macro.urdf.xacro` (`motor_supply_voltage`) |
-| DCC1000 supply range | 8–30 V | comment on `motor_supply_voltage` in `ardennes_macro.urdf.xacro` |
-| Motor current limit (per DCC1000) | 15 A | `ardennes_macro.urdf.xacro` (`motor_current_limit`) |
+| Motor supply voltage | 24 V (system voltage) | comment on `motor_current_limit` in `ardennes_macro.urdf.xacro` |
+| DCC1020 supply range | 8–30 V; 50 A continuous, 75 A peak per board | [Phidgets DCC1020 product page](https://www.phidgets.com/?prodid=1333) |
+| Motor current limit (per DCC1020) | 15 A (ASSUMPTION carried over from the DCC1000; Phidgets suggests ~1.1× rated ≈ 11.5 A) | `ardennes_macro.urdf.xacro` (`motor_current_limit`) |
 | Motor stall current | 16 A at 24 V | comment on `motor_current_limit` in `ardennes_macro.urdf.xacro` |
-| Current regulator gain | `motor_current_limit × motor_supply_voltage / 12` | comment in `ardennes_macro.urdf.xacro` |
-| Power board, Power Guard, fuses | **TBD** | none |
+| Power board, Power Guard, fuses | **TBD**. Phidgets recommends a Power Guard SAF2000 or SAF2020 in front of the DCC1020 | none |
+
+The DCC1020 protects itself against the supply. At ≥ 42 V (for example regenerated energy with nowhere to go) it dumps energy and freewheels the motor until its power is cycled; this is reported as latched `fault_flag.over_voltage`. Above 75 °C it derates to 40 A at 90 °C, and at ≥ 100 °C it freewheels until the channel is reopened (`fault_flag.over_temperature`). A bad supply reported by the board raises `fault_flag.bad_power`. These flags show in the driver diagnostics (see [Drive and control](../software/drive-and-control.md)).
 
 ## Telemetry chain
 

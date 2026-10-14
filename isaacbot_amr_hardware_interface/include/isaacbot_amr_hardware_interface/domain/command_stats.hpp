@@ -72,8 +72,10 @@ struct MotorCommandStats
 // different instants, which is fine for statistics. Timestamps are caller-supplied nanoseconds
 // (steady clock) so the class stays free of clocks and is trivially testable.
 //
-// Threading contract: onSubmit/onDroppedPending/onDroppedNoDriver from one thread, onCompletion
-// from one (other) thread. The latency maximum is a plain read-compare-write for that reason.
+// Threading contract: every counter is its own relaxed atomic, so any method may be called from
+// any thread (PhidgetMotorDriver calls onDroppedNoDriver from the RT thread and the rest from its
+// command worker). Only onCompletion must stay on a single thread: the latency maximum is a plain
+// read-compare-write.
 class CommandStatsRecorder
 {
 
@@ -85,7 +87,10 @@ public:
         submitted_.fetch_add(1, std::memory_order_relaxed);
     }
 
-    void onDroppedPending() { dropped_pending_.fetch_add(1, std::memory_order_relaxed); }
+    void onDroppedPending(const std::uint64_t count = 1)
+    {
+        dropped_pending_.fetch_add(count, std::memory_order_relaxed);
+    }
 
     void onDroppedNoDriver() { dropped_no_driver_.fetch_add(1, std::memory_order_relaxed); }
 

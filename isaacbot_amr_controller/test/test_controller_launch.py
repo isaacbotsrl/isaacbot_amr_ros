@@ -200,19 +200,16 @@ def test_spawner_sequence(controller_launch, monkeypatch, tmp_path, failed):
 def test_chained_wheel_controllers(controller_launch, tmp_path):
     bundled = (Path(get_package_share_directory('isaacbot_amr_controller')) /
                'config/wheel_01_controller.yaml')
-    assert controller_launch.chained_wheel_controllers(str(bundled)) == [
-        'pid_controller_rl_wheel_base_to_rl_wheel_joint',
-        'pid_controller_fl_wheel_base_to_fl_wheel_joint',
-        'pid_controller_rr_wheel_base_to_rr_wheel_joint',
-        'pid_controller_fr_wheel_base_to_fr_wheel_joint',
-    ]
-    plain = tmp_path / 'plain.yaml'
-    plain.write_text(yaml.safe_dump({'/**': {'isaacbot_amr_drive_controller': {'ros__parameters': {
-        'left_wheel_names': ['left_wheel_joint'], 'right_wheel_names': ['right_wheel_joint']}}}}))
-    assert controller_launch.chained_wheel_controllers(str(plain)) == []
+    # The DCC1020s close the speed loop, so the bundled config chains through nothing.
+    assert controller_launch.chained_wheel_controllers(str(bundled)) == []
+    chained = tmp_path / 'chained.yaml'
+    chained.write_text(yaml.safe_dump({'/**': {'isaacbot_amr_drive_controller': {'ros__parameters': {
+        'left_wheel_names': ['pid_l/left_wheel_joint', 'pid_l/left_rear_wheel_joint'],
+        'right_wheel_names': ['pid_r/right_wheel_joint']}}}}))
+    assert controller_launch.chained_wheel_controllers(str(chained)) == ['pid_l', 'pid_r']
 
 
-def test_drive_spawner_activates_wheel_pids_as_group(controller_launch, monkeypatch):
+def test_drive_spawner_activates_chained_controllers_as_group(controller_launch, monkeypatch):
     nodes = []
     original_node = controller_launch.Node
 
@@ -228,10 +225,12 @@ def test_drive_spawner_activates_wheel_pids_as_group(controller_launch, monkeypa
             action.execute(context)
     drive = next(args['arguments'] for args in nodes if args['executable'] == 'spawner' and
                  args['arguments'][0] == 'isaacbot_amr_drive_controller')
-    assert '--activate-as-group' in drive
-    assert [a for a in drive if str(a).startswith('pid_controller_')] == \
-        controller_launch.chained_wheel_controllers(
-            resolve(context, drive[drive.index('--param-file') + 1]))
+    chained = controller_launch.chained_wheel_controllers(
+        resolve(context, drive[drive.index('--param-file') + 1]))
+    # Spawned as one group only when diff_drive chains through other controllers; the bundled
+    # config drives the joints directly, so there is no group.
+    assert ('--activate-as-group' in drive) == bool(chained)
+    assert [a for a in drive[1:] if a in chained] == chained
 
 
 def test_real_controller_accepts_override(controller_launch, monkeypatch, tmp_path):

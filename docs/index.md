@@ -25,7 +25,7 @@ chain, IO and the ROS 2 software in the
 
 -   :material-car-traction-control: **4 × DC motor, 4WD skid-steer**
 
-    23.3 : 1 gearboxes, 1024-count encoders, 4 × Phidget DCC1000 controllers
+    23.3 : 1 gearboxes, 1024-count encoders, 4 × Phidget DCC1020 controllers with on-board speed loop
 
 -   :material-battery-high: **40 Ah LiFePO4**
 
@@ -66,7 +66,7 @@ The full tables are in [Specification](hardware/specification.md).
 | [Safety](safety.md) | The E-Stop chain, how to trigger and reset it, LED status |
 | [Software overview](software/overview.md) | Software architecture, packages, getting started |
 | [ROS 2 API](software/ros-api.md) | Topics, services, parameters, launch files, TF tree |
-| [Drive and control](software/drive-and-control.md) | Command arbitration, drive controller, wheel PID, calibration |
+| [Drive and control](software/drive-and-control.md) | Command arbitration, drive controller, on-board wheel speed loop, calibration |
 | [Teleop and LEDs](software/teleop-and-leds.md) | RC remote, Foxglove, LED panels |
 | [Simulation](software/simulation.md) | Running the isaacbot in Gazebo |
 | [Open items](open-items.md) | Values not yet defined, and conflicts between sources |

@@ -198,8 +198,13 @@ Five independent gates, in order from the wire inwards:
    `gpio_timeout` (1.0 s), and when `link_healthy` is false.
 3. **`ArdennesSystem::write()`** — `IsaacbotControlLoopUseCase::decideWriteCommand()`.
    On inhibit it sends **zeros** rather than going silent, because the Phidget
-   DCC1000's own failsafe (`motor_failsafe_timeout_ms`, 500 ms) is fed by
-   commands actually reaching the drivers.
+   DCC1020's own failsafe (`motor_failsafe_timeout_ms`, 500 ms) is fed by
+   commands actually reaching the drivers. The zeros go through each motor's
+   command worker (the DCC1020 has no async setter); a stalled RT loop stops
+   posting targets, so the watchdog still trips. A trip disengages the board's
+   velocity controller; `sw_e_stop_latch_reset` re-opens the channel, re-arms
+   the failsafe and engages it again. The same reset clears the DCC1020's own
+   latched E-Stop-input, stall and energy-dump (over-voltage) faults.
 4. **The contactor plausibility check** — `ContactorMonitor`. `latch_active &&
    motor_contactor_engaged` sustained past the drop-out tolerance is a latched,
    fatal fault: the stop was commanded and the contacts did not open. This is the
@@ -229,11 +234,11 @@ latch reset (`hardware_interface/sw_e_stop_latch_reset`, `resetEStopLatch()`) ha
 no such check: it only needs the hardware interface ACTIVE, like the user E-Stop
 reset. While the user E-Stop is still asserted the set-dominant latch can't clear
 anyway. The second half of the invariant exists because the first is weak on its
-own — a wheel PID with a plain integral parks its command at a frozen I-term
-whenever motion is inhibited, which is why the command-side deadband could not be
-tightened below `i_clamp_max` and had drifted to 1.2 rad/s (~0.2 m/s). The PIDs
-now run with `stop_at_zero_reference`, which sends exactly 0 and clears the
-integral at a zero reference.
+own — the host wheel PIDs used with the DCC1000 parked their command at a
+frozen I-term whenever motion was inhibited, which is why the command-side
+deadband could not be tightened below `i_clamp_max` and had drifted to 1.2 rad/s
+(~0.2 m/s). Since the DCC1020 swap the speed loop runs on the boards and no host
+PIDs are spawned, so diff_drive's zero reaches `write()` as exactly 0.
 
 ---
 
@@ -246,11 +251,17 @@ integral at a zero reference.
   turns "the isaacbot stopped" into "the isaacbot stopped because the watchdog
   expired".
 * **`velocity_command_zero_tolerance` is 0.4 rad/s, not 0.01.** It was bounded
-  below by the PIDs' frozen integral (`i_clamp_max`, then 0.25 / 0.33). The PIDs'
-  `stop_at_zero_reference` now clears the integral at a zero reference, so the
-  tolerance can come down toward 0.01 once that is verified on the isaacbot. Keep
-  `stop_at_zero_reference` on meanwhile: with it off, `i_clamp_max` (now 2.0)
-  would make the E-Stop unresettable.
+  below by the host wheel PIDs' frozen integral (`i_clamp_max`, then 0.25 / 0.33).
+  Those PIDs are no longer spawned (DCC1020 on-board loop), so the tolerance can
+  come down toward 0.01 once that is verified on the isaacbot.
+* **The DCC1020 hardware E-Stop input is not in the chain.** It is always
+  enabled, but each board is still jumpered as shipped. Wiring it to the
+  contactor side of the chain (so the drivers also disengage on a hardware stop)
+  is an open item. Its trip is reported as latched `fault_flag.emergency_stop`.
+* **The new DCC1020 fault bits reach diagnostics only.** `fault_flag.*`
+  (over-temperature, over-current, over-voltage, stall, bad power) are in
+  diagnostics; the `FaultFlag` message carries only `emergency_stop` and
+  `motor_setup_fault`.
 * **No end-to-end test** that an asserted `motion_lock` actually stops `cmd_vel`
   at the mux. Every stage either side of the mux is covered; the mux itself is a
   third-party node and testing it needs a launch fixture.

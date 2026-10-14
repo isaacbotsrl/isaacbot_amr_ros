@@ -1,5 +1,33 @@
 # Wheel-speed PID tuning notes (session handoff)
 
+> **Historical (DCC1020 swap).** Everything below is about the Phidget DCC1000 (duty-cycle command,
+> 10 Hz encoder reports) and the host wheel-PID chain (4× `SeededPidController` under diff_drive).
+> That chain is no longer spawned: each DCC1020 now closes the speed loop on board, and
+> diff_drive writes the wheel velocity interfaces directly. The gains, clamps and plant model here
+> do not apply to the DCC1020. Keep these notes for the method and the rig gotchas (§4), and see
+> [DCC1020 on-board loop tuning](#dcc1020-on-board-loop-tuning) below.
+
+## DCC1020 on-board loop tuning
+
+The DCC1020's `MotorVelocityController` (trapezoidal profile + PID) is rescaled to motor-shaft RPM
+(`rescaleFactor = 60 / (4 * encoder_resolution)`), so gains, dead band and acceleration are in
+motor RPM. Its settings are optional `<param>`s of `isaacbot_amr_system_node` in
+`isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro`: `velocity_kp`, `velocity_ki`,
+`velocity_kd`, `velocity_deadband_rpm`, `motor_acceleration_rpm_s`, `motor_surge_current_limit`,
+`motor_stall_velocity_rpm`, `motor_failsafe_current_limit`, `motor_inductance`,
+`motor_data_interval_ms`. All are TBD: absent, the board keeps its own default. At configure the
+driver logs what each board runs with, which is the starting point:
+
+```text
+Motor hub port N (serial S): Kp=... (board default) Ki=... (board default) Kd=... (board default) dead band=... RPM, acceleration=... RPM/s, ...
+```
+
+Tune with `wheel_step_response` (README step 1, wheels lifted first), following the Phidgets
+Velocity Controller Tuning Guide; record the source of each value in the URDF comment. The gains
+are not live parameters: change the URDF and restart. Then re-measure the acceleration limits
+(README step 2), which were measured with the DCC1000.
+
+
 Working notes from the **wheels-lifted** tuning session (2026-09-20), kept so the next
 session can pick up without re-deriving anything. Gains from this session are already in
 `config/wheel_01_controller.yaml` (commit `a516610`).

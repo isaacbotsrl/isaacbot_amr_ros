@@ -89,15 +89,29 @@ class FaultFlag : public FlagError
     // constructor, same as getErrorMap() below, so the two can never disagree.
     bool isEmergencyStop() const { return flags_.test(kEmergencyStopBit); }
     bool isMotorSetupFault() const { return flags_.test(kMotorSetupFaultBit); }
+    bool isOverTemperature() const { return flags_.test(kOverTemperatureBit); }
+    bool isOverCurrent() const { return flags_.test(kOverCurrentBit); }
+    bool isOverVoltage() const { return flags_.test(kOverVoltageBit); }
+    bool isMotorStall() const { return flags_.test(kMotorStallBit); }
+    bool isBadPower() const { return flags_.test(kBadPowerBit); }
 
     std::map<std::string, bool> getErrorMap() const;
+
+    // Bit positions in DriverState::fault_flags. Public so a driver backend can build the mask;
+    // the order must match kFlagNames.
+    static constexpr std::size_t kEmergencyStopBit = 0;
+    static constexpr std::size_t kMotorSetupFaultBit = 1;
+    static constexpr std::size_t kOverTemperatureBit = 2;
+    static constexpr std::size_t kOverCurrentBit = 3;
+    // Supply over-voltage, including the controller's energy-dump state.
+    static constexpr std::size_t kOverVoltageBit = 4;
+    static constexpr std::size_t kMotorStallBit = 5;
+    // Supply missing or out of range.
+    static constexpr std::size_t kBadPowerBit = 6;
 
 private:
 
     static const std::vector<std::string> kFlagNames;
-
-    static constexpr std::size_t kEmergencyStopBit = 0;
-    static constexpr std::size_t kMotorSetupFaultBit = 1;
 };
 
 class RuntimeError : public FlagError

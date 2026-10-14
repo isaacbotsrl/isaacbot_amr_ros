@@ -14,7 +14,14 @@
 
 #include <gtest/gtest.h>
 
+#include <cmath>
+#include <cstdint>
+#include <limits>
+#include <utility>
+
+#include "isaacbot_amr_hardware_interface/domain/driver_data_snapshot.hpp"
 #include "isaacbot_amr_hardware_interface/isaacbot_amr_driver/phidget_driver/phidget_motor_driver.hpp"
+#include "isaacbot_amr_hardware_interface/isaacbot_amr_driver/phidget_driver/phidget_utils.hpp"
 
 namespace isaacbot_amr_hardware_interface
 {
@@ -71,52 +78,160 @@ TEST(PhidgetMotorDriverFailsafeTest, ConfiguredOffNeverArmsFeedsOrReopens)
     }
 }
 
-TEST(PhidgetMotorDriverEncoderTest, CountsConvertToMotorRpm)
-{
-    // 1024 lines -> 4096 counts/rev; 4096 counts in 1 s is 1 rev/s = 60 RPM.
-    EXPECT_DOUBLE_EQ(PhidgetMotorDriver::encoderCountsToMotorRpm(4096, 1.0, 1024.0f), 60.0);
-    EXPECT_DOUBLE_EQ(PhidgetMotorDriver::encoderCountsToMotorRpm(-4096, 0.5, 1024.0f), -120.0);
-}
-
-TEST(PhidgetMotorDriverEncoderTest, CountsNotMultipleOfFourAreNotTruncated)
-{
-    // The old code divided the delta by 4 as an integer and lost the remainder every event:
-    // 7 counts read as 1 line (-43 %).
-    EXPECT_DOUBLE_EQ(PhidgetMotorDriver::encoderCountsToMotorRpm(7, 1.0, 1.0f), 7.0 / 4.0 * 60.0);
-}
-
-TEST(PhidgetMotorDriverEncoderTest, SumOfEventsMatchesOneLongInterval)
-{
-    // Many small odd deltas must integrate to the same distance as one big one (no drift).
-    double revolutions = 0.0;
-    for (int i = 0; i < 100; ++i) {
-        revolutions += PhidgetMotorDriver::encoderCountsToMotorRpm(3, 0.008, 1024.0f) / 60.0 * 0.008;
-    }
-    EXPECT_NEAR(revolutions, 300.0 / 4096.0, 1e-12);
-}
-
-TEST(PhidgetMotorDriverEncoderTest, InvalidIntervalGivesZero)
-{
-    EXPECT_DOUBLE_EQ(PhidgetMotorDriver::encoderCountsToMotorRpm(100, 0.0, 1024.0f), 0.0);
-    EXPECT_DOUBLE_EQ(PhidgetMotorDriver::encoderCountsToMotorRpm(100, -1.0, 1024.0f), 0.0);
-    EXPECT_DOUBLE_EQ(PhidgetMotorDriver::encoderCountsToMotorRpm(100, 1.0, 0.0f), 0.0);
-}
-
-TEST(PhidgetMotorDriverEncoderTest, StaleTimeoutSpansSeveralEncoderIntervals)
+TEST(PhidgetMotorDriverEncoderTest, StaleTimeoutSpansSeveralDataIntervals)
 {
     using std::chrono::milliseconds;
-    // DCC1000 minimum encoder interval: a turning wheel must survive a late event.
+    // A turning wheel must survive one late velocity event.
     EXPECT_EQ(PhidgetMotorDriver::encoderStaleTimeout(50), milliseconds(150));
     EXPECT_EQ(PhidgetMotorDriver::encoderStaleTimeout(200), milliseconds(600));
-    EXPECT_GT(PhidgetMotorDriver::encoderStaleTimeout(50), milliseconds(2 * 50));
 }
 
-TEST(PhidgetMotorDriverCurrentTest, RegulatorGainFollowsPhidgetRuleOfThumb)
+TEST(PhidgetMotorDriverEncoderTest, StaleTimeoutHasAFloorForShortIntervals)
 {
-    // gain = current_limit * (voltage / 12)
-    EXPECT_FLOAT_EQ(motorCurrentRegulatorGain(10.0f, 24.0f), 20.0f);
-    EXPECT_FLOAT_EQ(motorCurrentRegulatorGain(12.0f, 24.0f), 24.0f);
-    EXPECT_FLOAT_EQ(motorCurrentRegulatorGain(10.0f, 12.0f), 10.0f);
+    // At a board-minimum interval of a few ms, 3x would zero a turning wheel on any SDK-thread
+    // scheduling hiccup.
+    EXPECT_EQ(PhidgetMotorDriver::encoderStaleTimeout(1), PhidgetMotorDriver::kMinVelocityStaleTimeout);
+    EXPECT_EQ(PhidgetMotorDriver::encoderStaleTimeout(10), PhidgetMotorDriver::kMinVelocityStaleTimeout);
+    EXPECT_GE(PhidgetMotorDriver::kMinVelocityStaleTimeout, std::chrono::milliseconds(80));
+}
+
+TEST(PhidgetMotorDriverTargetTest, ClampsToTheMotorSpeedLimit)
+{
+    EXPECT_FLOAT_EQ(PhidgetMotorDriver::motorTargetRpm(1000.0f, 2800.0f, false), 1000.0f);
+    EXPECT_FLOAT_EQ(PhidgetMotorDriver::motorTargetRpm(5000.0f, 2800.0f, false), 2800.0f);
+    EXPECT_FLOAT_EQ(PhidgetMotorDriver::motorTargetRpm(-5000.0f, 2800.0f, false), -2800.0f);
+}
+
+TEST(PhidgetMotorDriverTargetTest, ReversedMotorGetsTheNegatedClampedTarget)
+{
+    EXPECT_FLOAT_EQ(PhidgetMotorDriver::motorTargetRpm(1000.0f, 2800.0f, true), -1000.0f);
+    EXPECT_FLOAT_EQ(PhidgetMotorDriver::motorTargetRpm(5000.0f, 2800.0f, true), -2800.0f);
+}
+
+TEST(PhidgetMotorDriverTargetTest, NonFiniteCommandStopsTheWheel)
+{
+    // The SDK rejects NaN, which would leave the board on its previous (moving) target.
+    for (const float cmd : {std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::infinity(),
+                            -std::numeric_limits<float>::infinity()})
+    {
+        EXPECT_FLOAT_EQ(PhidgetMotorDriver::motorTargetRpm(cmd, 2800.0f, false), 0.0f) << cmd;
+        EXPECT_FLOAT_EQ(PhidgetMotorDriver::motorTargetRpm(cmd, 2800.0f, true), 0.0f) << cmd;
+    }
+}
+
+TEST(PhidgetMotorDriverErrorEventTest, FaultFlagNamesFitTheEightBitField)
+{
+    // DriverState::fault_flags is a uint8_t; a ninth flag would silently never be reported.
+    EXPECT_LE(FaultFlag().getErrorMap().size(), 8u);
+}
+
+TEST(PhidgetMotorDriverUnitsTest, RescaleFactorMakesTheControllerWorkInMotorRpm)
+{
+    // 1024 lines -> 4096 counts/rev. 4096 counts/s is 1 rev/s = 60 RPM, so one count/s must
+    // rescale to 60 / 4096 RPM.
+    EXPECT_DOUBLE_EQ(motorRpmRescaleFactor(1024.0f), 60.0 / 4096.0);
+    EXPECT_DOUBLE_EQ(4096.0 * motorRpmRescaleFactor(1024.0f), 60.0);
+    EXPECT_DOUBLE_EQ(motorRpmRescaleFactor(0.0f), 0.0);
+}
+
+TEST(PhidgetMotorDriverUnitsTest, WheelRadPerSecondConvertsThroughTheGearbox)
+{
+    // 2*pi rad/s at the wheel is 1 wheel rev/s = gear_ratio motor rev/s.
+    EXPECT_NEAR(wheelRadPerSecToMotorRpm(2.0 * M_PI, 23.3f), 23.3 * 60.0, 1e-3);
+    EXPECT_NEAR(wheelRadPerSecToMotorRpm(-1.0, 1.0f), -60.0 / (2.0 * M_PI), 1e-12);
+    EXPECT_DOUBLE_EQ(wheelRadPerSecToMotorRpm(0.0, 23.3f), 0.0);
+}
+
+TEST(PhidgetMotorDriverUnitsTest, CommandAndFeedbackConversionsRoundTrip)
+{
+    // MotorStateReading turns the reported motor RPM back into wheel rad/s with
+    // (2*pi / 60) / gear_ratio; a commanded speed must read back unchanged.
+    const float gear_ratio = 23.3f;
+    const double wheel = 3.7;
+    const double rpm = wheelRadPerSecToMotorRpm(wheel, gear_ratio);
+
+    EXPECT_NEAR(rpm * (2.0 * M_PI) / 60.0 / gear_ratio, wheel, 1e-9);
+}
+
+TEST(PhidgetMotorDriverPositionFallbackTest, IntegratesRpmIntoLines)
+{
+    // 60 RPM = 1 rev/s; 1024 lines/rev for 0.5 s is 512 lines.
+    EXPECT_DOUBLE_EQ(PhidgetMotorDriver::motorRpmToLines(60.0, 0.5, 1024.0f), 512.0);
+    EXPECT_DOUBLE_EQ(PhidgetMotorDriver::motorRpmToLines(-60.0, 1.0, 1024.0f), -1024.0);
+    EXPECT_DOUBLE_EQ(PhidgetMotorDriver::motorRpmToLines(60.0, 0.0, 1024.0f), 0.0);
+    EXPECT_DOUBLE_EQ(PhidgetMotorDriver::motorRpmToLines(60.0, 1.0, 0.0f), 0.0);
+}
+
+namespace
+{
+
+constexpr std::uint8_t bit(const std::size_t b)
+{
+    return static_cast<std::uint8_t>(1U << b);
+}
+
+}  // namespace
+
+TEST(PhidgetMotorDriverErrorEventTest, EStopRaisesEmergencyStopAndLatches)
+{
+    const auto effect = PhidgetMotorDriver::errorEventEffect(EEPHIDGET_ESTOP);
+
+    EXPECT_EQ(effect.set_fault_bits, bit(FaultFlag::kEmergencyStopBit));
+    EXPECT_TRUE(effect.latches_failsafe);
+}
+
+TEST(PhidgetMotorDriverErrorEventTest, DisengagingFaultsLatch)
+{
+    const auto stall = PhidgetMotorDriver::errorEventEffect(EEPHIDGET_MOTORSTALL);
+    EXPECT_EQ(stall.set_fault_bits, bit(FaultFlag::kMotorStallBit));
+    EXPECT_TRUE(stall.latches_failsafe);
+
+    const auto energy_dump = PhidgetMotorDriver::errorEventEffect(EEPHIDGET_ENERGYDUMP);
+    EXPECT_EQ(energy_dump.set_fault_bits, bit(FaultFlag::kOverVoltageBit));
+    EXPECT_TRUE(energy_dump.latches_failsafe);
+
+    const auto failsafe = PhidgetMotorDriver::errorEventEffect(EEPHIDGET_FAILSAFE);
+    EXPECT_EQ(failsafe.set_fault_bits, 0);
+    EXPECT_TRUE(failsafe.latches_failsafe);
+}
+
+TEST(PhidgetMotorDriverErrorEventTest, TransientFaultsDoNotLatch)
+{
+    const std::pair<Phidget_ErrorEventCode, std::size_t> cases[] = {
+        {EEPHIDGET_OVERTEMP, FaultFlag::kOverTemperatureBit},
+        {EEPHIDGET_OVERCURRENT, FaultFlag::kOverCurrentBit},
+        {EEPHIDGET_OVERVOLTAGE, FaultFlag::kOverVoltageBit},
+        {EEPHIDGET_BADPOWER, FaultFlag::kBadPowerBit},
+        {EEPHIDGET_VOLTAGEERROR, FaultFlag::kBadPowerBit},
+    };
+
+    for (const auto & [code, fault_bit] : cases) {
+        const auto effect = PhidgetMotorDriver::errorEventEffect(code);
+
+        EXPECT_EQ(effect.set_fault_bits, bit(fault_bit)) << code;
+        EXPECT_FALSE(effect.latches_failsafe) << code;
+        EXPECT_NE(PhidgetMotorDriver::transientFaultBits() & bit(fault_bit), 0) << code;
+    }
+}
+
+TEST(PhidgetMotorDriverErrorEventTest, ErrorClearedClearsOnlyTransientFaults)
+{
+    const auto effect = PhidgetMotorDriver::errorEventEffect(EEPHIDGET_OK);
+
+    EXPECT_EQ(effect.set_fault_bits, 0);
+    EXPECT_EQ(effect.clear_fault_bits, PhidgetMotorDriver::transientFaultBits());
+    EXPECT_FALSE(effect.latches_failsafe);
+    EXPECT_EQ(effect.clear_fault_bits & bit(FaultFlag::kEmergencyStopBit), 0);
+    EXPECT_EQ(effect.clear_fault_bits & bit(FaultFlag::kMotorStallBit), 0);
+}
+
+TEST(PhidgetMotorDriverErrorEventTest, UnrelatedEventsHaveNoEffect)
+{
+    const auto effect = PhidgetMotorDriver::errorEventEffect(EEPHIDGET_PACKETLOST);
+
+    EXPECT_EQ(effect.set_fault_bits, 0);
+    EXPECT_EQ(effect.clear_fault_bits, 0);
+    EXPECT_FALSE(effect.latches_failsafe);
 }
 
 }  // namespace isaacbot_amr_hardware_interface

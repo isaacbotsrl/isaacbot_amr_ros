@@ -9,67 +9,44 @@ Controller lifecycle and hardware interfaces are managed by controller_manager.
 wheels. Physical wheel geometry matches `isaacbot_amr_description`; calibration
 multipliers are separate tuning parameters.
 
-The active topology closes the wheel-speed loop with chained controllers:
+The wheel-speed loop runs on the motor controllers, not in ros2_control:
 
 ```
-cmd_vel -> isaacbot_amr_drive_controller (diff_drive) -> pid_controller_<wheel> x4 -> hardware
+cmd_vel -> isaacbot_amr_drive_controller (diff_drive) -> hardware (4x DCC1020, on-board speed loop)
 ```
 
-`isaacbot_amr_drive_controller`'s wheel names are `<pid controller>/<joint>`, so it writes
-each PID's reference interface and reads back the PID's exported state (the measured
-wheel velocity) for odometry. Each PID uses `feedforward_gain: 1.0` - the hardware
-velocity command is an open-loop, rad/s-scaled duty cycle - and PID trims the error
-that load, battery voltage and slip leave. With `p = i = d = 0` it is exactly the old
-open-loop drive, which is the quickest A/B comparison (gains are live parameters):
+`isaacbot_amr_drive_controller`'s wheel names are the plain joint names, so it writes the
+wheel joints' `velocity` command interfaces directly and reads their measured velocity for
+odometry. Each Phidget DCC1020 closes the loop on board (`MotorVelocityController`:
+trapezoidal profile + PID, in motor RPM); its gains are URDF parameters in
+`isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro` (see
+`isaacbot_amr_hardware_interface/README.md`). `publish_limited_velocity` is `false`: `cmd_vel_out`
+was only read by the old PIDs' turn feed-forward. `test/test_wheel_geometry.py` checks that
+diff_drive drives the joints directly and that no `SeededPidController` is configured.
 
-```bash
-ros2 param set <ns>/pid_controller_fl_wheel_base_to_fl_wheel_joint \
-  gains.fl_wheel_base_to_fl_wheel_joint.p 0.0     # likewise .i and .d, and for each wheel
-```
+### SeededPidController (built, not spawned)
 
-Each PID is a `isaacbot_amr_controller/SeededPidController`: `pid_controller/PidController` with its
-exported state seeded on activation (so diff_drive never reads NaN feedback on its first
-cycle), and each wheel's command computed by `WheelSpeedLoop`. With every option below off,
+Until the DCC1020 swap the motor controllers (DCC1000) only took a duty cycle and reported the
+encoders at 10 Hz, so the host closed the loop with four `isaacbot_amr_controller/SeededPidController`s
+chained under diff_drive (wheel names `<pid controller>/<joint>`). The controller is still built
+and tested, but no config spawns it. It is `pid_controller/PidController` with its exported state
+seeded on activation (so a chained diff_drive never reads NaN on its first cycle) and each
+wheel's command computed by `WheelSpeedLoop` (`stop_at_zero_reference`, a model-reference
+integral, `scale_integral_with_reference`, turn feed-forward). With every option off,
 `WheelSpeedLoop` gives exactly `control_toolbox::Pid`'s output (`test/test_wheel_speed_loop.cpp`).
-The options are live parameters, like the gains:
-
-| Parameter | Config | Effect |
-|---|---|---|
-| `stop_at_zero_reference` | `true` | At a zero reference (below `zero_reference_tolerance`, default 0.001 rad/s), send exactly 0 and clear the integral. The DCC1000 brakes only at a target of exactly 0. |
-| `integral_reference_delay` / `integral_reference_time_constant` | 0.15 s / 0.08 s | The integral works on (the reference delayed, then lagged) - measurement, a model of the plant's own response, so only the error the plant won't remove by itself (load, skid, friction) winds it up. 0 / 0 = the plain integral. The delay is limited to 1.0 s. |
-| `scale_integral_with_reference` | `true` | The integral fades with \|reference\| below the largest reference since the last stop (cleared on reversal), so turns end on time. |
-| `turn_feedforward` | `1.0` | Extra command (rad/s) while the isaacbot turns: `turn_side · sign(ω) · turn_feedforward`, ramped in up to `turn_feedforward_full_rate` (0.3 rad/s) and scaled by the turn's share of the wheel speed (1 in a spin in place, 0 straight). Skid scrub eats a constant ~1.7 rad/s of wheel command in a spin (open loop, 2026-10-10), which the integral otherwise has to build up first. Never past `u_clamp`. 1.0 from the 2026-10-11 lane runs (`docs/wheel_pid_tuning_notes.md`); 0.0 turns it off. |
-| `turn_side` / `turn_track_width` | ±1 / 1.0236 m | Which side the wheel is on (−1 left, +1 right) and diff_drive's effective track (`wheel_separation · wheel_separation_multiplier`); `test/test_wheel_geometry.py` checks both. |
-| `turn_command_topic` / `turn_command_timeout` | `isaacbot_amr_drive_controller/cmd_vel_out` / 0.2 s | The body command (diff_drive's `publish_limited_velocity`), read at configure; an older command gives no turn feed-forward. |
-
-All four wheels use the same gains, with `i_clamp` ±2.0: with the model-reference integral the
-clamp only has to cover the persistent load error (in-place turns need ~2 rad/s of trim). The
-comment above the gains in `config/wheel_01_controller.yaml` records why, with the
-2026-10-02 ground-tune results. The reference model depends on the DCC1000 ramp
-(`motor_acceleration` in the URDF): re-fit it whenever that changes. Keep
-`stop_at_zero_reference` on for the real isaacbot: with it off, a frozen integral (up to 2.0
-rad/s) sits above the hardware interface's E-Stop reset deadband
-(`velocity_command_zero_tolerance` 0.4 rad/s) and the E-Stop can't be reset.
-`isaacbot_amr_gazebo/config/sim_wheel_pid.yaml` sets the delay and time constant to 0 in
-simulation, which has no motor dead time.
-
-Each PID publishes `<pid>/controller_state` (reference, feedback, error, output).
-`save_i_term: false` clears each PID's integral whenever it is (re)activated; pid_controller
-has no reset service, so to reset on demand deactivate and reactivate
-`isaacbot_amr_drive_controller` together with its PIDs.
-Listing plain joint names as wheel names instead drives the wheels open loop; the
-launch file then spawns no PIDs (see below).
+Its tuning history is in `docs/wheel_pid_tuning_notes.md` and in this README's git history.
 
 The joint-state and IMU broadcasters are spawned as before.
 
-controller_manager runs at 25 Hz, and each controller at its own `update_rate`: the
-wheel PIDs, `isaacbot_amr_drive_controller`, `isaacbot_amr_imu_broadcaster` and
-`isaacbot_amr_joint_state_broadcaster` all at the manager's 25 Hz (the EKF runs at 50 Hz). The
-encoders report at most every 100 ms (10 Hz). Every rate must divide the manager's
-(`test/test_wheel_geometry.py`). The manager used to run at 100 Hz, which only re-ran the PIDs
-on stale feedback, then at 50 Hz, where 22-24 % of the velocity commands were dropped because
-the driver's asynchronous call takes ~17 ms (median) to complete (the `command path`
-diagnostic; see the comment above the rates in `config/wheel_01_controller.yaml`).
+controller_manager runs at 25 Hz, and each controller at its own `update_rate`:
+`isaacbot_amr_drive_controller`, `isaacbot_amr_imu_broadcaster` and
+`isaacbot_amr_joint_state_broadcaster` all at the manager's 25 Hz (the EKF runs at 50 Hz).
+Every rate must divide the manager's (`test/test_wheel_geometry.py`). The manager used to run
+at 100 Hz, then at 50 Hz, where 22-24 % of the velocity commands were dropped because the
+DCC1000's asynchronous call took ~17 ms (median) to complete. The DCC1020 has no asynchronous
+setter: each wheel's command worker sends the newest target with a blocking call and coalesces
+newer ones (`dropped_pending` in the `command path` diagnostic). Re-measure that latency before
+raising the rate (see the comment above the rates in `config/wheel_01_controller.yaml`).
 
 ## Drive-train tuning
 
@@ -78,20 +55,13 @@ twist_mux Foxglove input (priority 100, still gated by the E-Stop motion lock),
 print their plan and only move the isaacbot with `-p enable_motion:=true`. Results go
 to `~/isaacbot_amr_calibration/<tool>_<timestamp>/` (`summary.yaml`, raw samples).
 
-1. **Wheel-speed loop.** Run the step-response tool with the wheels off the ground
-   first, then on the ground. Tune the PID gains until overshoot stays under 10 %
-   and steady-state error under 3 %. The DCC1000 encoders report at most every
-   100 ms (10 Hz), while the PIDs run at 25 Hz, so each PID gets a new
-   measurement only every ~2.5 cycles. Keep the PID gains modest, and read measured
-   dead times as accurate to about 50 ms. The driver logs each channel's actual
-   encoder interval at startup.
-
-   `docs/wheel_pid_tuning_notes.md` records the lifted-wheel measurements behind
-   `p`, `i` and `d` and what each knob does on this plant (`p` above ~0.1 rings the
-   loop; `d` above 0.04 amplifies encoder noise; with the plain integral, `i_clamp`
-   bounded overshoot). The on-ground tune of the clamps and the wheel loop options
-   is in the comment above the gains in `config/wheel_01_controller.yaml`. Read both
-   before changing a gain.
+1. **Wheel-speed loop.** Tune the DCC1020 on-board loop (`velocity_kp/ki/kd`,
+   `velocity_deadband_rpm`, `motor_acceleration_rpm_s` in the URDF; all TBD, board defaults
+   until set). At configure the driver logs the values each board runs with ("Motor hub port N
+   (serial S): Kp=... (board default) ..."); start from those. Run the step-response tool with
+   the wheels off the ground first, then on the ground, until overshoot stays under 10 % and
+   steady-state error under 3 %. `docs/wheel_pid_tuning_notes.md` is the history of the old
+   host PIDs on the DCC1000 and does not apply to the on-board loop.
 
    ```bash
    ros2 run isaacbot_amr_controller wheel_step_response --ros-args -r __ns:=/<ns> -p enable_motion:=true
@@ -102,10 +72,9 @@ to `~/isaacbot_amr_calibration/<tool>_<timestamp>/` (`summary.yaml`, raw samples
    `a = margin * r * alpha`, `alpha_z = 2 * margin * r * alpha / (wheel_separation * multiplier)`.
    If the result equals the current `linear.x/angular.z` limits in this file, the
    controller ramp was the bottleneck, not the wheels. Relax those limits for one
-   measurement run and repeat. The DCC1000 on-board ramp (`motor_acceleration` in
-   the URDF) adds lag of its own and sets the plant response the wheel PIDs'
-   integral reference models: after changing it, repeat step 1 on the ground and
-   re-fit `integral_reference_delay` / `_time_constant`.
+   measurement run and repeat. The current limits (1.4 m/s², 1.3 rad/s²) were
+   measured with the DCC1000 and are TBD for the DCC1020; the on-board profile
+   (`motor_acceleration_rpm_s`) adds lag of its own, so re-measure after changing it.
    Then set the limits from the inside out:
    `isaacbot_amr_drive_controller` >= Nav2 `velocity_smoother` `max_accel`/`max_decel`
    = MPPI `ax_max`/`ax_min`/`az_max` >= `behavior_server.rotational_acc_lim`.
@@ -144,8 +113,9 @@ the requested namespace prefix (or an empty string for the root namespace).
 
 Startup activates the joint-state broadcaster, drive controller, then IMU
 broadcaster. The drive controller's spawner also takes every controller named as
-`<controller>/<joint>` in its wheel names (the wheel PIDs) and activates them with
-it as one group (`--activate-as-group`), so controller_manager orders the chain. Each step requires the previous spawner to succeed. A mandatory
+`<controller>/<joint>` in its wheel names and activates them with it as one group
+(`--activate-as-group`), so controller_manager orders a chain; the current config has
+plain joint names, so it spawns no extra controllers. Each step requires the previous spawner to succeed. A mandatory
 spawner failure reports its controller name and exit code and shuts down the
 launch; subsequent controllers are not started.
 

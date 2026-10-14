@@ -19,6 +19,8 @@
 #include <string>
 #include <vector>
 
+#include "isaacbot_amr_hardware_interface/isaacbot_amr_driver/phidget_driver/phidget_utils.hpp"
+
 namespace isaacbot_amr_hardware_interface
 {
 
@@ -38,11 +40,16 @@ void ArdennesDriver::sendSpeedCmd(const std::vector<float> & speeds)
             std::to_string(speeds.size()));
     }
 
-    // speeds is ordered per joint_order_ (ardennes_system.hpp) = {"fl", "fr", "rl", "rr"}.
-    const auto speed_front_left = this->getCmdVelConverter().convert(speeds.at(0));
-    const auto speed_front_right = this->getCmdVelConverter().convert(speeds.at(1));
-    const auto speed_rear_left = this->getCmdVelConverter().convert(speeds.at(2));
-    const auto speed_rear_right = this->getCmdVelConverter().convert(speeds.at(3));
+    // speeds is ordered per joint_order_ (ardennes_system.hpp) = {"fl", "fr", "rl", "rr"}, in
+    // wheel rad/s; the DCC1020 velocity controllers take motor-shaft RPM.
+    const auto toMotorRpm = [this](const float wheel_rad_per_s) {
+        return static_cast<float>(wheelRadPerSecToMotorRpm(wheel_rad_per_s, drivetrain_settings_.gear_ratio));
+    };
+
+    const auto speed_front_left = toMotorRpm(speeds.at(0));
+    const auto speed_front_right = toMotorRpm(speeds.at(1));
+    const auto speed_rear_left = toMotorRpm(speeds.at(2));
+    const auto speed_rear_right = toMotorRpm(speeds.at(3));
 
     try {
         // drivers_.at(...) throws std::out_of_range (a sibling of std::runtime_error, not caught

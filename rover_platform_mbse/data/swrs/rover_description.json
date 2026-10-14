@@ -129,7 +129,7 @@
       "verified_by": [
         "rover_controller/test/test_wheel_geometry.py"
       ],
-      "comments": "The origin of 10.958 rad/s and 64.5 (N·m) is not documented in the package; 2800 rpm / 23.3 = 12.58 rad/s is the full-duty speed used by the PIDs. TBC against the motor datasheet."
+      "comments": "The origin of 10.958 rad/s and 64.5 (N·m) is not documented in the package; 2800 rpm / 23.3 = 12.58 rad/s is the DCC1020 motor-RPM target clamp (max_rpm_motor_speed / gear_ratio). TBC against the motor datasheet."
     },
     {
       "id": "SWR-DESC-006",
@@ -180,10 +180,10 @@
     {
       "id": "SWR-DESC-008",
       "category": "Parameter",
-      "text": "The rover_description shall set the RoverA1System drive-train parameters driver_states_update_frequency 20.0, max_rover_driver_initialization_attempts 3, max_rover_driver_activation_attempts 3, the three error-filter counts 2, driver_comm_timeout_ms 300, motor_failsafe_timeout_ms 500, motor_acceleration 1.0, motor_current_limit 15.0, motor_supply_voltage 24.0, motor_torque_constant 0.11, max_rpm_motor_speed 2800, gear_ratio 23.3, gearbox_efficiency 0.70, raw_current_to_amps_scale 0.001 and encoder_resolution 1024.",
-      "rationale": "Drive actuation and feedback scaling (SYS-SR-002) and the DCC1000 command-loss failsafe (SYS-SR-011).",
+      "text": "The rover_description shall set the RoverA1System drive-train parameters driver_states_update_frequency 20.0, max_rover_driver_initialization_attempts 3, max_rover_driver_activation_attempts 3, the three error-filter counts 2, driver_comm_timeout_ms 300, motor_failsafe_timeout_ms 500, motor_failsafe_enabled true, motor_failsafe_braking_enabled true, motor_current_limit 15.0, motor_torque_constant 0.11, max_rpm_motor_speed 2800, gear_ratio 23.3, gearbox_efficiency 0.70, raw_current_to_amps_scale 0.01 and encoder_resolution 1024, and shall not set the removed DCC1000 parameters motor_acceleration and motor_supply_voltage.",
+      "rationale": "Drive actuation and feedback scaling (SYS-SR-002) and the DCC1020 command-loss failsafe (SYS-SR-011).",
       "verification": "Inspection, Test",
-      "acceptance": "The generated URDF contains exactly these values and RoverA1System on_init() accepts them.",
+      "acceptance": "The generated URDF contains exactly these values and neither motor_acceleration nor motor_supply_voltage, and RoverA1System on_init() accepts them.",
       "priority": "Must",
       "status": "As-Built",
       "parents": [
@@ -192,21 +192,21 @@
       ],
       "derived_rationale": "",
       "evidence": [
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:189-254"
+        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:209-302"
       ],
       "implementation": "Implemented",
       "verified_by": [
         "rover_hardware_interface/test/rover_system/test_rover_a1_system_on_init.cpp"
       ],
-      "comments": "Comment drift in the URDF: motor_current_limit comment (lines 228-232) describes 10 A, value is 15.0."
+      "comments": "DCC1020 swap: motor_current_limit 15.0 A is an ASSUMPTION carried over from the DCC1000 setup (Phidgets suggests ~1.1x rated, ~11.5 A; URDF comment). The optional on-board velocity-loop parameters (velocity_kp/ki/kd, velocity_deadband_rpm, motor_acceleration_rpm_s, motor_surge_current_limit, motor_stall_velocity_rpm, motor_failsafe_current_limit, motor_inductance, motor_data_interval_ms) are commented out as TBD (rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:262-286): the boards run their defaults until tuned on the robot."
     },
     {
       "id": "SWR-DESC-009",
       "category": "Parameter",
       "text": "The rover_description shall set the E-Stop reset tolerances velocity_command_zero_tolerance 0.4 rad/s and velocity_state_zero_tolerance 0.05 rad/s.",
-      "rationale": "SYS-SR-008: the SW E-Stop cannot be reset while commanded to move or still rolling; 0.4 rad/s is the smallest value above the wheel PID i_clamp_max (0.33 rad/s).",
+      "rationale": "SYS-SR-008: the SW E-Stop cannot be reset while commanded to move or still rolling. 0.4 rad/s was chosen as the smallest value above the former host wheel PID i_clamp_max (0.33 rad/s).",
       "verification": "Inspection",
-      "acceptance": "The generated URDF contains 0.4 and 0.05; 0.4 > max i_clamp_max in rover_controller/config/wheel_01_controller.yaml.",
+      "acceptance": "The generated URDF contains 0.4 and 0.05.",
       "priority": "Must",
       "status": "As-Built",
       "parents": [
@@ -214,12 +214,11 @@
       ],
       "derived_rationale": "",
       "evidence": [
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:256-284",
-        "rover_controller/config/wheel_01_controller.yaml:90"
+        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:304-336"
       ],
       "implementation": "Implemented",
       "verified_by": [],
-      "comments": "Doc drift: rover_arch/SAFETY_CHAIN.md:228 states 0.35 rad/s. No test ties the tolerance to i_clamp_max."
+      "comments": "DCC1020 swap: the host wheel PIDs are no longer spawned, so diff_drive's zero reference reaches the hardware as exactly 0 and the 0.4 rad/s margin is no longer needed; it can come back down toward the compiled-in 0.01 once verified on the rover (TBD). Doc drift: the URDF comment still describes the wheel PIDs and stop_at_zero_reference; rover_arch/SAFETY_CHAIN.md states 0.35 rad/s."
     },
     {
       "id": "SWR-DESC-010",

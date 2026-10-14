@@ -61,6 +61,28 @@ TEST(FaultFlagTest, GetErrorMapUsesPrefixedNamesAndReflectsState)
     EXPECT_FALSE(error_map.at("fault_flag.motor_setup_fault"));
 }
 
+TEST(FaultFlagTest, MotorControllerFaultBitsMapToTheirAccessorsAndNames)
+{
+    FaultFlag fault_flag;
+    fault_flag.setData(static_cast<std::uint8_t>(
+        (1U << FaultFlag::kOverTemperatureBit) | (1U << FaultFlag::kMotorStallBit)));
+
+    EXPECT_TRUE(fault_flag.isError());
+    EXPECT_TRUE(fault_flag.isOverTemperature());
+    EXPECT_TRUE(fault_flag.isMotorStall());
+    EXPECT_FALSE(fault_flag.isOverCurrent());
+    EXPECT_FALSE(fault_flag.isOverVoltage());
+    EXPECT_FALSE(fault_flag.isBadPower());
+    EXPECT_FALSE(fault_flag.isEmergencyStop());
+
+    const auto error_map = fault_flag.getErrorMap();
+    EXPECT_TRUE(error_map.at("fault_flag.over_temperature"));
+    EXPECT_TRUE(error_map.at("fault_flag.motor_stall"));
+    EXPECT_FALSE(error_map.at("fault_flag.over_current"));
+    EXPECT_FALSE(error_map.at("fault_flag.over_voltage"));
+    EXPECT_FALSE(error_map.at("fault_flag.bad_power"));
+}
+
 // RuntimeError suppresses its only flag (safety_stop_active) from isError() by design (see
 // RuntimeError's constructor in driver_data_snapshot.cpp): it is reported informationally via
 // isSafetyStopActive(), not treated as an isError()-worthy fault on its own.

@@ -25,8 +25,10 @@
 #include <functional>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -49,6 +51,75 @@
 
 namespace isaacbot_amr_hardware_interface
 {
+
+namespace
+{
+
+// "true"/"1" or "false"/"0", nothing else - a typo must never silently flip a safety setting.
+bool parseStrictBool(const std::string & value, const std::string & key)
+{
+    if (value == "true" || value == "1") {
+        return true;
+    }
+
+    if (value == "false" || value == "0") {
+        return false;
+    }
+
+    throw std::runtime_error(key + " must be true, false, 1 or 0, got '" + value + "'.");
+}
+
+// std::stoi/std::stof stop at the first character they can't parse ("1.5abc" -> 1.5); a URDF
+// value is a whole number or nothing.
+void rejectTrailingCharacters(const std::string & key, const std::string & text, const std::size_t parsed)
+{
+    if (parsed != text.size()) {
+        throw std::runtime_error(key + ": '" + text + "' is not a number.");
+    }
+}
+
+// Milliseconds > 0. Parsed as a signed int first so "-1" is rejected instead of wrapping to ~4e9.
+unsigned readPositiveMsParam(
+    const std::unordered_map<std::string, std::string> & params, const std::string & key)
+{
+    const std::string & text = params.at(key);
+    std::size_t parsed = 0;
+    const int value = std::stoi(text, &parsed);
+    rejectTrailingCharacters(key, text, parsed);
+
+    if (value <= 0) {
+        throw std::runtime_error(key + " must be > 0 ms, got " + text + ".");
+    }
+
+    return static_cast<unsigned>(value);
+}
+
+float readNonNegativeFloatParam(
+    const std::unordered_map<std::string, std::string> & params, const std::string & key)
+{
+    const std::string & text = params.at(key);
+    std::size_t parsed = 0;
+    const float value = std::stof(text, &parsed);
+    rejectTrailingCharacters(key, text, parsed);
+
+    if (!std::isfinite(value) || value < 0.0f) {
+        throw std::runtime_error(key + " must be a finite value >= 0, got '" + text + "'.");
+    }
+
+    return value;
+}
+
+std::optional<float> readOptionalNonNegativeFloatParam(
+    const std::unordered_map<std::string, std::string> & params, const std::string & key)
+{
+    if (params.count(key) == 0) {
+        return std::nullopt;
+    }
+
+    return readNonNegativeFloatParam(params, key);
+}
+
+}  // namespace
 
 IsaacbotSystem::IsaacbotSystem(const std::vector<std::string> & joint_order)
 : SystemInterface()
@@ -510,7 +581,7 @@ void IsaacbotSystem::readDrivetrainSettings()
     drivetrain_settings_.max_rpm_motor_speed =
         std::stof(info_.hardware_parameters.at("max_rpm_motor_speed"));
     drivetrain_settings_.driver_comm_timeout_ms =
-        static_cast<unsigned>(std::stoi(info_.hardware_parameters.at("driver_comm_timeout_ms")));
+        readPositiveMsParam(info_.hardware_parameters, "driver_comm_timeout_ms");
     drivetrain_settings_.raw_current_to_amps_scale =
         std::stof(info_.hardware_parameters.at("raw_current_to_amps_scale"));
 
@@ -519,80 +590,98 @@ void IsaacbotSystem::readDrivetrainSettings()
     drivetrain_settings_.motor_failsafe_timeout_ms =
         info_.hardware_parameters.count("motor_failsafe_timeout_ms") == 0
             ? kDefaultMotorFailsafeTimeoutMs
-            : static_cast<unsigned>(
-                  std::stoi(info_.hardware_parameters.at("motor_failsafe_timeout_ms")));
+            : readPositiveMsParam(info_.hardware_parameters, "motor_failsafe_timeout_ms");
 
     // Optional as well; absent keeps the failsafe armed. Strictly parsed so a typo can never
     // silently disable a safety mechanism.
     if (info_.hardware_parameters.count("motor_failsafe_enabled") != 0) {
-        const std::string & value = info_.hardware_parameters.at("motor_failsafe_enabled");
-
-        if (value == "true" || value == "1") {
-            drivetrain_settings_.motor_failsafe_enabled = true;
-        } else if (value == "false" || value == "0") {
-            drivetrain_settings_.motor_failsafe_enabled = false;
-        } else {
-            throw std::runtime_error(
-                "motor_failsafe_enabled must be true, false, 1 or 0, got '" + value + "'.");
-        }
+        drivetrain_settings_.motor_failsafe_enabled = parseStrictBool(
+            info_.hardware_parameters.at("motor_failsafe_enabled"), "motor_failsafe_enabled");
     }
 
     if (!drivetrain_settings_.motor_failsafe_enabled) {
         RCLCPP_WARN_STREAM(
             logger_,
-            "DCC1000 motor failsafe DISABLED (motor_failsafe_enabled=false): a stalled write() loop "
-            "will NOT brake the motors. Instrumented build only - keep wheels lifted or speeds low "
+            "Motor controller failsafe DISABLED (motor_failsafe_enabled=false): a stalled write() "
+            "loop will NOT stop the motors. Instrumented build only - keep wheels lifted or speeds low "
             "and the RC E-Stop within reach.");
     }
 
-    // Optional as well; absent keeps the previously hard-coded ramp.
-    drivetrain_settings_.motor_acceleration =
-        info_.hardware_parameters.count("motor_acceleration") == 0
-            ? kDefaultMotorAcceleration
-            : std::stof(info_.hardware_parameters.at("motor_acceleration"));
-
-    // DCC1000 accepts 0.5-10000 duty/s; reject here rather than fail later in the SDK call.
-    if (drivetrain_settings_.motor_acceleration < 0.5f ||
-        drivetrain_settings_.motor_acceleration > 10000.0f)
-    {
-        throw std::runtime_error(
-            "motor_acceleration must be in [0.5, 10000] duty/s, got " +
-            std::to_string(drivetrain_settings_.motor_acceleration) + ".");
+    // DCC1000-era keys whose meaning changed with the DCC1020's on-board velocity loop
+    // (acceleration was duty/s, now RPM/s; the supply voltage only fed the DCC1000's current
+    // regulator gain). Rejected by name so a stale URDF fails loudly instead of being read in the
+    // wrong unit.
+    for (const char * removed_key : {"motor_acceleration", "motor_supply_voltage"}) {
+        if (info_.hardware_parameters.count(removed_key) != 0) {
+            throw std::runtime_error(
+                std::string("'") + removed_key + "' is a DCC1000 parameter and is no longer "
+                "supported; see motor_acceleration_rpm_s and the DCC1020 parameters in the URDF.");
+        }
     }
 
-    // Optional as well; absent keeps the previously hard-coded 10 A limit on 24 V.
-    drivetrain_settings_.motor_current_limit =
-        info_.hardware_parameters.count("motor_current_limit") == 0
-            ? kDefaultMotorCurrentLimit
-            : std::stof(info_.hardware_parameters.at("motor_current_limit"));
-    drivetrain_settings_.motor_supply_voltage =
-        info_.hardware_parameters.count("motor_supply_voltage") == 0
-            ? kDefaultMotorSupplyVoltage
-            : std::stof(info_.hardware_parameters.at("motor_supply_voltage"));
+    const auto & params = info_.hardware_parameters;
 
-    // DCC1000 ranges: current limit 2-25 A, supply 8-30 V, current regulator gain 1-100.
-    if (drivetrain_settings_.motor_current_limit < 2.0f ||
-        drivetrain_settings_.motor_current_limit > 25.0f)
-    {
-        throw std::runtime_error(
-            "motor_current_limit must be in [2, 25] A, got " +
-            std::to_string(drivetrain_settings_.motor_current_limit) + ".");
+    if (params.count("motor_current_limit") != 0) {
+        drivetrain_settings_.motor_current_limit =
+            readNonNegativeFloatParam(params, "motor_current_limit");
     }
 
-    if (drivetrain_settings_.motor_supply_voltage < 8.0f ||
-        drivetrain_settings_.motor_supply_voltage > 30.0f)
-    {
-        throw std::runtime_error(
-            "motor_supply_voltage must be in [8, 30] V, got " +
-            std::to_string(drivetrain_settings_.motor_supply_voltage) + ".");
+    if (drivetrain_settings_.motor_current_limit <= 0.0f) {
+        throw std::runtime_error("motor_current_limit must be > 0 A.");
     }
 
-    const float gain = motorCurrentRegulatorGain(
-        drivetrain_settings_.motor_current_limit, drivetrain_settings_.motor_supply_voltage);
-    if (gain < 1.0f || gain > 100.0f) {
+    // Device ranges for these are only known once a board is attached (getMin*/getMax*), so
+    // PhidgetMotorDriver checks them there; this only rejects values that are wrong on any board.
+    drivetrain_settings_.velocity_kp = readOptionalNonNegativeFloatParam(params, "velocity_kp");
+    drivetrain_settings_.velocity_ki = readOptionalNonNegativeFloatParam(params, "velocity_ki");
+    drivetrain_settings_.velocity_kd = readOptionalNonNegativeFloatParam(params, "velocity_kd");
+    drivetrain_settings_.velocity_deadband_rpm =
+        readOptionalNonNegativeFloatParam(params, "velocity_deadband_rpm");
+    drivetrain_settings_.motor_acceleration_rpm_s =
+        readOptionalNonNegativeFloatParam(params, "motor_acceleration_rpm_s");
+    drivetrain_settings_.motor_surge_current_limit =
+        readOptionalNonNegativeFloatParam(params, "motor_surge_current_limit");
+    drivetrain_settings_.motor_stall_velocity_rpm =
+        readOptionalNonNegativeFloatParam(params, "motor_stall_velocity_rpm");
+    drivetrain_settings_.motor_failsafe_current_limit =
+        readOptionalNonNegativeFloatParam(params, "motor_failsafe_current_limit");
+    drivetrain_settings_.motor_inductance =
+        readOptionalNonNegativeFloatParam(params, "motor_inductance");
+
+    if (params.count("motor_data_interval_ms") != 0) {
+        drivetrain_settings_.motor_data_interval_ms = readPositiveMsParam(params, "motor_data_interval_ms");
+    }
+
+    if (params.count("motor_failsafe_braking_enabled") != 0) {
+        drivetrain_settings_.motor_failsafe_braking_enabled =
+            parseStrictBool(params.at("motor_failsafe_braking_enabled"), "motor_failsafe_braking_enabled");
+    }
+
+    if (drivetrain_settings_.motor_acceleration_rpm_s && *drivetrain_settings_.motor_acceleration_rpm_s == 0.0f) {
+        throw std::runtime_error("motor_acceleration_rpm_s must be > 0 RPM/s.");
+    }
+
+    if (drivetrain_settings_.motor_surge_current_limit &&
+        *drivetrain_settings_.motor_surge_current_limit < drivetrain_settings_.motor_current_limit)
+    {
         throw std::runtime_error(
-            "Derived motor current regulator gain must be in [1, 100], got " +
-            std::to_string(gain) + ".");
+            "motor_surge_current_limit (" + std::to_string(*drivetrain_settings_.motor_surge_current_limit) +
+            " A) must be >= motor_current_limit (" +
+            std::to_string(drivetrain_settings_.motor_current_limit) + " A).");
+    }
+
+    // Each of these divides or scales a conversion factor; 0 or negative would turn every
+    // command and reading into inf/NaN.
+    for (const auto & [name, value] : {
+             std::pair<const char *, float>{"max_rpm_motor_speed", drivetrain_settings_.max_rpm_motor_speed},
+             {"gear_ratio", drivetrain_settings_.gear_ratio},
+             {"encoder_resolution", drivetrain_settings_.encoder_resolution},
+             {"motor_torque_constant", drivetrain_settings_.motor_torque_constant},
+             {"gearbox_efficiency", drivetrain_settings_.gearbox_efficiency}})
+    {
+        if (!std::isfinite(value) || value <= 0.0f) {
+            throw std::runtime_error(std::string(name) + " must be > 0, got " + std::to_string(value) + ".");
+        }
     }
 }
 

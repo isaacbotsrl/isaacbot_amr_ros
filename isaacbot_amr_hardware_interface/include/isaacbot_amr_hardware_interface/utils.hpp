@@ -18,27 +18,17 @@
 #include <chrono>
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <stdexcept>
 #include <string>
 
 namespace isaacbot_amr_hardware_interface
 {
 
-// Default for DrivetrainSettings::motor_acceleration - the value that used to be hard-coded.
-constexpr float kDefaultMotorAcceleration = 2.0f;
-// Defaults for DrivetrainSettings::motor_current_limit / motor_supply_voltage - the previously
-// hard-coded 10 A limit on the 24 V supply (gain 20).
+// Default for DrivetrainSettings::motor_current_limit - the previously hard-coded 10 A limit.
+// Deliberately not "board default": the DCC1020's own default is far above what the drive motors
+// are rated for.
 constexpr float kDefaultMotorCurrentLimit = 10.0f;
-constexpr float kDefaultMotorSupplyVoltage = 24.0f;
-
-// Current regulator gain of the motor controller's current loop (e.g.
-// PhidgetDCMotor_setCurrentRegulatorGain()), derived from the current limit and supply voltage
-// with Phidget's rule of thumb gain = current_limit * (voltage / 12). Derived rather than
-// configured so it can't drift out of step with the limit.
-inline float motorCurrentRegulatorGain(const float current_limit_a, const float supply_voltage_v)
-{
-    return current_limit_a * (supply_voltage_v / 12.0f);
-}
 
 struct DrivetrainSettings
 {
@@ -57,25 +47,49 @@ struct DrivetrainSettings
     // its own value instead of silently inheriting Phidget's convention.
     float raw_current_to_amps_scale;
     // Timeout (ms) for the motor driver's own hardware watchdog (e.g. Phidget's
-    // PhidgetDCMotor_enableFailsafe()) - see MotorDriverInterface::armFailsafe() in domain/
+    // PhidgetMotorVelocityController_enableFailsafe()) - see MotorDriverInterface::armFailsafe() in domain/
     // driver.hpp. Optional in the URDF; absent means kDefaultMotorFailsafeTimeoutMs, so an
     // existing URDF keeps working unchanged.
     unsigned motor_failsafe_timeout_ms;
-    // On-board duty-cycle ramp of the motor controller, in duty/s (e.g.
-    // PhidgetDCMotor_setAcceleration()). It adds lag the ROS side cannot see, so it is exposed to
-    // let a closed wheel-speed loop own the dynamics. Optional in the URDF.
-    float motor_acceleration{kDefaultMotorAcceleration};
-    // Motor controller current limit in A (e.g. PhidgetDCMotor_setCurrentLimit()). Optional in
-    // the URDF.
+    // Motor controller current limit in A (e.g. PhidgetMotorVelocityController_setCurrentLimit()).
+    // Optional in the URDF.
     float motor_current_limit{kDefaultMotorCurrentLimit};
-    // Motor supply voltage in V; only used to derive the current regulator gain (see
-    // motorCurrentRegulatorGain()). Optional in the URDF.
-    float motor_supply_voltage{kDefaultMotorSupplyVoltage};
+
+    // Settings of the motor controller's on-board velocity loop (DCC1020
+    // MotorVelocityController). The controller is rescaled to motor-shaft RPM, so every velocity
+    // below is motor RPM and every acceleration RPM/s. All optional in the URDF: an absent value
+    // (std::nullopt) leaves the board's own default in place, and the driver logs what it ended
+    // up with - gains are tuned on the robot, never invented here.
+    std::optional<float> velocity_kp;
+    std::optional<float> velocity_ki;
+    std::optional<float> velocity_kd;
+    // Target-velocity band around 0 in which the controller disengages instead of holding the
+    // motor still (only applies to a zero target).
+    std::optional<float> velocity_deadband_rpm;
+    // Trapezoidal-profile acceleration limit, RPM/s.
+    std::optional<float> motor_acceleration_rpm_s;
+    // Current the controller may exceed motor_current_limit by for ~1 s, A.
+    std::optional<float> motor_surge_current_limit;
+    // Below this speed under load the controller declares a dangerous stall and disengages; 0
+    // turns stall protection off. RPM.
+    std::optional<float> motor_stall_velocity_rpm;
+    // Current limit applied while the controller is in its failsafe state, A.
+    std::optional<float> motor_failsafe_current_limit;
+    // Motor inductance in the SDK's unit (bounded by getMin/MaxInductance()). Absent: the board
+    // measures it itself when the channel opens (the audible beeps).
+    std::optional<float> motor_inductance;
+    // Interval of the velocity feedback events, ms. Absent: the board's minimum.
+    std::optional<unsigned> motor_data_interval_ms;
+    // Whether the controller brakes (true) or coasts (false) when its failsafe trips. Defaults
+    // to braking, which is what the DCC1000 setup did (braking strength 1.0); the board's own
+    // default is to coast.
+    bool motor_failsafe_braking_enabled{true};
+
     // Whether the motor driver's own hardware watchdog (motor_failsafe_timeout_ms above) is armed.
     // Optional in the URDF; absent means enabled, so every existing URDF keeps its protection.
     // Only an instrumented build (logging/tracing that can stall the RT loop past the timeout)
     // should ever set this to false: with it off a stalled write() loop leaves each wheel at its
-    // last duty command instead of braking it.
+    // last velocity target instead of braking it.
     bool motor_failsafe_enabled{true};
 };
 

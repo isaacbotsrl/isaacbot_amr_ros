@@ -46,7 +46,7 @@ runs in the `isaacbot` namespace except the web bridges. Topic names are relativ
 flowchart LR
   subgraph HW["Hardware"]
     PLC["Safety PLC (Modbus TCP)"]
-    MOT["4x DCC1000 motor controllers"]
+    MOT["4x DCC1020 motor controllers<br/>(on-board speed loop)"]
     IMU["Phidget IMU"]
     BMS["BMS bridge (UDP)"]
     LEDB["LED boards (UDP)"]
@@ -55,7 +55,6 @@ flowchart LR
 
   subgraph CM["controller_manager process"]
     HWI["ArdennesSystem + PhidgetImuSensor<br/>(isaacbot_amr_hardware_controller)"]
-    PID["pid_controller_* x4"]
     DD["isaacbot_amr_drive_controller"]
     JSB["isaacbot_amr_joint_state_broadcaster"]
     IMUB["isaacbot_amr_imu_broadcaster"]
@@ -64,7 +63,7 @@ flowchart LR
   PLC <--> HWI
   MOT <--> HWI
   IMU --> HWI
-  DD --> PID --> HWI
+  DD --> HWI
   HWI --> JSB
   HWI --> IMUB
 
@@ -114,8 +113,8 @@ the package launch files. The [ROS 2 API](ros-api.md) page lists every topic and
 1. `isaacbot_amr_bringup` checks `ROBOT_HW_CONFIG_CORRECT`. If it is not `true`, nothing starts.
 2. `isaacbot_amr_controller` (robot description, `controller_manager`, controllers) and
    `isaacbot_amr_diag_manager` start at once.
-3. The controllers are spawned in order: joint state broadcaster, drive controller with the four
-   wheel PIDs as one group, IMU broadcaster. A failed spawner shuts the launch down.
+3. The controllers are spawned in order: joint state broadcaster, drive controller, IMU
+   broadcaster. A failed spawner shuts the launch down.
 4. When the IMU broadcaster is active, `isaacbot_amr_battery`, `isaacbot_amr_led`, `isaacbot_amr_safety`,
    `isaacbot_amr_localization`, `isaacbot_amr_crsf_teleop` and `isaacbot_amr_twist_mux` start. If that event does not
    come within `controllers_ready_timeout` (20.0 s), they start anyway with a warning.
@@ -133,7 +132,7 @@ Source: `isaacbot_amr_bringup/launch/isaacbot_amr_bringup.launch.py`, `isaacbot_
 | `isaacbot_amr_description` | Model | URDF/xacro: links, joints, meshes, sensors, `<ros2_control>` components. | [README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_description/README.md) |
 | `isaacbot_amr_metapackage` | Build | Selects `isaacbot_amr_bringup` or `isaacbot_amr_gazebo` by `ISAACBOT_AMR_ROS_BUILD_TYPE`; holds the `.repos` lists. | [README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_metapackage/README.md) |
 | `isaacbot_amr_hardware_interface` | Hardware (ros2_control plugins) | `ArdennesSystem` (wheel motors, safety PLC) and `PhidgetImuSensor`. | [README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_hardware_interface/README.md) |
-| `isaacbot_amr_controller` | Control | Controller configuration and launch; `SeededPidController` wheel PIDs; drive-train tuning tools. | [README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_controller/README.md) |
+| `isaacbot_amr_controller` | Control | Controller configuration and launch; drive-train tuning tools; `SeededPidController` (built, no longer spawned since the DCC1020 on-board speed loop). | [README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_controller/README.md) |
 | `isaacbot_amr_twist_mux` | Control | `twist_mux` arbitration, `isaacbot_amr_motion_lock_node`, `isaacbot_amr_command_freshness_node`. | [README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_twist_mux/README.md) |
 | `isaacbot_amr_crsf_teleop` | Teleop | CRSF (ExpressLRS) RC teleop, software E-Stop switches, RC link failsafe. | [README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_crsf_teleop/README.md) |
 | `isaacbot_amr_localization` | Localization | `robot_localization` EKFs: wheels + IMU, optionally GPS. | [README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_localization/README.md) |
@@ -210,6 +209,9 @@ Source: `README.md`, `isaacbot_amr_scripts/README.md`, `isaacbot_amr_bringup/REA
 vcs import src < src/isaacbot_amr_ros/isaacbot_amr_metapackage/${ISAACBOT_AMR_ROS_BUILD_TYPE}_deps.repos
 
 sudo apt install usbutils plocate
+# Phidget22 SDK >= 1.26 (DCC1020 + IMU) from the Phidgets apt repo; there is no rosdep key for it
+curl -fsSL https://www.phidgets.com/downloads/setup_linux | sudo -E bash -
+sudo apt install libphidget22 libphidget22-dev
 sudo rosdep init
 rosdep update --rosdistro $ROS_DISTRO
 rosdep install --from-paths src -y -i

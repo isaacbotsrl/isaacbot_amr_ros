@@ -18,7 +18,7 @@ A value marked **derived** is computed from those files, and the formula is give
 | Track (wheel centre to wheel centre) | 0.617 m | See the warning below |
 | Ground clearance | 0.113 m | **Derived**: lowest point of `base.stl` above the ground; not measured |
 | Height of `base_link` above ground | 0.1325 m | **Derived**: `tyre_radius` − `wheel_mount_point_z` (0.1699 − 0.037363) |
-| Mass (CAD, with batteries, without payload) | 58.67 kg | SolidWorks mass properties (2026-10-08), equal to the URDF total; requirement ≤ 60 kg (SYS-SR-001). Battery 5 kg (owner value), RUTX11 456 g (distributor spec), DCC1000 78.8 g (ASSUMPTION); not weighed as a whole |
+| Mass (CAD, with batteries, without payload) | 58.67 kg | SolidWorks mass properties (2026-10-08), equal to the URDF total; requirement ≤ 60 kg (SYS-SR-001). Battery 5 kg (owner value), RUTX11 456 g (distributor spec), DCC1000 78.8 g (ASSUMPTION; the CAD/URDF still models the DCC1000, not the DCC1020 now fitted, see [open items](../open-items.md)); not weighed as a whole |
 | Centre of mass height | 0.218 m above ground | CAD (2026-10-08), in the URDF frame: 0.0855 m above `body_link` + 0.1325 m |
 | Yaw moment of inertia | 6.18 kg·m² | CAD (2026-10-08), about the centre of mass |
 | Static sideways tip-over angle | about 55° | **Derived**: atan(0.3068 / 0.218) with the tyre contact half-track, level ground, no payload, no dynamics |
@@ -75,7 +75,7 @@ Sources: `isaacbot_amr_description/config/wheel_01.yaml`, `isaacbot_amr_descript
 | Motor torque constant | 0.11 N·m/A | |
 | Motor current limit | 15 A | Per motor controller; see the open items |
 | Encoder resolution | 1024 counts | Per motor revolution |
-| Motor controllers | 4 × Phidget DCC1000 | See [Components](components.md) |
+| Motor controllers | 4 × Phidget DCC1020 (8–30 V, 50 A continuous, 75 A peak, on-board speed loop) | See [Components](components.md) |
 | Drive control rate | 25 Hz | `controller_manager` update rate |
 
 The linear and angular limits are applied independently. A full-speed turn while driving at
@@ -108,7 +108,7 @@ Sources: `isaacbot_amr_controller/config/wheel_01_controller.yaml`,
 | Sensor | Model | Rate | Notes |
 |---|---|---|---|
 | IMU | Phidgets Spatial MOT0110 (USB) | 8 ms data interval (125 Hz), published at 50 Hz | Orientation filter (gain/zeta), magnetometer off (`use_mag: false`), ENU |
-| Wheel encoders | MT6835 magnetic encoders on the motors (5 V, 1024 lines per revolution as configured) | 10 Hz encoder updates (100 ms, the DCC1000's minimum), 20 Hz driver state, 25 Hz control loop | The sensor's propagation delay is under 10 µs; the 100 ms is the DCC1000's reporting interval. See [Components](components.md) |
+| Wheel encoders | MT6835 magnetic encoders on the motors (5 V, 1024 lines per revolution as configured) | Velocity feedback from the DCC1020 at its minimum data interval (or `motor_data_interval_ms`; value **TBD**), 20 Hz driver state, 25 Hz control loop | The DCC1020 decodes the encoder (x4) and closes the speed loop on board; the sensor's propagation delay is under 10 µs. See [Components](components.md) |
 | Battery telemetry | Daly BMS | **TBD** | |
 
 The lidar, GNSS and cameras are payload: they belong to the `isaacbot_amr_sensors` repository and are

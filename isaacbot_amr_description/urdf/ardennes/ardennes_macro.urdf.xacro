@@ -226,70 +226,78 @@
                boards if false positives/slow detection are observed. -->
           <param name="driver_comm_timeout_ms">300</param>
 
-          <!-- Max time (ms) a PhidgetDCMotor_setTargetVelocity_async() command may go unsent/
-               unacknowledged before the Phidget board's own hardware watchdog disengages (brakes)
-               the motor, independent of software E-Stop state - a defense-in-depth backstop for
-               e.g. a hung RT loop. write() keeps feeding it with zero commands while motion is
-               inhibited (E-Stop), so only a stalled write() loop trips it. A trip is latched (motor_failsafe_tripped_error in
-               diagnostics) and only cleared by the hardware_interface/sw_e_stop_latch_reset
-               service. Optional - omitting it keeps the compiled-in
-               kDefaultMotorFailsafeTimeoutMs (500). Tune at bench test: short enough to be a
-               meaningful backstop, long enough that ordinary write() cycle jitter never trips
-               it. The watchdog can be switched off entirely with the optional
-               motor_failsafe_enabled param (true/false, default true) - for instrumented builds
-               only: with it off, a stalled write() loop leaves each wheel at its last duty
-               command instead of braking it. -->
+          <!-- Max time (ms) between commands before each DCC1020's own hardware watchdog trips:
+               the controller disengages the motor (braking, see motor_failsafe_braking_enabled),
+               independent of software E-Stop state - a defense-in-depth backstop for e.g. a hung
+               RT loop. Every velocity target sent feeds it, and write() keeps sending zero targets
+               while motion is inhibited (E-Stop), so only a stalled write() loop trips it. A trip
+               is latched (motor_failsafe_tripped_error in diagnostics) and only cleared by the
+               hardware_interface/sw_e_stop_latch_reset service, which re-opens the channel.
+               Must lie within the board's getMin/MaxFailsafeTime() (checked at activation).
+               Optional - omitting it keeps the compiled-in kDefaultMotorFailsafeTimeoutMs (500).
+               The watchdog can be switched off with motor_failsafe_enabled - for instrumented
+               builds only: with it off, a stalled write() loop leaves each wheel at its last
+               velocity target. -->
           <param name="motor_failsafe_timeout_ms">500</param>
 
-          <!-- DCC1000 on-board failsafe ENABLED (the default). On instrumented/failsafe-off it was
-               false while the command path was being measured (2026-10-07/08), so that
-               instrumentation could not trip it by stalling the RT write() loop. Set it to false
-               again only for measurements like that: with it off, a stalled write() loop leaves
-               each wheel at its last duty command instead of braking it, and the PLC heartbeat
-               does not catch a loop-only stall - wheels lifted or low speed, RC E-Stop in reach. -->
+          <!-- On-board failsafe ENABLED (the default). Set it to false only for measurements that
+               stall the RT write() loop on purpose: with it off, a stalled loop leaves each wheel
+               at its last velocity target, and the PLC heartbeat does not catch a loop-only stall
+               - wheels lifted or low speed, RC E-Stop in reach. -->
           <param name="motor_failsafe_enabled">true</param>
 
-          <!-- On-board duty-cycle ramp of each DCC1000, in duty/s (DCC1000 range 0.5-10000).
-               2.0 = up to 0.5 s from stop to full duty (1.0 was 1 s, 10.0 would be 0.1 s, so
-               diff_drive's acceleration limits would shape the motion instead of this ramp). The
-               ramp also applies when slowing down, and braking only engages at duty 0, so a slow
-               ramp lengthens every stop, E-stop included. 2.0 (2026-10-07) was chosen over 1.0
-               because the 1 s ramp was the largest part of the yaw lag that makes the isaacbot arc
-               after an in-place turn (dead time ~0.4 s, 63 % rise ~1.6 s on the turn steps).
-               The wheel PIDs' integral_reference_delay/_time_constant model the motor response
-               (isaacbot_amr_controller/config/wheel_01_controller.yaml). They were fitted on the ground
-               at 10.0 (2026-10-02) and again at 1.0 (2026-10-06, 0.40 / 0.12 s); they have NOT
-               been re-fitted for 2.0, nor have the diff_drive / Nav 2 acceleration limits (1.4
-               m/s^2, 1.3 rad/s^2, measured at 1.0): re-run wheel_step_response, re-fit the model
-               and re-measure the limits after changing this. Optional - omitting it keeps the
-               compiled-in kDefaultMotorAcceleration (2.0). -->
-          <param name="motor_acceleration">2.0</param>
+          <!-- Brake (true) or coast (false) when the failsafe trips. Optional, default true - the
+               DCC1000 setup braked (braking strength 1.0); the DCC1020's own default is coast. -->
+          <param name="motor_failsafe_braking_enabled">true</param>
 
-          <!-- DCC1000 motor current limit in A (device range 2-25). The motor stalls at 16 A on
-               24 V, and a direction reversal can briefly reach ~2x stall as back-EMF adds to the
-               supply, so the limit is what protects motor, DCC1000 and gearbox. 10 A gives ~60 %
-               of stall torque with thermal headroom. Optional - omitting it keeps the compiled-in
+          <!-- DCC1020 motor current limit in A (checked against the board's range at configure).
+               The motor stalls at 16 A on 24 V, and a direction reversal can briefly reach ~2x
+               stall as back-EMF adds to the supply, so the limit is what protects motor, driver
+               and gearbox. Phidgets recommends ~1.1x the motor's rated current (250 W / 24 V
+               = ~10.4 A, i.e. ~11.5 A); 15.0 is the value carried over from the DCC1000 setup -
+               ASSUMPTION, re-check on the bench. Optional - omitting it keeps the compiled-in
                kDefaultMotorCurrentLimit (10.0). -->
           <param name="motor_current_limit">15.0</param>
 
-          <!-- Motor supply voltage in V (DCC1000 range 8-30). Only used to derive the current
-               regulator gain = motor_current_limit * (motor_supply_voltage / 12) (Phidget rule of
-               thumb) = 20 here. Too low a gain causes current spikes / jerky torque, too high a
-               rough-sounding motor on reversals. Optional - omitting it keeps the compiled-in
-               kDefaultMotorSupplyVoltage (24.0). -->
-          <param name="motor_supply_voltage">24.0</param>
+          <!-- DCC1020 on-board velocity loop (MotorVelocityController). The controller is
+               rescaled to motor-shaft RPM, so velocities are motor RPM and accelerations RPM/s.
+               Every one of these is optional: omitted, the board keeps its own default and the
+               driver logs the value it runs with at configure ("Motor hub port N ... Kp=..."),
+               which is the starting point for tuning. TBD - tune on the robot (Phidgets
+               Velocity Controller Tuning Guide) and record the source of each value here.
+          <param name="velocity_kp">TBD</param>
+          <param name="velocity_ki">TBD</param>
+          <param name="velocity_kd">TBD</param>
+               Zero-target band in which the controller lets go instead of holding the wheel:
+          <param name="velocity_deadband_rpm">TBD</param>
+               Trapezoidal-profile acceleration limit. diff_drive / Nav 2 acceleration limits
+               (1.4 m/s^2, 1.3 rad/s^2) were measured with the DCC1000 ramp and must be
+               re-measured once this is set:
+          <param name="motor_acceleration_rpm_s">TBD</param>
+               Current allowed above motor_current_limit for ~1 s (>= motor_current_limit):
+          <param name="motor_surge_current_limit">TBD</param>
+               Dangerous-stall threshold; 0 disables stall protection:
+          <param name="motor_stall_velocity_rpm">TBD</param>
+          <param name="motor_failsafe_current_limit">TBD</param>
+               Skips the inductance measurement (beeps) at every open; SDK unit:
+          <param name="motor_inductance">TBD</param>
+               Velocity feedback interval; omitted = the board's minimum:
+          <param name="motor_data_interval_ms">TBD</param>
+          -->
 
           <!-- Motor parameters -->
           <param name="motor_torque_constant">0.11</param>
+          <!-- Clamp on the velocity target sent to each DCC1020, motor RPM. -->
           <param name="max_rpm_motor_speed">2800</param>
           <param name="gear_ratio">23.3</param>
           <param name="gearbox_efficiency">0.70</param>
-          <!-- The Phidget driver reports raw current feedback in milliamps (see
-               PhidgetMotorDriver::currentChangeHandler); this scales
-               it to amps before it's combined with motor_torque_constant/gear_ratio/
-               gearbox_efficiency to compute torque (see domain/driver_data_snapshot.cpp). A
-               different driver backend would supply its own raw-current unit scale here. -->
-          <param name="raw_current_to_amps_scale">0.001</param>
+          <!-- The Phidget driver reports raw current feedback in units of 10 mA (see
+               PhidgetMotorDriver::currentChangeHandler - an int16 in mA would overflow below the
+               DCC1020's 50 A rating); this scales it to amps before it's combined with
+               motor_torque_constant/gear_ratio/gearbox_efficiency to compute torque (see
+               domain/driver_data_snapshot.cpp). A different driver backend would supply its own
+               raw-current unit scale here. -->
+          <param name="raw_current_to_amps_scale">0.01</param>
           <!-- Encoder parameters -->
           <param name="encoder_resolution">1024</param>
 
@@ -298,20 +306,12 @@
                invariant (see domain/emergency_stop.cpp). Optional: omitting it keeps the
                compiled-in kDefaultVelocityCommandZeroTolerance (0.01).
 
-               Why 0.4 and not 0.01: the wheel PIDs used to run a plain integral clamped at
-               i_clamp_max (then 0.25 front, 0.33 rear). While motion is inhibited the reference
-               and the measured velocity are both zero, so the PID error is zero, and a PI
-               integrator holds its value at zero error instead of decaying. The command parked
-               at the frozen I-term - up to 0.33 rad/s - and no command-side tolerance below that
-               could be satisfied. 0.4 cleared the largest i_clamp with a little margin.
-
-               The wheel PIDs now run with stop_at_zero_reference (isaacbot_amr_controller/config/
-               wheel_01_controller.yaml): at a zero reference they send exactly 0 and clear the
-               integral, which is the I-term reset this guard was waiting for. This value can
-               come back down toward 0.01 once that is verified on the isaacbot. Until then, and
-               for as long as this guard relies on it, keep stop_at_zero_reference on: i_clamp_max
-               is now 2.0, so a frozen I-term would sit far above 0.4 and the E-Stop could not be
-               reset.
+               Why 0.4 and not 0.01: with the DCC1000 the host wheel PIDs sat between diff_drive
+               and the hardware, and a frozen PI integrator kept a nonzero command (up to their
+               i_clamp_max) while motion was inhibited; 0.4 cleared that with a margin. Since the
+               DCC1020 swap there are no host PIDs - diff_drive's zero command reaches the
+               hardware as exactly 0 - so this can come back down toward 0.01 once that is
+               verified on the isaacbot.
 
                This was previously 1.2 (~0.2 m/s at the A1's 0.1651 m wheel radius), which is
                fast enough to walk beside and made the invariant largely decorative.

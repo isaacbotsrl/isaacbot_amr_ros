@@ -25,7 +25,6 @@ set(PACKAGE_DEPENDENCIES
     imu_filter_madgwick
     isaacbot_amr_modbus_driver
     isaacbot_amr_msgs
-    phidgets_api
     sensor_msgs
     pluginlib
     rclcpp
@@ -48,6 +47,18 @@ endforeach()
 # PkgConfig is a CMake-builtin module, not an ament package - kept out of PACKAGE_DEPENDENCIES so
 # it isn't exported as an ament dependency (it has no package.xml entry).
 find_package(PkgConfig REQUIRED)
+
+# The Phidget22 SDK comes from the Phidgets apt repo (libphidget22-dev), not from
+# ros-lyrical-libphidget22: that ROS vendor package bundles 1.19, which predates the DCC1020 motor
+# controllers and has no PhidgetMotorVelocityController API. 1.26 is the first version this
+# package was built and tested against.
+pkg_check_modules(PHIDGET22 IMPORTED_TARGET libphidget22>=1.26)
+if(NOT PHIDGET22_FOUND)
+  message(FATAL_ERROR
+    "libphidget22 >= 1.26 not found. Install libphidget22 and libphidget22-dev from the Phidgets "
+    "apt repo (curl -fsSL https://www.phidgets.com/downloads/setup_linux | sudo -E bash -), and "
+    "remove ros-$ENV{ROS_DISTRO}-libphidget22 / ros-$ENV{ROS_DISTRO}-phidgets-api (they bundle 1.19).")
+endif()
 
 include_directories(include)
 
@@ -86,10 +97,10 @@ target_include_directories(
 add_library(
     ${PROJECT_NAME} SHARED
     src/isaacbot_amr_sensors/phidget_imu_sensor.cpp
+    src/isaacbot_amr_sensors/phidget_spatial_device.cpp
     src/isaacbot_amr_driver/phidget_driver/phidget_utils.cpp
     src/isaacbot_amr_driver/phidget_driver/phidget_motor_driver.cpp
     src/isaacbot_amr_driver/phidget_driver/phidget_isaacbot_amr_driver.cpp
-    src/isaacbot_amr_driver/phidget_driver/phidget_data_transformer.cpp
     src/isaacbot_amr_driver/ardennes_driver.cpp
     src/isaacbot_amr_system/ardennes_system.cpp
     src/isaacbot_amr_system/isaacbot_amr_system.cpp
@@ -117,7 +128,6 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     ${rclcpp_components_TARGETS}
     ${imu_filter_madgwick_TARGETS}
     ${isaacbot_amr_msgs_TARGETS}
-    ${phidgets_api_TARGETS}
     ${sensor_msgs_TARGETS}
     ${pluginlib_TARGETS}
     ${rclcpp_TARGETS}
@@ -133,6 +143,10 @@ target_link_libraries(
     ${PROJECT_NAME}
     PUBLIC ${PROJECT_NAME}_core phidgets_spatial_parameters isaacbot_amr_modbus_driver::isaacbot_amr_modbus_driver_ros
 )
+
+# PRIVATE: the SDK is a system library on the default include/link path, and nothing downstream
+# links this plugin, so the imported pkg-config target stays out of the export set.
+target_link_libraries(${PROJECT_NAME} PRIVATE PkgConfig::PHIDGET22)
 
 target_compile_definitions(
     ${PROJECT_NAME} PRIVATE "ISAACBOT_AMR_HARDWARE_INTERFACES_BUILDING_DLL"
@@ -254,8 +268,8 @@ if(BUILD_TESTING)
   target_link_libraries(test_utils ${PROJECT_NAME}_core)
 
   ament_add_gtest(
-    test_phidget_data_transformer test/isaacbot_amr_driver/test_phidget_data_transformer.cpp)
-  target_link_libraries(test_phidget_data_transformer ${PROJECT_NAME})
+    test_latest_value_mailbox test/isaacbot_amr_driver/test_latest_value_mailbox.cpp)
+  target_link_libraries(test_latest_value_mailbox ${PROJECT_NAME})
 
   # Pure-logic unit test for PhidgetMotorDriver::isFailsafeTrippedReturnCode() - no live Phidget
   # handle needed (see the failsafe-watchdog design note in domain/driver.hpp's

@@ -26,7 +26,6 @@
 
 #include "imu_filter_madgwick/imu_filter.h"
 #include "imu_filter_madgwick/world_frame.h"
-#include "phidgets_api/spatial.hpp"
 
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_lifecycle/node_interfaces/lifecycle_node_interface.hpp"
@@ -41,6 +40,7 @@
 #include "geometry_msgs/msg/vector3.hpp"
 
 #include "isaacbot_amr_hardware_interface/domain/imu_calibration.hpp"
+#include "isaacbot_amr_hardware_interface/isaacbot_amr_sensors/phidget_spatial_device.hpp"
 #include "isaacbot_amr_hardware_interface/phidgets_spatial_parameters.hpp"
 
 namespace isaacbot_amr_hardware_interface
@@ -166,7 +166,7 @@ protected:
     };
 
     phidgets_spatial::Params params_;
-    std::unique_ptr<phidgets::Spatial> spatial_;
+    std::unique_ptr<PhidgetSpatialDevice> spatial_;
 
     std::unique_ptr<ImuFilter> filter_;
     // Defaults to ENU to match checkMadgwickFilterWorldFrameParam()'s documented fallback when

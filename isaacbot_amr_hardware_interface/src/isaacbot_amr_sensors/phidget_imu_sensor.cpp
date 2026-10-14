@@ -30,7 +30,6 @@
 #include "imu_filter_madgwick/imu_filter.h"
 #include "imu_filter_madgwick/stateless_orientation.h"
 #include "imu_filter_madgwick/world_frame.h"
-#include "phidgets_api/spatial.hpp"
 
 #include "rclcpp/logging.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -133,10 +132,10 @@ CallbackReturn PhidgetImuSensor::on_activate(const rclcpp_lifecycle::State &)
 
     try {
         if (!spatial_) {
-            spatial_ = std::make_unique<phidgets::Spatial>(
+            spatial_ = std::make_unique<PhidgetSpatialDevice>(
             params_.serial, -1, false,
             std::bind(&PhidgetImuSensor::spatialDataCallback, this, std::placeholders::_1,
-            std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), nullptr,
+            std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
             std::bind(&PhidgetImuSensor::spatialAttachCallback, this),
             std::bind(&PhidgetImuSensor::spatialDetachCallback, this));
         }
@@ -150,9 +149,6 @@ CallbackReturn PhidgetImuSensor::on_activate(const rclcpp_lifecycle::State &)
 
         configureCompassParams();
         configureHeating();
-    } catch (const phidgets::Phidget22Error & err) {
-        RCLCPP_ERROR_STREAM(logger_, "An error occurred in the Spatial module: " << err.what());
-        return CallbackReturn::ERROR;
     } catch (const std::runtime_error & err) {
         RCLCPP_ERROR_STREAM(logger_, "Failed to activate IMU sensor: " << err.what());
         return CallbackReturn::ERROR;

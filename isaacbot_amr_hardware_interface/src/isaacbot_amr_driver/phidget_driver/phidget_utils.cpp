@@ -14,6 +14,7 @@
 
 #include "isaacbot_amr_hardware_interface/isaacbot_amr_driver/phidget_driver/phidget_utils.hpp"
 
+#include <cmath>
 #include <cstdio>
 #include <string>
 
@@ -78,6 +79,20 @@ std::string phidgetReturnCodeToString(const PhidgetReturnCode ret)
     }
 
     return std::string(hex);
+}
+
+double motorRpmRescaleFactor(const float encoder_lines)
+{
+    if (encoder_lines <= 0.0f) {
+        return 0.0;
+    }
+
+    return 60.0 / (4.0 * static_cast<double>(encoder_lines));
+}
+
+double wheelRadPerSecToMotorRpm(const double wheel_rad_per_s, const float gear_ratio)
+{
+    return wheel_rad_per_s * static_cast<double>(gear_ratio) * 60.0 / (2.0 * M_PI);
 }
 
 }  // namespace isaacbot_amr_hardware_interface

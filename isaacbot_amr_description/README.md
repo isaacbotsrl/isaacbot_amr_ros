@@ -31,11 +31,17 @@ inside `controller_manager`, named after the component in the controller manager
 
 | Component (`<ros2_control name>`) | Type | Plugin | Exports |
 |-----------------------------------|------|--------|---------|
-| `isaacbot_amr_system_node` | system | `isaacbot_amr_hardware_interface/ArdennesSystem` | velocity command + position/velocity/effort state per wheel joint; drives the Phidget DCC1000 motor controllers and talks Modbus TCP to the safety controller (E-Stop, GPIO) at `192.168.88.11:502` |
+| `isaacbot_amr_system_node` | system | `isaacbot_amr_hardware_interface/ArdennesSystem` | velocity command + position/velocity/effort state per wheel joint; drives the Phidget DCC1020 motor controllers (on-board speed loop) and talks Modbus TCP to the safety controller (E-Stop, GPIO) at `192.168.88.11:502` |
 | `isaacbot_amr_imu` | sensor | `isaacbot_amr_hardware_interface/PhidgetImuSensor` (Phidgets Spatial + Madgwick filter) | `imu/orientation.*`, `imu/angular_velocity.*`, `imu/linear_acceleration.*` |
 
 The hardware parameters (Modbus address, timeouts, gear ratio, encoder resolution, …) are the
-`<param>` tags in `urdf/ardennes/ardennes_macro.urdf.xacro` and `urdf/common/imu.urdf.xacro`. With
+`<param>` tags in `urdf/ardennes/ardennes_macro.urdf.xacro` and `urdf/common/imu.urdf.xacro`. The
+DCC1020 on-board velocity loop settings (`velocity_kp/ki/kd`, `velocity_deadband_rpm`,
+`motor_acceleration_rpm_s`, surge/stall/failsafe current, `motor_inductance`,
+`motor_data_interval_ms`) are optional and still TBD (commented out: board defaults);
+`motor_failsafe_braking_enabled` defaults to true. The DCC1000 parameters `motor_acceleration` and
+`motor_supply_voltage` were removed and are rejected by the hardware interface. The CAD-derived
+base mass still models four DCC1000s (78.8 g each, ASSUMPTION), not the DCC1020s now fitted. With
 `use_sim:=true`, the system uses `gz_ros2_control/GazeboSimSystem` and carries the IMU interfaces
 (fed by the Gazebo IMU sensor), and `isaacbot_amr_imu` has no hardware. gz_ros2_control doesn't pass its
 namespace on to the component node, so in simulation it is `/isaacbot_amr_system_node`.

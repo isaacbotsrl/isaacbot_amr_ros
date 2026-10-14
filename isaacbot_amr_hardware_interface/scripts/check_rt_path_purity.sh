@@ -79,7 +79,7 @@ fi
 
 # Known-blocking symbols: raw Modbus TCP round-trips and synchronous Phidget SDK calls. Reads/
 # writes to hardware on the RT path must instead go through the cached/try_lock ports
-# (IsaacbotGpioPort, IsaacbotDriverInterface) and the Phidget SDK's _async entry points - see the RT
+# (IsaacbotGpioPort, IsaacbotDriverInterface) and the motor driver's worker hand-off - see the RT
 # contract comment on the IsaacbotSystem class in isaacbot_amr_system.hpp.
 #
 # IMPORTANT for whoever adds a new safety-IO or driver backend (e.g. CAN instead of Modbus, a
@@ -97,12 +97,16 @@ FORBIDDEN_SYMBOLS=(
     "IsaacbotSafetyController("
     "ModbusDiscreteIoClient("
     "makeModbusTcpDiscreteIoClient("
-    # Synchronous Phidget SDK calls (unlike PhidgetDCMotor_setTargetVelocity_async) - confined by
-    # design to IsaacbotSystem::on_activate() and resetEStopLatch() (see MotorDriverInterface::
+    # Synchronous Phidget SDK calls. The DCC1020 velocity controller has no _async setter at all,
+    # so PhidgetMotorDriver::sendCmdVel() only posts the target to a worker thread, which makes
+    # the blocking setTargetVelocity call. The failsafe calls are confined by design to
+    # IsaacbotSystem::on_activate() and resetEStopLatch() (see MotorDriverInterface::
     # armFailsafe()/resetFailsafe() in domain/driver.hpp), neither of which this script scans
     # today. Listed here anyway as a regression guard against a future accidental RT-path call.
-    PhidgetDCMotor_resetFailsafe
-    PhidgetDCMotor_enableFailsafe
+    PhidgetMotorVelocityController_setTargetVelocity
+    PhidgetMotorVelocityController_setEngaged
+    PhidgetMotorVelocityController_resetFailsafe
+    PhidgetMotorVelocityController_enableFailsafe
 )
 
 extract_body() {
@@ -188,6 +192,11 @@ FORBIDDEN_ADAPTER_PATTERNS=(
     # inheritance. The try_to_lock/defer_lock/adopt_lock forms carry a second argument (a comma),
     # so they don't match.
     '(lock_guard|unique_lock|scoped_lock)(<[^>]*>)?[[:space:]]+[A-Za-z_]+[(][A-Za-z_]+[)]'
+    # Waiting or thread hand-off primitives that can block (the motor command path posts to a
+    # LatestValueMailbox instead, whose post() is lock-free).
+    'condition_variable'
+    '[.]wait(_for|_until)?[[:space:]]*\('
+    'std::thread'
 )
 
 # RT-reachable methods of the driver / safety-IO adapters behind the domain ports, reached from
@@ -211,6 +220,11 @@ RT_REACHABLE_ADAPTER_METHODS=(
     "${DRIVER_DIR}/phidget_driver/phidget_motor_driver.cpp|^([A-Za-z].*[ &*])?PhidgetMotorDriver::sendCmdVel[(]"
     "${DRIVER_DIR}/phidget_driver/phidget_motor_driver.cpp|^([A-Za-z].*[ &*])?PhidgetMotorDriver::isCommunicationError[(]"
     "${DRIVER_DIR}/phidget_driver/phidget_motor_driver.cpp|^([A-Za-z].*[ &*])?PhidgetMotorDriver::isFailsafeTripped[(]"
+    "${DRIVER_DIR}/phidget_driver/phidget_motor_driver.cpp|^([A-Za-z].*[ &*])?PhidgetMotorDriver::motorTargetRpm[(]"
+    "${DRIVER_DIR}/phidget_driver/phidget_motor_driver.cpp|^([A-Za-z].*[ &*])?PhidgetMotorDriver::getFaultFlags[(]"
+    "${DRIVER_DIR}/phidget_driver/phidget_motor_driver.cpp|^([A-Za-z].*[ &*])?PhidgetMotorDriver::getCommandStats[(]"
+    "${DRIVER_DIR}/phidget_driver/phidget_motor_driver.cpp|^([A-Za-z].*[ &*])?PhidgetDriver::readState[(]"
+    "${DRIVER_DIR}/phidget_driver/phidget_motor_driver.cpp|^([A-Za-z].*[ &*])?PhidgetDriver::isCommunicationError[(]"
     "${DRIVER_DIR}/phidget_driver/phidget_isaacbot_amr_driver.cpp|^([A-Za-z].*[ &*])?PhidgetIsaacbotDriver::updateCommunicationStatus[(]"
     "${DRIVER_DIR}/phidget_driver/phidget_isaacbot_amr_driver.cpp|^([A-Za-z].*[ &*])?PhidgetIsaacbotDriver::updateMotorsState[(]"
     "${DRIVER_DIR}/phidget_driver/phidget_isaacbot_amr_driver.cpp|^([A-Za-z].*[ &*])?PhidgetIsaacbotDriver::updateDriversState[(]"

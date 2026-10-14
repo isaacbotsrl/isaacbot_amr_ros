@@ -28,7 +28,6 @@ PhidgetIsaacbotDriver::PhidgetIsaacbotDriver(
     const DrivetrainSettings & drivetrain_settings,
     const std::chrono::milliseconds activate_wait_time)
 : drivetrain_settings_(drivetrain_settings)
-, phidget_vel_cmd_converter_(drivetrain_settings)
 , activate_wait_time_(activate_wait_time)
 {
 
@@ -253,11 +252,6 @@ DriverDataSnapshot PhidgetIsaacbotDriver::getData(const DriverNames name)
     }
 
     return last_known_data_.at(name);
-}
-
-PhidgetVelocityCommandDataTransformer & PhidgetIsaacbotDriver::getCmdVelConverter()
-{
-    return phidget_vel_cmd_converter_;
 }
 
 void PhidgetIsaacbotDriver::initDrivers()

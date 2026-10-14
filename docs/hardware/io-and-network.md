@@ -138,7 +138,7 @@ The ROS controller addresses `192.168.88.10` and `192.168.77.203`, and the route
 | Device | Connection | Settings | Source |
 |--------|------------|----------|--------|
 | Phidgets MOT0110 IMU | USB, opened directly (not through the VINT hub) | Data interval 8 ms, Madgwick filter, magnetometer off, ENU world frame | `isaacbot_amr_description/urdf/common/imu.urdf.xacro`, `isaacbot_amr_hardware_interface/src/isaacbot_amr_sensors/phidget_imu_sensor.cpp` |
-| Phidgets VINT hub | USB | DCC1000 boards on hub ports 0 (FL), 1 (FR), 4 (RL), 5 (RR); any hub serial number (`-1`) | `isaacbot_amr_hardware_interface/src/isaacbot_amr_driver/ardennes_driver.cpp` |
+| Phidgets VINT hub | USB | DCC1020 boards on hub ports 0 (FL), 1 (FR), 4 (RL), 5 (RR), FL and RL direction reversed; any hub serial number (`-1`) | `isaacbot_amr_hardware_interface/src/isaacbot_amr_driver/ardennes_driver.cpp` |
 | ExpressLRS (CRSF) receiver | USB-UART adapter on the **RUTX11** USB port, not the ROS controller | 460800 8N1, set in the router's Serial Utilities | `isaacbot_amr_crsf_teleop/README.md`, `isaacbot_amr_crsf_teleop/scripts/rutx11_elrs_udp_forwarding.sh` |
 
 !!! warning "ELRS adapter on the router"

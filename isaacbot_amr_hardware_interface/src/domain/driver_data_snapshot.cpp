@@ -50,6 +50,11 @@ std::string FlagError::getErrorLog() const
 const std::vector<std::string> FaultFlag::kFlagNames = {
     "emergency_stop",
     "motor_setup_fault",
+    "over_temperature",
+    "over_current",
+    "over_voltage",
+    "motor_stall",
+    "bad_power",
 };
 
 FaultFlag::FaultFlag()

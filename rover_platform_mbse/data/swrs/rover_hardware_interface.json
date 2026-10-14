@@ -3,7 +3,7 @@
   "prefix": "HWI",
   "document": "ROVER-A1-ROVER_HARDWARE_INTERFACE-SWRS-V-001",
   "title": "rover_hardware_interface Software Requirements Specification",
-  "scope": "rover_hardware_interface provides the two ros2_control hardware plugins of Rover A1: RoverA1System (hardware_interface::SystemInterface) drives the four wheel joints through four Phidget DCC1000 DC motor controllers and talks Modbus TCP to the safety PLC (E-Stop latch, CPU watchdog heartbeat, contactor feedback, general-purpose aux IO); PhidgetImuSensor (hardware_interface::SensorInterface) reads the Phidgets Spatial MOT0110 IMU through a Madgwick filter. RoverA1System also runs the rover_hardware_controller helper node inside the controller_manager process, which publishes the safety, aux IO and driver state topics, serves the software E-Stop / latch reset / aux output services and reports /diagnostics. It is responsible for gating motor commands on the E-Stop state and on latched hardware faults; the contactor opening in hardware remains the primary stop.",
+  "scope": "rover_hardware_interface provides the two ros2_control hardware plugins of Rover A1: RoverA1System (hardware_interface::SystemInterface) drives the four wheel joints through four Phidget DCC1020 DC motor controllers (on-board velocity loop, libphidget22 >= 1.26 C API) and talks Modbus TCP to the safety PLC (E-Stop latch, CPU watchdog heartbeat, contactor feedback, general-purpose aux IO); PhidgetImuSensor (hardware_interface::SensorInterface) reads the Phidgets Spatial MOT0110 IMU through a Madgwick filter. RoverA1System also runs the rover_hardware_controller helper node inside the controller_manager process, which publishes the safety, aux IO and driver state topics, serves the software E-Stop / latch reset / aux output services and reports /diagnostics. It is responsible for gating motor commands on the E-Stop state and on latched hardware faults; the contactor opening in hardware remains the primary stop.",
   "requirements": [
     {
       "id": "SWR-HWI-001",
@@ -35,10 +35,10 @@
     {
       "id": "SWR-HWI-002",
       "category": "Functional",
-      "text": "The rover_hardware_interface shall convert wheel velocity commands from rad/s at the wheel to a DCC1000 duty cycle using gear_ratio and max_rpm_motor_speed and clamp the result to [-1.0, 1.0], and report wheel position in rad, velocity in rad/s and effort in N·m derived from encoder_resolution, gear_ratio, motor_torque_constant and gearbox_efficiency.",
+      "text": "The rover_hardware_interface shall convert wheel velocity commands from rad/s at the wheel to a DCC1020 motor-shaft RPM target (wheel rad/s x gear_ratio x 60/2pi), clamp it to +/-max_rpm_motor_speed, rescale each board's velocity controller to motor RPM with rescaleFactor = 60/(4 x encoder_resolution), and report wheel position in rad, velocity in rad/s and effort in N·m derived from encoder_resolution, gear_ratio, raw_current_to_amps_scale, motor_torque_constant and gearbox_efficiency.",
       "rationale": "REP-103 SI units on the ros2_control interfaces (SYS-SR-021) and correct velocity-mode actuation with encoder feedback (SYS-SR-002).",
       "verification": "Test",
-      "acceptance": "A command of max_rpm_motor_speed/gear_ratio converted to rad/s (2800/23.3 rpm with the URDF values) maps to duty 1.0; larger commands clamp to 1.0 and -1.0; one wheel revolution of encoder ticks (encoder_resolution x gear_ratio) reports 2*pi rad.",
+      "acceptance": "A wheel command of 2800 x 2pi/60 / 23.3 rad/s (12.58 rad/s with the URDF values) maps to a 2800 RPM target; larger commands clamp to +/-2800 RPM; the rescale factor with encoder_resolution 1024 is 60/4096; one wheel revolution of encoder lines (encoder_resolution x gear_ratio) reports 2*pi rad; a board velocity of N RPM reports N x 2pi/60 / gear_ratio rad/s.",
       "priority": "Must",
       "status": "As-Built",
       "parents": [
@@ -47,26 +47,27 @@
       ],
       "derived_rationale": "",
       "evidence": [
-        "rover_hardware_interface/src/rover_driver/phidget_driver/phidget_data_transformer.cpp:22-32",
-        "rover_hardware_interface/include/rover_hardware_interface/rover_driver/phidget_driver/phidget_data_transformer.hpp:40-45",
-        "rover_hardware_interface/src/domain/driver_data_snapshot.cpp:99-106",
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:243-254"
+        "rover_hardware_interface/src/rover_driver/phidget_driver/phidget_utils.cpp:84-96",
+        "rover_hardware_interface/src/rover_driver/rover_a1_driver.cpp:46",
+        "rover_hardware_interface/src/rover_driver/phidget_driver/phidget_motor_driver.cpp:383-394",
+        "rover_hardware_interface/src/rover_driver/phidget_driver/phidget_motor_driver.cpp:926-937",
+        "rover_hardware_interface/src/domain/driver_data_snapshot.cpp:99-110",
+        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:289-302"
       ],
       "implementation": "Implemented",
       "verified_by": [
-        "rover_hardware_interface/test/rover_driver/test_phidget_data_transformer.cpp",
-        "rover_hardware_interface/test/domain/test_driver_data_snapshot.cpp",
-        "rover_hardware_interface/test/rover_driver/test_phidget_motor_driver.cpp"
+        "rover_hardware_interface/test/rover_driver/test_phidget_motor_driver.cpp",
+        "rover_hardware_interface/test/domain/test_driver_data_snapshot.cpp"
       ],
-      "comments": ""
+      "comments": "DCC1020 swap: the old DCC1000 duty-cycle conversion (phidget_data_transformer) was removed. raw_current_to_amps_scale is now 0.01 (current reported in 10 mA units)."
     },
     {
       "id": "SWR-HWI-003",
       "category": "Parameter",
-      "text": "The rover_hardware_interface shall configure each DCC1000 with the URDF motor_acceleration (1.0 duty/s) and motor_current_limit (15.0 A) and fail on_init() when motor_acceleration is outside [0.5, 10000] duty/s, motor_current_limit outside [2, 25] A, motor_supply_voltage outside [8, 30] V or the derived current regulator gain outside [1, 100].",
-      "rationale": "The current limit protects motor, DCC1000 and gearbox; rejecting out-of-range values at on_init() avoids a late SDK failure after the drive is energised.",
+      "text": "The rover_hardware_interface shall configure each DCC1020 with the URDF motor_current_limit (15.0 A), max_rpm_motor_speed and the optional velocity-loop parameters (velocity_kp/ki/kd, velocity_deadband_rpm, motor_acceleration_rpm_s, motor_surge_current_limit, motor_stall_velocity_rpm, motor_failsafe_current_limit, motor_inductance, motor_data_interval_ms, motor_failsafe_braking_enabled), fail on_configure() when a set value is outside the range the board reports (getMin*/getMax*), fail on_init() when a value is negative or unparsable, motor_current_limit <= 0, motor_surge_current_limit < motor_current_limit or the removed DCC1000 parameters motor_acceleration / motor_supply_voltage are present, and log the values each board runs with at configure.",
+      "rationale": "The current limit protects motor, DCC1020 and gearbox; checking each value against the board's own range names the offending parameter instead of an anonymous SDK error, and rejecting the DCC1000 parameters stops a stale URDF from being silently ignored.",
       "verification": "Test",
-      "acceptance": "on_init() succeeds with the rover_description values; on_init() returns ERROR for motor_acceleration 0.4, motor_current_limit 26 or motor_supply_voltage 31; the DCC1000 reports current limit 15.0 A after configure.",
+      "acceptance": "on_init() succeeds with the rover_description values and with all velocity-loop overrides set; on_init() returns ERROR for motor_acceleration or motor_supply_voltage present, negative or unparsable velocity-loop values, motor_current_limit 0 and a surge limit below the current limit; on the rover, configure logs \"Motor hub port N (serial S): Kp=... (board default) ...\" per board and fails for a value outside the board range.",
       "priority": "Should",
       "status": "As-Built",
       "parents": [
@@ -74,25 +75,24 @@
       ],
       "derived_rationale": "",
       "evidence": [
-        "rover_hardware_interface/src/rover_system/rover_system.cpp:505-553",
-        "rover_hardware_interface/src/rover_driver/phidget_driver/phidget_motor_driver.cpp:339-356",
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:222-240",
-        "rover_hardware_interface/include/rover_hardware_interface/utils.hpp:28-32"
+        "rover_hardware_interface/src/rover_system/rover_system.cpp:587-650",
+        "rover_hardware_interface/src/rover_driver/phidget_driver/phidget_motor_driver.cpp:204-227",
+        "rover_hardware_interface/src/rover_driver/phidget_driver/phidget_motor_driver.cpp:383-521",
+        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:253-293"
       ],
       "implementation": "Implemented",
       "verified_by": [
-        "rover_hardware_interface/test/rover_system/test_rover_a1_system_on_init.cpp",
-        "rover_hardware_interface/test/rover_driver/test_phidget_motor_driver.cpp"
+        "rover_hardware_interface/test/rover_system/test_rover_a1_system_on_init.cpp"
       ],
-      "comments": "The URDF comment says 10 A gives ~60 % of stall torque but the configured value is 15.0 A; the comment and the compiled-in default (10 A) are stale relative to the URDF value. Traced to SYS-SR-014: the DCC1000 duty ramp (motor_acceleration) bounds how fast the drives brake on a software zero command; the stopping-distance limit is still TBD."
+      "comments": "motor_current_limit 15.0 A is an ASSUMPTION carried over from the DCC1000 setup; Phidgets suggests ~1.1x rated current (~11.5 A) (URDF comment). The velocity-loop gains, acceleration and stall threshold are TBD (board defaults until tuned on the robot). The board-range check (setInRange) needs the device and is not unit-tested. Traced to SYS-SR-014: motor_acceleration_rpm_s (trapezoidal profile) bounds how fast the drives decelerate on a software zero command; the stopping-distance limit is still TBD."
     },
     {
       "id": "SWR-HWI-004",
       "category": "Lifecycle",
-      "text": "The rover_hardware_interface shall, in on_configure(), start the safety controller before initialising the motor drivers (up to max_rover_driver_initialization_attempts = 3), arm each DCC1000 hardware failsafe and zero all velocity commands in on_activate() (up to max_rover_driver_activation_attempts = 3), and zero all velocity commands in on_deactivate().",
-      "rationale": "No stale command may be the first thing written to the drivers after a (re)activation, and the start-up E-Stop triggers must be released before the drivers are armed.",
+      "text": "The rover_hardware_interface shall, in on_configure(), start the safety controller before initialising the motor drivers (up to max_rover_driver_initialization_attempts = 3), in on_activate() activate the drivers (up to max_rover_driver_activation_attempts = 3), arm each DCC1020 hardware failsafe, only then engage its velocity controller, and zero all velocity commands; and zero all velocity commands in on_deactivate().",
+      "rationale": "No stale command may be the first thing written to the drivers after a (re)activation, the start-up E-Stop triggers must be released before the drivers are armed, and the DCC1020 velocity controller does nothing until engaged (a trip disengages it).",
       "verification": "Test",
-      "acceptance": "After configure, the safety controller start() is called once before driver initialisation; after activate, every command interface reads 0.0 and each channel failsafe is enabled; configure returns ERROR if releasing the start-up triggers throws.",
+      "acceptance": "After configure, the safety controller start() is called once before driver initialisation; after activate, every command interface reads 0.0, each channel failsafe is enabled and each velocity controller is engaged; configure returns ERROR if releasing the start-up triggers throws.",
       "priority": "Must",
       "status": "As-Built",
       "parents": [
@@ -101,23 +101,24 @@
       ],
       "derived_rationale": "",
       "evidence": [
-        "rover_hardware_interface/src/rover_system/rover_system.cpp:91-178",
-        "rover_hardware_interface/src/rover_system/rover_system.cpp:187-230",
-        "rover_hardware_interface/src/rover_system/rover_system.cpp:630-660",
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:190-192"
+        "rover_hardware_interface/src/rover_system/rover_system.cpp:139-230",
+        "rover_hardware_interface/src/rover_system/rover_system.cpp:241-284",
+        "rover_hardware_interface/src/rover_driver/phidget_driver/phidget_motor_driver.cpp:863-909",
+        "rover_hardware_interface/src/rover_driver/phidget_driver/phidget_motor_driver.cpp:572-577"
       ],
       "implementation": "Implemented",
       "verified_by": [
         "rover_hardware_interface/test/rover_system/test_rover_system_write.cpp",
-        "rover_hardware_interface/test/test_utils.cpp"
+        "rover_hardware_interface/test/test_utils.cpp",
+        "rover_hardware_interface/test/rover_driver/test_phidget_motor_driver.cpp"
       ],
-      "comments": "The configure ordering and retry helper are unit-tested; on_activate()/on_deactivate() (failsafe arming, command zeroing) are not exercised by any unit test."
+      "comments": "The configure ordering, retry helper and the failsafe arm/feed/re-open decision (selectFailsafeAction) are unit-tested; on_activate()/on_deactivate() and setEngaged() need the device and are not exercised by any unit test."
     },
     {
       "id": "SWR-HWI-005",
       "category": "Safety",
       "text": "The rover_hardware_interface shall, in every write() cycle, forward the controller velocity commands to the drivers only when the component is ACTIVE, neither the software E-Stop nor the PLC latch is active and no hardware fault (motor failsafe trip or welded contactor) is latched, and otherwise discard the pending command and send zero velocity to all four drivers while ACTIVE or INACTIVE.",
-      "rationale": "Defense in depth behind the contactor (SAFETY_CHAIN.md §5 gate 3). Zeros are sent rather than nothing so that the DCC1000 failsafe keeps being fed, and a stale command is never replayed after the latch clears.",
+      "rationale": "Defense in depth behind the contactor (SAFETY_CHAIN.md §5 gate 3). Zeros are sent rather than nothing so that the DCC1020 failsafe keeps being fed, and a stale command is never replayed after the latch clears.",
       "verification": "Test",
       "acceptance": "With E-Stop active, latched failsafe or INACTIVE state, every write() sends [0, 0, 0, 0] and the command buffer reads 0 afterwards; ACTIVE with nothing inhibiting forwards the controller command unchanged; decideWriteCommand() matches the rule for all 16 input combinations.",
       "priority": "Must",
@@ -226,7 +227,7 @@
     {
       "id": "SWR-HWI-009",
       "category": "Safety",
-      "text": "The rover_hardware_interface shall provide hardware_interface/sw_e_stop_latch_reset (std_srvs/Trigger) that, only while ACTIVE, pulses the latch-reset coil (COIL_4) true for safety_latch_reset_pulse_ms (100 ms) and then false, clears the latched error-filter state and the welded-contactor fault, and re-arms the DCC1000 failsafe.",
+      "text": "The rover_hardware_interface shall provide hardware_interface/sw_e_stop_latch_reset (std_srvs/Trigger) that, only while ACTIVE, pulses the latch-reset coil (COIL_4) true for safety_latch_reset_pulse_ms (100 ms) and then false, clears the latched error-filter state and the welded-contactor fault, and re-arms the DCC1020 failsafe, re-opening any channel latched by a failsafe trip, E-Stop input, motor stall or energy dump and re-engaging its velocity controller.",
       "rationale": "SYS-SR-008 requires an explicit operator reset after any E-Stop. The pulse must be wide enough for the relay input filter; a single call acknowledges all latched faults, which re-latch on the next read() if still present.",
       "verification": "Test",
       "acceptance": "Coil 4 is written true then false with >= 100 ms between the writes; the service returns success=false when not ACTIVE; after the call a still-welded contactor re-latches the fault within one read() cycle.",
@@ -241,7 +242,8 @@
         "rover_hardware_interface/src/rover_system/rover_system.cpp:674-706",
         "rover_hardware_interface/src/domain/emergency_stop.cpp:99-109",
         "rover_hardware_interface/src/rover_safety_controller/rover_safety_controller.cpp:246-265",
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:187"
+        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:187",
+        "rover_hardware_interface/src/rover_driver/phidget_driver/phidget_motor_driver.cpp:863-919"
       ],
       "implementation": "Implemented",
       "verified_by": [
@@ -509,10 +511,10 @@
     {
       "id": "SWR-HWI-020",
       "category": "Safety",
-      "text": "The rover_hardware_interface shall arm each DCC1000 hardware failsafe with motor_failsafe_timeout_ms (500 ms), keep feeding it with zero commands while motion is inhibited, and latch a MOTOR_FAILSAFE_TRIPPED error on the first trip that inhibits motion until hardware_interface/sw_e_stop_latch_reset.",
-      "rationale": "Backstop for a stalled control loop: the motors brake when commands stop reaching the drivers, independently of the software E-Stop (supports SYS-SR-011 stop on loss of commands).",
+      "text": "The rover_hardware_interface shall arm each DCC1020 hardware failsafe with motor_failsafe_timeout_ms (500 ms, within the board's getMin/MaxFailsafeTime), keep feeding it with zero commands while motion is inhibited, and latch a MOTOR_FAILSAFE_TRIPPED error that inhibits motion until hardware_interface/sw_e_stop_latch_reset on the first failsafe trip and on the board's disengaging error events (E-Stop input EEPHIDGET_ESTOP, motor stall EEPHIDGET_MOTORSTALL, energy dump EEPHIDGET_ENERGYDUMP).",
+      "rationale": "Backstop for a stalled control loop: the motors brake (motor_failsafe_braking_enabled, default true) when commands stop reaching the drivers, independently of the software E-Stop (supports SYS-SR-011 stop on loss of commands). The E-Stop input, stall and energy-dump events disengage the board until the channel is re-opened, so they must latch the same way.",
       "verification": "Test",
-      "acceptance": "The failsafe is enabled with 500 ms on activate; a tripped return code is recognised and latches the error with no debounce; write() then sends zeros until the latch reset clears it and re-arms the failsafe.",
+      "acceptance": "The failsafe is enabled with 500 ms on activate; a tripped return code or EEPHIDGET_FAILSAFE event latches the error with no debounce; EEPHIDGET_ESTOP, EEPHIDGET_MOTORSTALL and EEPHIDGET_ENERGYDUMP latch it too and set fault_flag.emergency_stop, fault_flag.motor_stall and fault_flag.over_voltage; write() then sends zeros until the latch reset re-opens the channel and re-arms the failsafe.",
       "priority": "Must",
       "status": "As-Built",
       "parents": [
@@ -520,11 +522,11 @@
       ],
       "derived_rationale": "",
       "evidence": [
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:210-220",
-        "rover_hardware_interface/src/rover_system/rover_system.cpp:497-503",
-        "rover_hardware_interface/src/rover_system/rover_system.cpp:201-212",
-        "rover_hardware_interface/src/rover_system/rover_system.cpp:588-599",
-        "rover_hardware_interface/src/rover_driver/phidget_driver/phidget_motor_driver.cpp:402-414",
+        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:229-251",
+        "rover_hardware_interface/src/rover_system/rover_system.cpp:241-268",
+        "rover_hardware_interface/src/rover_driver/phidget_driver/phidget_motor_driver.cpp:542-570",
+        "rover_hardware_interface/src/rover_driver/phidget_driver/phidget_motor_driver.cpp:739-831",
+        "rover_hardware_interface/src/rover_driver/phidget_driver/phidget_motor_driver.cpp:863-919",
         "rover_hardware_interface/src/application/rover_control_loop_use_case.cpp:61-70"
       ],
       "implementation": "Implemented",
@@ -534,7 +536,7 @@
         "rover_hardware_interface/test/domain/test_rover_error_filter.cpp",
         "rover_hardware_interface/test/rover_system/test_rover_system_write.cpp"
       ],
-      "comments": ""
+      "comments": "The DCC1020 hardware E-Stop input is always enabled; it ships jumpered and is still jumpered on the rover, so it is not yet wired into the safety chain (open item). Transient faults (over_temperature, over_current, over_voltage, bad_power) are shown as fault_flag.* in diagnostics and clear on the board's Error Cleared event; the FaultFlag ROS msg only carries emergency_stop and motor_setup_fault."
     },
     {
       "id": "SWR-HWI-021",
@@ -542,7 +544,7 @@
       "text": "The rover_hardware_interface shall publish rover_msgs/RoverDriverState on hardware_interface/driver_state at driver_states_update_frequency (20 Hz) with QoS reliable, volatile, KeepLast(5), reporting per driver current, temperature, fault flags, data time-outs and comm_error, where comm_error is set when no Phidget telemetry callback arrived within driver_comm_timeout_ms (300 ms).",
       "rationale": "Drive-motor health for operators and rover_safety (SYS-SR-022).",
       "verification": "Test",
-      "acceptance": "ros2 topic hz reads 20 Hz +/- 10 %; unplugging one DCC1000 USB sets that driver comm_error true within 300 ms plus one publish period.",
+      "acceptance": "ros2 topic hz reads 20 Hz +/- 10 %; unplugging one DCC1020 VINT cable sets that driver comm_error true within 300 ms plus one publish period.",
       "priority": "Should",
       "status": "As-Built",
       "parents": [
@@ -712,18 +714,19 @@
     {
       "id": "SWR-HWI-028",
       "category": "Build",
-      "text": "The rover_hardware_interface shall keep domain and application code free of ROS, hardware_interface and vendor SDK includes and keep read()/write() free of blocking Modbus or Phidget SDK calls, enforced by the CTest checks domain_purity_check, application_purity_check and rt_path_purity_check.",
+      "text": "The rover_hardware_interface shall keep domain and application code free of ROS, hardware_interface and vendor SDK includes and keep read()/write() free of blocking Modbus or Phidget SDK calls (including PhidgetMotorVelocityController_setTargetVelocity, _setEngaged, _resetFailsafe and _enableFailsafe), enforced by the CTest checks domain_purity_check, application_purity_check and rt_path_purity_check.",
       "rationale": "Clean Architecture layering and a real-time-safe control path; the safety IO is served to read() from a cache under try_lock.",
       "verification": "Test, Inspection",
       "acceptance": "colcon test for the package runs the three checks and all pass.",
       "priority": "Should",
       "status": "As-Built",
       "parents": [],
-      "derived_rationale": "Technical/architecture requirement (project rules clean_architecture.md and ros2_control RT rules); a blocking call on the 100 Hz path would starve the DCC1000 failsafe feed.",
+      "derived_rationale": "Technical/architecture requirement (project rules clean_architecture.md and ros2_control RT rules); a blocking call on the control path would stall write() and starve the DCC1020 failsafe feed.",
       "evidence": [
         "rover_hardware_interface/CMakeLists.txt:172-198",
         "rover_hardware_interface/src/rover_safety_controller/rover_safety_controller.cpp:282-299",
-        "rover_arch/SAFETY_CHAIN.md:118-119"
+        "rover_arch/SAFETY_CHAIN.md:118-119",
+        "rover_hardware_interface/scripts/check_rt_path_purity.sh:91-110"
       ],
       "implementation": "Implemented",
       "verified_by": [
@@ -732,6 +735,31 @@
         "rover_hardware_interface/scripts/check_rt_path_purity.sh"
       ],
       "comments": ""
+    },
+    {
+      "id": "SWR-HWI-029",
+      "category": "Performance",
+      "text": "The rover_hardware_interface shall hand each wheel's velocity target from write() to a per-motor command worker thread through a lock-free latest-value mailbox, so that sendCmdVel() never blocks, and have the worker make the blocking PhidgetMotorVelocityController_setTargetVelocity call with only the newest target, counting superseded targets as dropped_pending in the command path diagnostic.",
+      "rationale": "The DCC1020 velocity controller has no asynchronous setTargetVelocity, so a direct call would put a USB round trip on the real-time path. Each send by the worker feeds the board failsafe, and a stalled control loop posts no new targets, so the watchdog still trips (SWR-HWI-020).",
+      "verification": "Test, Inspection",
+      "acceptance": "LatestValueMailbox unit tests pass: post() is lock-free (static_assert), take() delivers only the newest value with the count of superseded ones and times out when nothing was posted, stop() releases a waiting worker; rt_path_purity_check passes with PhidgetMotorVelocityController_setTargetVelocity forbidden; on the rover the command path diagnostic reports per wheel submitted, dropped_pending and completion latency.",
+      "priority": "Must",
+      "status": "As-Built",
+      "parents": [],
+      "derived_rationale": "Technical requirement (ros2_control RT rules, same as SWR-HWI-028): it keeps write() real-time safe after the DCC1020 swap removed the asynchronous setter; it supports SYS-SR-002 and SYS-SR-011 indirectly.",
+      "evidence": [
+        "rover_hardware_interface/include/rover_hardware_interface/rover_driver/latest_value_mailbox.hpp:33-126",
+        "rover_hardware_interface/src/rover_driver/phidget_driver/phidget_motor_driver.cpp:926-997",
+        "rover_hardware_interface/src/rover_system/rover_system.cpp:213",
+        "rover_hardware_interface/src/rover_system/rover_system.cpp:908-1000",
+        "rover_hardware_interface/scripts/check_rt_path_purity.sh:91-110"
+      ],
+      "implementation": "Implemented",
+      "verified_by": [
+        "rover_hardware_interface/test/rover_driver/test_latest_value_mailbox.cpp",
+        "rover_hardware_interface/scripts/check_rt_path_purity.sh"
+      ],
+      "comments": "The DCC1020 blocking setTargetVelocity latency is TBD: measure it with the command path diagnostic before raising the controller_manager rate (25 Hz was chosen for the DCC1000's ~17 ms median async latency, rover_controller wheel_01_controller.yaml:40-46)."
     }
   ]
 }

@@ -254,69 +254,85 @@ TEST(ArdennesSystemOnInit, FailsWithUnparsableMotorFailsafeEnabled)
     }
 }
 
-// motor_acceleration is optional too (default kDefaultMotorAcceleration), but must be within
-// the DCC1000's 0.5-10000 duty/s.
-TEST(ArdennesSystemOnInit, SucceedsWithMotorAccelerationOverride)
+// The DCC1000 duty-cycle keys changed meaning with the DCC1020 (acceleration is RPM/s now, the
+// supply voltage fed a regulator gain that no longer exists): a stale URDF must fail, not be read
+// in the wrong unit.
+TEST(ArdennesSystemOnInit, FailsWithRemovedDcc1000Parameters)
+{
+    for (const char * key : {"motor_acceleration", "motor_supply_voltage"}) {
+        ArdennesSystem system;
+        auto info = buildValidHardwareInfo();
+        info.hardware_parameters[key] = "2.0";
+
+        EXPECT_EQ(system.on_init(makeParams(info)), CallbackReturn::ERROR) << key;
+    }
+}
+
+TEST(ArdennesSystemOnInit, SucceedsWithAllVelocityControllerOverrides)
 {
     ArdennesSystem system;
     auto info = buildValidHardwareInfo();
-    info.hardware_parameters["motor_acceleration"] = "10.0";
+    info.hardware_parameters["motor_current_limit"] = "15.0";
+    info.hardware_parameters["motor_surge_current_limit"] = "20.0";
+    info.hardware_parameters["motor_acceleration_rpm_s"] = "5000";
+    info.hardware_parameters["velocity_kp"] = "0.5";
+    info.hardware_parameters["velocity_ki"] = "0.1";
+    info.hardware_parameters["velocity_kd"] = "0";
+    info.hardware_parameters["velocity_deadband_rpm"] = "1.5";
+    info.hardware_parameters["motor_stall_velocity_rpm"] = "0";
+    info.hardware_parameters["motor_failsafe_current_limit"] = "5.0";
+    info.hardware_parameters["motor_inductance"] = "1.2";
+    info.hardware_parameters["motor_data_interval_ms"] = "20";
+    info.hardware_parameters["motor_failsafe_braking_enabled"] = "false";
 
     EXPECT_EQ(system.on_init(makeParams(info)), CallbackReturn::SUCCESS);
 }
 
-TEST(ArdennesSystemOnInit, FailsWithNonPositiveMotorAcceleration)
+TEST(ArdennesSystemOnInit, FailsWithNegativeOrUnparsableVelocityControllerValues)
+{
+    for (const char * key :
+         {"motor_current_limit", "motor_surge_current_limit", "motor_acceleration_rpm_s", "velocity_kp",
+          "velocity_ki", "velocity_kd", "velocity_deadband_rpm", "motor_stall_velocity_rpm",
+          "motor_failsafe_current_limit", "motor_inductance"})
+    {
+        for (const char * value : {"-1", "not-a-number", "nan"}) {
+            ArdennesSystem system;
+            auto info = buildValidHardwareInfo();
+            info.hardware_parameters[key] = value;
+
+            EXPECT_EQ(system.on_init(makeParams(info)), CallbackReturn::ERROR) << key << " = " << value;
+        }
+    }
+}
+
+TEST(ArdennesSystemOnInit, FailsWithZeroCurrentLimitOrAcceleration)
+{
+    for (const char * key : {"motor_current_limit", "motor_acceleration_rpm_s", "motor_data_interval_ms"}) {
+        ArdennesSystem system;
+        auto info = buildValidHardwareInfo();
+        info.hardware_parameters[key] = "0";
+
+        EXPECT_EQ(system.on_init(makeParams(info)), CallbackReturn::ERROR) << key;
+    }
+}
+
+TEST(ArdennesSystemOnInit, FailsWithSurgeCurrentLimitBelowCurrentLimit)
 {
     ArdennesSystem system;
     auto info = buildValidHardwareInfo();
-    info.hardware_parameters["motor_acceleration"] = "0.0";
+    info.hardware_parameters["motor_current_limit"] = "15.0";
+    info.hardware_parameters["motor_surge_current_limit"] = "10.0";
 
     EXPECT_EQ(system.on_init(makeParams(info)), CallbackReturn::ERROR);
 }
 
-TEST(ArdennesSystemOnInit, FailsWithMotorAccelerationOutsideDeviceRange)
-{
-    for (const char * value : {"0.3", "20000"}) {
-        ArdennesSystem system;
-        auto info = buildValidHardwareInfo();
-        info.hardware_parameters["motor_acceleration"] = value;
-
-        EXPECT_EQ(system.on_init(makeParams(info)), CallbackReturn::ERROR) << value;
-    }
-}
-
-// motor_current_limit / motor_supply_voltage are optional too, but must be within the DCC1000's
-// ranges (2-25 A, 8-30 V).
-TEST(ArdennesSystemOnInit, SucceedsWithMotorCurrentOverrides)
+TEST(ArdennesSystemOnInit, FailsWithUnparsableFailsafeBraking)
 {
     ArdennesSystem system;
     auto info = buildValidHardwareInfo();
-    info.hardware_parameters["motor_current_limit"] = "12.0";
-    info.hardware_parameters["motor_supply_voltage"] = "24.0";
+    info.hardware_parameters["motor_failsafe_braking_enabled"] = "yes";
 
-    EXPECT_EQ(system.on_init(makeParams(info)), CallbackReturn::SUCCESS);
-}
-
-TEST(ArdennesSystemOnInit, FailsWithMotorCurrentLimitOutsideDeviceRange)
-{
-    for (const char * value : {"1.0", "30", "not-a-number"}) {
-        ArdennesSystem system;
-        auto info = buildValidHardwareInfo();
-        info.hardware_parameters["motor_current_limit"] = value;
-
-        EXPECT_EQ(system.on_init(makeParams(info)), CallbackReturn::ERROR) << value;
-    }
-}
-
-TEST(ArdennesSystemOnInit, FailsWithMotorSupplyVoltageOutsideDeviceRange)
-{
-    for (const char * value : {"5.0", "48", "not-a-number"}) {
-        ArdennesSystem system;
-        auto info = buildValidHardwareInfo();
-        info.hardware_parameters["motor_supply_voltage"] = value;
-
-        EXPECT_EQ(system.on_init(makeParams(info)), CallbackReturn::ERROR) << value;
-    }
+    EXPECT_EQ(system.on_init(makeParams(info)), CallbackReturn::ERROR);
 }
 
 }  // namespace isaacbot_amr_hardware_interface

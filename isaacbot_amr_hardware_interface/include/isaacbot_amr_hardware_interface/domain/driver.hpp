@@ -140,6 +140,9 @@ public:
 
     virtual MotorDriverState readState() = 0;
 
+    // Motor-shaft velocity target in RPM (sign = direction, before any per-motor reversal). The
+    // controller closes the speed loop itself. Called from the RT write() path, so it must not
+    // block.
     virtual void sendCmdVel(const float cmd) = 0;
 
     virtual bool isCommunicationError() = 0;
@@ -165,6 +168,11 @@ public:
     // latencies) - instrumentation for diagnostics only, never read by the control loop. Cheap and
     // lock-free; safe to call from any thread. Defaults to all-zero for drivers that don't count.
     virtual MotorCommandStats getCommandStats() const { return {}; }
+
+    // FaultFlag bits (see domain/driver_data_snapshot.hpp) this motor's controller currently
+    // reports - over-temperature, over-current, stall, E-Stop input, ... Non-blocking, RT-safe.
+    // Defaults to none for drivers that don't report faults.
+    virtual std::uint8_t getFaultFlags() const { return 0; }
 };
 
 }  // namespace isaacbot_amr_hardware_interface

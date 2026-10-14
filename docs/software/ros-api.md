@@ -27,7 +27,7 @@ named after it: `/isaacbot/isaacbot_amr_system_node` and `/isaacbot/isaacbot_amr
 
 | `<ros2_control>` component | Plugin | Hardware |
 |----------------------------|--------|----------|
-| `isaacbot_amr_system_node` (system) | `isaacbot_amr_hardware_interface/ArdennesSystem` | 4 x Phidget DCC1000 motor controllers; safety PLC over Modbus TCP |
+| `isaacbot_amr_system_node` (system) | `isaacbot_amr_hardware_interface/ArdennesSystem` | 4 x Phidget DCC1020 motor controllers (on-board speed loop); safety PLC over Modbus TCP |
 | `isaacbot_amr_imu` (sensor) | `isaacbot_amr_hardware_interface/PhidgetImuSensor` | Phidgets Spatial MOT0110, Madgwick orientation filter |
 
 Command interface per wheel joint: `velocity`. State interfaces: `position`, `velocity`, `effort`.
@@ -55,13 +55,13 @@ and never read by the control loop.
 
 | Key (prefixed with the wheel name) | Meaning |
 |---|---|
-| `commands submitted` | Asynchronous velocity calls actually issued to the Phidget driver. |
-| `dropped, previous command still pending` | `sendCmdVel()` returned early because the previous call had not completed. Silent before this task existed. |
+| `commands submitted` | Velocity targets the wheel's command worker actually sent to the DCC1020 (blocking `setTargetVelocity`). |
+| `dropped, previous command still pending` | Targets that `sendCmdVel()` posted to the mailbox but a newer target replaced before the worker sent them (`dropped_pending`). |
 | `dropped, driver object gone` | The owning driver no longer existed. Should stay 0. |
 | `dropped while pending (%)` | The two above as a share of everything `write()` tried to send. |
-| `completed ok` / `completed failsafe-rejected` / `completed with other error` | How the asynchronous calls finished. The third means the command may never have reached the motor. |
+| `completed ok` / `completed failsafe-rejected` / `completed with other error` | How the worker's calls finished. The third means the command may never have reached the motor. |
 | `last non-ok return code` | The last Phidget return code that was not OK, with its meaning, e.g. `0x34 (Phidget not physically attached)` (`none` if there has been none). |
-| `completion latency last / mean / max (ms)` | Submit-to-completion time of the asynchronous call. |
+| `completion latency last / mean / max (ms)` | Duration of the worker's blocking call. Measure this before raising the controller rate. |
 | `command in flight now`, `in flight for (ms)` | A call in flight and its age. An age that keeps growing means a completion never arrived. |
 
 System-wide: `write cycles: forwarded motion`, `inhibited, zeros sent`, `skipped, nothing sent`,
@@ -71,6 +71,8 @@ System-wide: `write cycles: forwarded motion`, `inhibited, zeros sent`, `skipped
 the last 3 s), e.g. the wheel boards are no longer attached after a USB flap. `WARN` for earlier
 errors that stopped (with how long ago), a missing driver object or a throwing write. Dropped-while-
 pending is ordinary back-pressure and is informational.
+
+**Fault flags.** The `system errors` task carries one `fault_flag.<name>` entry per wheel driver: `emergency_stop` (DCC1020 E-Stop input, latched), `over_temperature`, `over_current`, `over_voltage` (also energy dump, latched), `motor_stall` (latched) and `bad_power`. Transient flags clear on the board's "Error Cleared" event; latched ones only through `hardware_interface/sw_e_stop_latch_reset`. The `FaultFlag` message still has only `emergency_stop` and `motor_setup_fault`, so the other bits are visible in diagnostics only.
 
 **`system status` and `system errors`.** `system status` is `ERROR` while "Communication error"
 is true (a wheel driver stopped reporting); it used to stay `OK` whatever it said. `system errors`
@@ -105,13 +107,16 @@ last look, and the age of the last message and of the last valid message.
 | `safety_latch_reset_pulse_ms` | `100` | Width of the latch-reset pulse. |
 | `driver_states_update_frequency` | `20.0` | Driver state update rate [Hz]. |
 | `driver_comm_timeout_ms` | `300` | Max age of Phidget telemetry before a driver comm error. |
-| `motor_failsafe_timeout_ms` | `500` | Phidget board watchdog: brakes the motor if `write()` stalls. |
-| `motor_failsafe_enabled` | `true` | Optional. `false` never arms that watchdog (instrumented builds only): a stalled `write()` then leaves each wheel at its last duty command. Anything but `true`/`false`/`1`/`0` fails `on_init()`. |
-| `motor_acceleration` | `2.0` | DCC1000 on-board duty ramp [duty/s]. |
-| `motor_current_limit` | `15.0` | DCC1000 current limit [A]. |
-| `motor_supply_voltage` | `24.0` | Motor supply [V], used for the current regulator gain. |
-| `max_rpm_motor_speed` / `gear_ratio` | `2800` / `23.3` | Motor speed and gearbox ratio. |
-| `encoder_resolution` | `1024` | Encoder resolution. |
+| `motor_failsafe_timeout_ms` | `500` | DCC1020 board watchdog: disengages the motor if `write()` stalls. |
+| `motor_failsafe_enabled` | `true` | Optional. `false` never arms that watchdog (instrumented builds only): a stalled `write()` then leaves each wheel at its last velocity target. Anything but `true`/`false`/`1`/`0` fails `on_init()`. |
+| `motor_failsafe_braking_enabled` | `true` | Optional. Brake (`true`) or coast on a failsafe trip. |
+| `motor_current_limit` | `15.0` | DCC1020 current limit [A] (ASSUMPTION carried over from the DCC1000). |
+| `velocity_kp` / `velocity_ki` / `velocity_kd`, `velocity_deadband_rpm`, `motor_acceleration_rpm_s`, `motor_surge_current_limit`, `motor_stall_velocity_rpm`, `motor_failsafe_current_limit`, `motor_inductance`, `motor_data_interval_ms` | not set | Optional DCC1020 on-board loop settings, in motor RPM. Absent = board default, logged at configure. Values **TBD**. |
+| `max_rpm_motor_speed` / `gear_ratio` | `2800` / `23.3` | Clamp on the motor RPM target, and gearbox ratio. |
+| `encoder_resolution` | `1024` | Encoder resolution; also sets the board's rescale factor. |
+| `raw_current_to_amps_scale` | `0.01` | Current is reported in 10 mA units. |
+
+`motor_acceleration` and `motor_supply_voltage` (DCC1000 only) were removed; `on_init()` fails if the URDF still sets them.
 | `velocity_command_zero_tolerance` | `0.4` | Commanded wheel speed [rad/s] below which E-Stop reset is allowed. |
 | `velocity_state_zero_tolerance` | `0.05` | Measured wheel speed [rad/s] below which E-Stop reset is allowed. |
 
@@ -129,13 +134,12 @@ More: [isaacbot_amr_hardware_interface README](https://github.com/isaacbotsrl/is
 ## Controllers
 
 `controller_manager` runs at `update_rate` 25 Hz. Its `/diagnostics` output is remapped to
-`diagnostics`. The drive controller writes into four wheel PIDs, which write the hardware:
+`diagnostics`. The drive controller writes the wheel velocity interfaces of the hardware directly; the DCC1020s close the speed loop:
 
 ```mermaid
 flowchart LR
   A["cmd_vel"] --> B["isaacbot_amr_drive_controller"]
-  B --> C["pid_controller_* x4"]
-  C --> D["ArdennesSystem"]
+  B --> D["ArdennesSystem"]
   D --> E["isaacbot_amr_joint_state_broadcaster"]
   D --> F["isaacbot_amr_imu_broadcaster"]
 ```
@@ -143,7 +147,6 @@ flowchart LR
 | Controller | Type | Rate |
 |------------|------|------|
 | `isaacbot_amr_drive_controller` | `diff_drive_controller/DiffDriveController` | 25 Hz |
-| `pid_controller_<wheel>_wheel_base_to_<wheel>_wheel_joint` (`fl`, `fr`, `rl`, `rr`) | `isaacbot_amr_controller/SeededPidController` (chainable, based on `pid_controller/PidController`) | 25 Hz |
 | `isaacbot_amr_joint_state_broadcaster` | `joint_state_broadcaster/JointStateBroadcaster` | 25 Hz |
 | `isaacbot_amr_imu_broadcaster` | `imu_sensor_broadcaster/IMUSensorBroadcaster` | 25 Hz |
 
@@ -162,8 +165,8 @@ flowchart LR
 | `wheel_separation` / `wheel_radius` | `0.617` m / `0.1651` m |
 | `wheel_separation_multiplier` | `1.659` |
 | `cmd_vel_timeout` | `0.5` s |
-| `linear.x.max_velocity` / `max_acceleration` | `0.95` m/s / `2.7` m/s² |
-| `angular.z.max_velocity` / `max_acceleration` | `1.5` rad/s / `3.74` rad/s² |
+| `linear.x.max_velocity` / `max_acceleration` | `0.95` m/s / `1.4` m/s² (measured with the DCC1000, re-measure **TBD**) |
+| `angular.z.max_velocity` / `max_acceleration` | `1.5` rad/s / `1.3` rad/s² (re-measure **TBD**) |
 | `odom_frame_id` / `base_frame_id` | `odom` / `base_footprint` |
 
 !!! warning "Source conflict"
@@ -172,18 +175,11 @@ flowchart LR
     `wheel_separation` there and in `isaacbot_amr_description/config/wheel_01.yaml` is `0.617` m. This
     page uses the configured values (`1.659`, `0.617` m).
 
-### Wheel PIDs
+### Wheel PIDs (no longer spawned)
 
-| Direction | Name | Type | Description |
-|-----------|------|------|-------------|
-| pub | `pid_controller_<wheel>.../controller_state` | `control_msgs/MultiDOFStateStamped` | Reference, feedback, error and output of one wheel loop. |
-
-Gains are live parameters, the same on all four wheels: `gains.<joint>.p` `0.05`, `.i` `1.0`,
-`.d` `0.04`, `.feedforward_gain` `1.0`, `.u_clamp_max` `12.58` rad/s, `.i_clamp_max` `2.0`.
-The wheel loop options are live too: `stop_at_zero_reference` `true`, `zero_reference_tolerance`
-`0.001` rad/s (default), `integral_reference_delay` `0.15` s (≤ 1.0 s),
-`integral_reference_time_constant` `0.08` s, `scale_integral_with_reference` `true`. See
-[Drive and control](drive-and-control.md#wheel-pid-controller).
+The four `pid_controller_<wheel>_wheel_base_to_<wheel>_wheel_joint` controllers
+(`isaacbot_amr_controller/SeededPidController`) and their `controller_state` topics are gone since the
+DCC1020 swap. See [Drive and control](drive-and-control.md#wheel-speed-loop).
 
 ### Broadcasters and robot state publisher
 

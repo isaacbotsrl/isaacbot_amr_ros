@@ -3,13 +3,13 @@
   "prefix": "CTL",
   "document": "ROVER-A1-ROVER_CONTROLLER-SWRS-V-001",
   "title": "rover_controller Software Requirements Specification",
-  "scope": "rover_controller is the configuration and launch composition of the Rover A1 ros2_control controllers. It starts controller_manager (ros2_control_node) on hardware, loads the robot description, and spawns rover_joint_state_broadcaster, rover_drive_controller (diff_drive_controller, skid-steer kinematics, velocity/acceleration limits, command time-out, wheel odometry) chained into four per-wheel velocity PID controllers (rover_controller/SeededPidController, a pid_controller subclass provided by this package), and rover_imu_broadcaster. It also ships drive-train tuning tools (wheel_step_response, wheel_odom_calibration).",
+  "scope": "rover_controller is the configuration and launch composition of the Rover A1 ros2_control controllers. It starts controller_manager (ros2_control_node) on hardware, loads the robot description, and spawns rover_joint_state_broadcaster, rover_drive_controller (diff_drive_controller, skid-steer kinematics, velocity/acceleration limits, command time-out, wheel odometry) writing the wheel joints' velocity command interfaces directly (each Phidget DCC1020 closes its wheel speed loop on board), and rover_imu_broadcaster. The package still builds rover_controller/SeededPidController (a pid_controller subclass, the former host wheel PID), which the bundled configuration no longer spawns. It also ships drive-train tuning tools (wheel_step_response, wheel_odom_calibration).",
   "requirements": [
     {
       "id": "SWR-CTL-001",
       "category": "Performance",
-      "text": "The rover_controller shall configure controller_manager with update_rate 100 Hz and run the four wheel PID controllers at that rate.",
-      "rationale": "SYS-SR-002 requires a wheel velocity control loop of at least 50 Hz.",
+      "text": "The rover_controller shall configure controller_manager with update_rate 100 Hz and run rover_drive_controller at that rate.",
+      "rationale": "SYS-SR-002 requires a wheel velocity control loop of at least 50 Hz; the speed loop itself now runs on each DCC1020, so this rate is the rate at which new wheel targets reach the hardware.",
       "verification": "Test, Inspection",
       "acceptance": "controller_manager parameter update_rate reads 100; the measured controller_manager loop rate is >= 50 Hz over 60 s (ros2 control list_controllers / controller_manager statistics).",
       "priority": "Must",
@@ -19,23 +19,23 @@
       ],
       "derived_rationale": "",
       "evidence": [
-        "rover_controller/config/wheel_01_controller.yaml:11-13",
-        "rover_controller/config/wheel_01_controller.yaml:134-136",
-        "rover_controller/README.md:42-46"
+        "rover_controller/config/wheel_01_controller.yaml:12",
+        "rover_controller/config/wheel_01_controller.yaml:40-58",
+        "rover_controller/config/wheel_01_controller.yaml:72-74"
       ],
       "implementation": "Implemented",
       "verified_by": [
         "rover_controller/test/test_wheel_geometry.py"
       ],
-      "comments": "The DCC1000 encoders report at most every 100 ms (10 Hz) (README.md:57-60, yaml:63), so each PID gets a new measurement only every ~10 cycles. The loop rate meets SYS-SR-002; the feedback rate is 10 Hz."
+      "comments": "DCC1020 swap: the host wheel PIDs are no longer spawned; the on-board loop rate is board-internal (TBD). Wheel velocity feedback now comes from the board's OnVelocityChange events at its minimum data interval (or motor_data_interval_ms; TBD, hardware-verify), no longer from 10 Hz encoder counts. Model drift: wheel_01_controller.yaml:12 sets update_rate 25 (chosen for the DCC1000 command latency; re-measure the DCC1020 latency before raising it), so the 100 Hz in this requirement is stale."
     },
     {
       "id": "SWR-CTL-002",
       "category": "Functional",
-      "text": "The rover_controller shall chain rover_drive_controller (diff_drive_controller/DiffDriveController) into one rover_controller/SeededPidController per wheel joint (fl, fr, rl, rr), each commanding that joint's velocity interface and closing the loop on its velocity state, with rl/fl as left wheels and rr/fr as right wheels.",
-      "rationale": "SYS-SR-002/003: closed-loop wheel velocity control under skid-steer kinematics; diff_drive reads each PID's exported velocity state for odometry (open_loop false).",
+      "text": "The rover_controller shall configure rover_drive_controller (diff_drive_controller/DiffDriveController) with plain wheel joint names (rl/fl as left wheels, rr/fr as right wheels) so that it writes each wheel joint's velocity command interface directly and reads its velocity state, and shall not spawn a host wheel velocity controller (SeededPidController) between diff_drive and the hardware.",
+      "rationale": "SYS-SR-002/003: closed-loop wheel velocity control under skid-steer kinematics. Each DCC1020 closes the wheel speed loop on board (MotorVelocityController: trapezoidal profile + PID), so a host PID would only add delay; diff_drive reads the hardware velocity state for odometry (open_loop false).",
       "verification": "Test",
-      "acceptance": "Every <pid>/<joint> wheel name points at a declared SeededPidController with dof_names [joint], command_interface velocity and reference_and_state_interfaces [velocity]; 2 x wheels_per_side wheel names exist.",
+      "acceptance": "Every left/right wheel name is a plain <prefix>_wheel_joint (no \"<controller>/<joint>\" chaining); 2 x wheels_per_side wheel names exist; controller_manager declares no controller of type rover_controller/SeededPidController.",
       "priority": "Must",
       "status": "As-Built",
       "parents": [
@@ -44,17 +44,16 @@
       ],
       "derived_rationale": "",
       "evidence": [
-        "rover_controller/config/wheel_01_controller.yaml:22-46",
-        "rover_controller/config/wheel_01_controller.yaml:78-132",
-        "rover_controller/config/wheel_01_controller.yaml:161-168",
-        "rover_controller/config/wheel_01_controller.yaml:185-188"
+        "rover_controller/config/wheel_01_controller.yaml:1-8",
+        "rover_controller/config/wheel_01_controller.yaml:76-83",
+        "rover_controller/config/wheel_01_controller.yaml:100-103"
       ],
       "implementation": "Implemented",
       "verified_by": [
         "rover_controller/test/test_wheel_geometry.py",
         "rover_controller/test/test_controller_launch.py"
       ],
-      "comments": ""
+      "comments": "Until the DCC1020 swap diff_drive chained into four SeededPidControllers (one per wheel) closing the loop on 10 Hz encoder feedback. On-board loop gains are rover_description URDF parameters (velocity_kp/ki/kd, TBD)."
     },
     {
       "id": "SWR-CTL-003",
@@ -79,35 +78,27 @@
       "verified_by": [
         "rover_controller/test/test_seeded_pid_controller.cpp"
       ],
-      "comments": ""
+      "comments": "Built and exported but not spawned by the bundled configuration since the DCC1020 swap (SWR-CTL-002); kept for a chained configuration. Evidence line numbers predate the swap."
     },
     {
       "id": "SWR-CTL-004",
       "category": "Parameter",
-      "text": "The rover_controller shall configure every wheel PID with p 0.05, i 1.0, d 0.04, feedforward_gain 1.0, u_clamp +/-12.58 rad/s, back_calculation anti-windup, save_i_term false, and i_clamp +/-0.25 on fl/fr and +/-0.33 on rl/rr.",
-      "rationale": "Feed-forward carries the open-loop rad/s-scaled duty; the integral trims load/battery/slip error. save_i_term false clears the integral on each (re)activation (e.g. after an E-Stop) so no stale I-term carries into the next drive.",
-      "verification": "Test, Inspection",
-      "acceptance": "Configuration check passes for feedforward_gain 1.0 and save_i_term false on all four PIDs; wheels-lifted step response shows overshoot <= 10 % and |steady-state error| <= 3 % per README tuning targets.",
-      "priority": "Should",
+      "text": "The rover_controller shall configure rover_drive_controller with publish_limited_velocity false.",
+      "rationale": "~/cmd_vel_out was only read by the former wheel PIDs' turn feed-forward; nothing consumes it now, and each message would cross the Zenoh router.",
+      "verification": "Inspection",
+      "acceptance": "rover_drive_controller parameter publish_limited_velocity reads false; no ~/cmd_vel_out topic is advertised.",
+      "priority": "Could",
       "status": "As-Built",
       "parents": [
         "SYS-SR-002"
       ],
       "derived_rationale": "",
       "evidence": [
-        "rover_controller/config/wheel_01_controller.yaml:53-77",
-        "rover_controller/config/wheel_01_controller.yaml:89-90",
-        "rover_controller/config/wheel_01_controller.yaml:103-104",
-        "rover_controller/config/wheel_01_controller.yaml:117-118",
-        "rover_controller/config/wheel_01_controller.yaml:131-132",
-        "rover_controller/README.md:55-66"
+        "rover_controller/config/wheel_01_controller.yaml:107-110"
       ],
       "implementation": "Implemented",
-      "verified_by": [
-        "rover_controller/test/test_wheel_geometry.py",
-        "rover_controller/test/test_response_analysis.py"
-      ],
-      "comments": "Measured on wheels lifted only (yaml:76-77 \"Re-check on the ground\"). The i_clamp_max (0.33) is what bounds the hardware E-Stop command tolerance (0.4 rad/s) in rover_hardware_interface."
+      "verified_by": [],
+      "comments": "Replaces the former wheel PID gain requirement (p 0.05, i 1.0, d 0.04, feedforward 1.0, u_clamp 12.58 rad/s), retired with the DCC1020 swap; the wheel loop gains now live on the boards (rover_description URDF velocity_kp/ki/kd, TBD - tune on the robot)."
     },
     {
       "id": "SWR-CTL-005",
@@ -201,7 +192,7 @@
       "verified_by": [
         "rover_controller/test/test_wheel_geometry.py"
       ],
-      "comments": "Compliant: 0.95 m/s < 1.0 m/s and 1.5 rad/s < 1.7 rad/s. The per-wheel PID can add up to i_clamp_max (0.33 rad/s) of trim above the reference, so wheel speed can briefly exceed the kinematic value; body speed compliance still needs the SYS-SR-004 field measurement."
+      "comments": "Compliant: 0.95 m/s < 1.0 m/s and 1.5 rad/s < 1.7 rad/s. With no host wheel PID the wheel targets are the kinematic values; body speed compliance still needs the SYS-SR-004 field measurement."
     },
     {
       "id": "SWR-CTL-009",
@@ -225,7 +216,7 @@
       "verified_by": [
         "rover_controller/test/test_response_analysis.py"
       ],
-      "comments": "SYS-SR-013 limits are [TBD]; compliance cannot be judged until they are set. Jerk limits are NaN (disabled). test_response_analysis.py covers the tool that derives the limits, not the limits themselves."
+      "comments": "SYS-SR-013 limits are [TBD]; compliance cannot be judged until they are set. Jerk limits are NaN (disabled). test_response_analysis.py covers the tool that derives the limits, not the limits themselves. The limits were measured with the DCC1000 (duty ramp, host wheel PIDs); TBD - re-measure with the DCC1020 on-board loop and its motor_acceleration_rpm_s (wheel_01_controller.yaml:119-123). Model drift: the yaml now sets 1.4 m/s^2 and 1.3 rad/s^2."
     },
     {
       "id": "SWR-CTL-010",
@@ -250,10 +241,10 @@
     {
       "id": "SWR-CTL-011",
       "category": "Safety",
-      "text": "The rover_controller shall keep the outer-wheel reference at full linear plus full angular command, plus the wheel PID i_clamp_max, at or below the URDF wheel joint velocity limit (10.958 rad/s).",
-      "rationale": "diff_drive limits linear.x and angular.z independently; the wheel PIDs add up to i_clamp_max on top of the feed-forward reference. Staying below the joint limit keeps the drive inside the modelled motor capability.",
+      "text": "The rover_controller shall keep the outer-wheel reference at full linear plus full angular command at or below both the URDF wheel joint velocity limit (10.958 rad/s) and the DCC1020 target clamp (max_rpm_motor_speed / gear_ratio = 2800 rpm / 23.3 = 12.58 rad/s).",
+      "rationale": "diff_drive limits linear.x and angular.z independently and its wheel references are sent to the DCC1020s as-is; beyond the target clamp a wheel would silently run slower than diff_drive's kinematics assume, and staying below the joint limit keeps the drive inside the modelled motor capability.",
       "verification": "Test",
-      "acceptance": "(0.95 + 1.5 x 0.615 x 1.659 / 2) / 0.1651 + 0.33 <= 10.958 rad/s, checked by test_drive_limits_respect_joint_velocity_limit.",
+      "acceptance": "(max linear + max angular x wheel_separation x wheel_separation_multiplier / 2) / wheel_radius <= 10.958 rad/s and <= 12.58 rad/s, checked by test_drive_limits_respect_joint_velocity_limit.",
       "priority": "Must",
       "status": "As-Built",
       "parents": [
@@ -261,14 +252,15 @@
       ],
       "derived_rationale": "",
       "evidence": [
-        "rover_controller/config/wheel_01_controller.yaml:196-204",
-        "rover_description/urdf/common/wheel.urdf.xacro:47"
+        "rover_controller/config/wheel_01_controller.yaml:112-141",
+        "rover_description/urdf/common/wheel.urdf.xacro:47",
+        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:290-292"
       ],
       "implementation": "Implemented",
       "verified_by": [
         "rover_controller/test/test_wheel_geometry.py"
       ],
-      "comments": ""
+      "comments": "Before the DCC1020 swap the budget also included the wheel PID i_clamp_max on top of the reference."
     },
     {
       "id": "SWR-CTL-012",
@@ -298,7 +290,7 @@
       "id": "SWR-CTL-013",
       "category": "Interface",
       "text": "The rover_controller shall run rover_joint_state_broadcaster (joint_state_broadcaster) at update_rate 20 Hz, publishing sensor_msgs/JointState on joint_states for the four wheel joints.",
-      "rationale": "Wheel joint states feed robot_state_publisher /tf (SYS-SR-021); 20 Hz matches the encoder rate and limits Zenoh traffic.",
+      "rationale": "Wheel joint states feed robot_state_publisher /tf (SYS-SR-021); the rate limits Zenoh traffic.",
       "verification": "Test, Inspection",
       "acceptance": "ros2 topic hz joint_states reads 20 Hz +/- 10 % with 4 joint names.",
       "priority": "Should",
@@ -387,7 +379,7 @@
     {
       "id": "SWR-CTL-017",
       "category": "Lifecycle",
-      "text": "The rover_controller shall, in rover_controller.launch.py, activate rover_joint_state_broadcaster, then rover_drive_controller together with its chained wheel PIDs in one --activate-as-group switch, then rover_imu_broadcaster, each only after the previous spawner exited with code 0, shut the launch down naming the controller and exit code when a spawner fails, and emit ControllersActive only after all three succeeded.",
+      "text": "The rover_controller shall, in rover_controller.launch.py, activate rover_joint_state_broadcaster, then rover_drive_controller (together with any controllers its wheel names chain through, in one --activate-as-group switch; the bundled configuration chains none), then rover_imu_broadcaster, each only after the previous spawner exited with code 0, shut the launch down naming the controller and exit code when a spawner fails, and emit ControllersActive only after all three succeeded.",
       "rationale": "Deterministic bring-up: rover_bringup starts the rest of the stack on ControllersActive (SYS-SR-024 automatic start to Idle), and a half-started drive chain must not be left running.",
       "verification": "Test",
       "acceptance": "With fake spawners, success runs the three in order and emits ControllersActive once; a failure of spawner k runs spawners 1..k only, reports \"<name> spawner failed with exit code 7\" and emits no ControllersActive.",
@@ -398,16 +390,14 @@
       ],
       "derived_rationale": "",
       "evidence": [
-        "rover_controller/launch/rover_controller.launch.py:39-49",
-        "rover_controller/launch/rover_controller.launch.py:52-70",
-        "rover_controller/launch/rover_controller.launch.py:240-325",
-        "rover_controller/README.md:113-118"
+        "rover_controller/launch/rover_controller.launch.py:78-96",
+        "rover_controller/launch/rover_controller.launch.py:280-325"
       ],
       "implementation": "Implemented",
       "verified_by": [
         "rover_controller/test/test_controller_launch.py"
       ],
-      "comments": ""
+      "comments": "Since the DCC1020 swap the bundled configuration spawns rover_drive_controller alone (test_drive_spawner_activates_chained_controllers_as_group)."
     },
     {
       "id": "SWR-CTL-018",

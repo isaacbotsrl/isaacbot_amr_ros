@@ -15,7 +15,7 @@
 #ifndef ISAACBOT_AMR_HARDWARE_INTERFACE_ISAACBOT_AMR_DRIVER_PHIDGET_DRIVER_PHIDGET_UTILS_HPP_
 #define ISAACBOT_AMR_HARDWARE_INTERFACE_ISAACBOT_AMR_DRIVER_PHIDGET_DRIVER_PHIDGET_UTILS_HPP_
 
-#include <libphidget22/phidget22.h>
+#include <phidget22.h>
 
 #include <stdexcept>
 #include <string>
@@ -41,6 +41,15 @@ void closeAndDelete(PhidgetHandle * handle) noexcept;
 // "0x34 (Phidget not physically attached)"-style text for a PhidgetReturnCode, for logs and
 // diagnostics. Falls back to the bare hex code if the SDK has no description.
 std::string phidgetReturnCodeToString(const PhidgetReturnCode ret);
+
+// Rescale factor that makes a MotorVelocityController / MotorPositionController work in
+// motor-shaft RPM: the SDK's native unit is quadrature counts (4 per encoder line), and a
+// rescaled velocity is <rescaled position unit> per second, so one count must be worth
+// 60 / (4 * lines) "RPM-seconds". Returns 0 for a non-positive `encoder_lines`.
+double motorRpmRescaleFactor(const float encoder_lines);
+
+// Wheel-joint angular velocity (rad/s, what diff_drive_controller commands) to motor-shaft RPM.
+double wheelRadPerSecToMotorRpm(const double wheel_rad_per_s, const float gear_ratio);
 
 }  // namespace isaacbot_amr_hardware_interface
 

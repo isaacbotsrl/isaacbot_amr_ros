@@ -33,13 +33,13 @@
       "id": "SYS-SR-001",
       "allocation": "HW",
       "verdict": "Not SW",
-      "summary": "Mass is a hardware property. The URDF carries the CAD assembly mass, 58.67 kg (SolidWorks per-part mass properties with the mass overrides, 2026-10-08, batteries included; SWR-DESC-012): 1.33 kg under the limit. Battery 5 kg is an owner value, RUTX11 456 g a distributor spec, DCC1000 78.8 g an ASSUMPTION. The xlsx Mass Properties sheet still holds the 2026-09-25 snapshot (54.35 kg). Not weighed."
+      "summary": "Mass is a hardware property. The URDF carries the CAD assembly mass, 58.67 kg (SolidWorks per-part mass properties with the mass overrides, 2026-10-08, batteries included; SWR-DESC-012): 1.33 kg under the limit. Battery 5 kg is an owner value, RUTX11 456 g a distributor spec, the motor drivers still modelled as DCC1000 78.8 g (ASSUMPTION; the DCC1020 mass is TBD). The xlsx Mass Properties sheet still holds the 2026-09-25 snapshot (54.35 kg). Not weighed."
     },
     {
       "id": "SYS-SR-002",
       "allocation": "SW+HW",
       "verdict": "Partial",
-      "summary": "Velocity mode on 4 joints with PIDs at 100 Hz and diff_drive at 50 Hz (Compliant), but the DCC1000 encoder feedback refreshes at 10 Hz (100 ms) (rover_controller/README.md:57-58), so feedback is below 50 Hz. Model test tSkidSteerKinematics/testEncoderFeedbackRate fails (KnownDeviation)."
+      "summary": "Velocity mode on 4 joints; diff_drive writes the wheel velocity interfaces directly and each Phidget DCC1020 closes the wheel speed loop on board (the host wheel PIDs are no longer spawned). Wheel velocity feedback now comes from the board's OnVelocityChange events at its minimum data interval (or motor_data_interval_ms), no longer from 10 Hz encoder counts; the achieved feedback rate and the on-board loop rate are TBD (hardware-verify), so the verdict stays Partial. Model test tSkidSteerKinematics/testEncoderFeedbackRate still encodes the DCC1000 10 Hz (KnownDeviation) and needs the measured DCC1020 value."
     },
     {
       "id": "SYS-SR-003",
@@ -93,7 +93,7 @@
       "id": "SYS-SR-011",
       "allocation": "SW",
       "verdict": "Partial",
-      "summary": "twist_mux timeouts and diff_drive cmd_vel_timeout 0.5 s stop the rover, but the timeout is checked with '>' at 50 Hz, so deceleration starts up to 520 ms after the last command (model test, KnownDeviation). DCC1000 hardware failsafe 500 ms as back-up."
+      "summary": "twist_mux timeouts and diff_drive cmd_vel_timeout 0.5 s stop the rover, but the timeout is checked with '>' at 50 Hz, so deceleration starts up to 520 ms after the last command (model test, KnownDeviation). DCC1020 hardware failsafe 500 ms (fed by every velocity target the command worker sends) as back-up."
     },
     {
       "id": "SYS-SR-012",
@@ -256,6 +256,10 @@
     {
       "ref": "SWR-HWI-010",
       "question": "rover_arch/SAFETY_CHAIN.md section 5 says the zero-velocity reset invariant covers the latch, but resetEStopLatch() does not check it. Fix the code or the document?"
+    },
+    {
+      "ref": "SYS-SR-002",
+      "question": "Measure the DCC1020 velocity feedback interval (OnVelocityChange at the board's minimum data interval) and command latency on the rover, then update the encoder-feedback model test and decide whether the controller_manager rate can be raised."
     }
   ]
 }

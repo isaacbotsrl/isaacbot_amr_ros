@@ -36,8 +36,11 @@
   <!-- Isaacbot messages and services -->
   <depend>isaacbot_amr_msgs</depend>
     
-  <!-- Phidgets API -->
-  <depend>phidgets_api</depend>
+  <!-- Phidget22 SDK (motor controllers + IMU): libphidget22 / libphidget22-dev >= 1.26 from the
+       Phidgets apt repo, linked via pkg-config. Deliberately not phidgets_api /
+       ros-lyrical-libphidget22, which bundle 1.19 (no DCC1020 support). There is no rosdep key
+       for the Phidgets-repo packages, so isaacbot_amr_platform/Dockerfile installs them before
+       rosdep runs. -->
 
   <!-- The Modbus TCP client, extracted to isaacbot_amr_transport/isaacbot_amr_modbus_driver. It used to be
        an in-tree subdirectory linking a plain-CMake Modbus_Core that colcon could not see,
