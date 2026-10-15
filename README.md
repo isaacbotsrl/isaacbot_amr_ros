@@ -80,7 +80,7 @@ IsaacBot's Ardennes ROS2.
 ```bash
 mkdir -p ~/ros2_ws/ardennes
 cd ~/ros2_ws/ardennes
-git clone -b master https://github.com/isaacbotsrl/isaacbot_amr_ros.git src/isaacbot_amr_ros
+git clone -b main https://github.com/isaacbotsrl/isaacbot_amr_ros.git src/isaacbot_amr_ros
 ```
 
 ### Setup environment variables
