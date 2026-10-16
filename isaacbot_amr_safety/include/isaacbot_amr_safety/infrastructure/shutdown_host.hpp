@@ -86,7 +86,7 @@ public:
     ShutdownHost(
         const std::string ip,
         const std::string & port = "3003",
-        const std::string secret = "root",
+        const std::string secret = "",
         const float timeout = 5.0);
 
     ~ShutdownHost() = default;
