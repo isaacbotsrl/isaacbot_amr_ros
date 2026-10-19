@@ -1,7 +1,7 @@
 {
   "package": "rover_transport",
   "prefix": "TRN",
-  "document": "ROVER-A1-ROVER_TRANSPORT-SWRS-V-001",
+  "document": "ARDENNES-ROVER_TRANSPORT-SWRS-V-001",
   "title": "rover_transport Software Requirements Specification",
   "scope": "rover_transport is the rover's byte-transport layer, a hard fork of ros-drivers/transport_drivers v1.2.0 laid out under Clean Architecture. It covers three sub-packages. rover_io_context holds the shared ports, the inbound/outbound byte bridges and the ASIO thread pool, with no ROS dependency. rover_udp_driver provides the lifecycle UdpReceiverNode and UdpSenderNode (UDP <-> udp_read/udp_write), which rover_battery uses for the BMS bridge on UDP port 4444, rover_crsf_teleop uses for the ELRS/CRSF receiver that the RUTX11 router forwards on UDP port 10111 (accepting datagrams from the router, 192.168.1.1, only), and rover_led uses for the two LED panel channels on UDP ports 3334 and 3333. rover_modbus_driver is a synchronous Modbus TCP discrete-I/O client library with no node, used in-process by rover_hardware_interface's RoverSafetyController for the PLC E-stop/GPIO coils. rover_asio_cmake_module only provides find_package(ASIO). The former rover_serial_driver (lifecycle SerialBridgeNode, UART <-> serial_read/serial_write) was removed in 2026-10 when its only consumer, the ELRS receiver, moved onto the RUTX11 router (rover_transport/README.md:14-17); its requirements SWR-TRN-001 to SWR-TRN-003 were deleted with it and their IDs are not reused. Two libraries outside the package support it. rover_modbus is a vendored, TCP-only fork of Mazurel/Modbus that supplies the Modbus_Core frame codec and the Modbus_Tcp sockets. rover_utils is not a build dependency of rover_transport; its Python launch helpers are used by the consumer launch files (for example rover_led). The package is responsible for moving raw bytes between devices and ROS 2 without interpreting them, except for Modbus framing. Protocol decoding belongs to the consumers.",
   "requirements": [
@@ -130,8 +130,8 @@
         "rover_transport/rover_udp_driver/src/infrastructure/udp_sender_node.cpp:136-139",
         "rover_transport/rover_udp_driver/src/infrastructure/udp_sender_node.cpp:194-200",
         "rover_led/launch/rover_led.launch.py:86-110",
-        "rover_led/config/rover_a1_udp_led_channel_1.yaml:3-4",
-        "rover_led/config/rover_a1_udp_led_channel_2.yaml:3-4"
+        "rover_led/config/ardennes_udp_led_channel_1.yaml:3-4",
+        "rover_led/config/ardennes_udp_led_channel_2.yaml:3-4"
       ],
       "implementation": "Implemented",
       "verified_by": [
@@ -280,7 +280,7 @@
         "rover_transport/rover_modbus_driver/test/e2e/test_modbus_tcp_roundtrip.cpp",
         "rover_transport/rover_modbus_driver/test/e2e/test_modbus_tcp_reply_handling.cpp"
       ],
-      "comments": "Built on rover_modbus (vendored TCP-only fork of Mazurel/Modbus: Modbus_Core codec + Modbus_Tcp sockets). Rover endpoint 192.168.88.11:502 from rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:148-149. README: on the Portenta PLC IDE, batched reads must stay within one memory area and at most 8 coils (rover_modbus_driver/README.md:84-91)."
+      "comments": "Built on rover_modbus (vendored TCP-only fork of Mazurel/Modbus: Modbus_Core codec + Modbus_Tcp sockets). Rover endpoint 192.168.88.11:502 from rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:148-149. README: on the Portenta PLC IDE, batched reads must stay within one memory area and at most 8 coils (rover_modbus_driver/README.md:84-91)."
     },
     {
       "id": "SWR-TRN-016",
@@ -317,14 +317,14 @@
       "evidence": [
         "rover_transport/rover_modbus_driver/src/application/modbus_discrete_io_client.cpp:38-61",
         "rover_transport/rover_modbus_driver/src/application/modbus_discrete_io_client.cpp:87-109",
-        "rover_hardware_interface/src/rover_system/rover_a1_system.cpp:88-99"
+        "rover_hardware_interface/src/rover_system/ardennes_system.cpp:88-99"
       ],
       "implementation": "Implemented",
       "verified_by": [
         "rover_transport/rover_modbus_driver/test/unit/test_modbus_discrete_io_client.cpp",
         "rover_transport/rover_modbus_driver/test/integration/test_modbus_tcp_transport.cpp"
       ],
-      "comments": "The rover URDF sets retry count 0 and delay 1000 ms (rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:153-154), so on_configure blocks until the PLC is reachable. That affects the SYS-SR-024 start-up time."
+      "comments": "The rover URDF sets retry count 0 and delay 1000 ms (rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:153-154), so on_configure blocks until the PLC is reachable. That affects the SYS-SR-024 start-up time."
     },
     {
       "id": "SWR-TRN-018",
@@ -365,11 +365,11 @@
         "rover_transport/rover_modbus_driver/include/rover_modbus_driver/domain/client_settings.hpp:26",
         "rover_transport/rover_modbus_driver/include/rover_modbus_driver/domain/client_settings.hpp:42",
         "rover_transport/rover_modbus_driver/src/infrastructure/modbus_tcp_transport.cpp:22-27",
-        "rover_hardware_interface/src/rover_system/rover_a1_system.cpp:105-106"
+        "rover_hardware_interface/src/rover_system/ardennes_system.cpp:105-106"
       ],
       "implementation": "Partial",
       "verified_by": [],
-      "comments": "Partial on two counts. First, no test exercises the response timeout (the e2e tests set 5000 ms only to avoid flakiness). Second, the rover URDF sets 150 ms (rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:160), which is longer than the SYS-SR-023 100 ms budget. A single stalled transaction could therefore delay the E-stop state update past 100 ms; TBC by analysis. The hardware E-stop relay does not depend on this path."
+      "comments": "Partial on two counts. First, no test exercises the response timeout (the e2e tests set 5000 ms only to avoid flakiness). Second, the rover URDF sets 150 ms (rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:160), which is longer than the SYS-SR-023 100 ms budget. A single stalled transaction could therefore delay the E-stop state update past 100 ms; TBC by analysis. The hardware E-stop relay does not depend on this path."
     },
     {
       "id": "SWR-TRN-020",

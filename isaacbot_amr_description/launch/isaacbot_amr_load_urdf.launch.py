@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Copyright 2020 ros2_control Development Team
-# Copyright 2025 Mechatronics Academy
+# Copyright 2025 IsaacBot
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# Modified 2025 by Mechatronics Academy: adapted from ros2_control_demos for isaacbot_amr_description.
+# Modified 2025 by IsaacBot: adapted from ros2_control_demos for isaacbot_amr_description.
 
 import os
 

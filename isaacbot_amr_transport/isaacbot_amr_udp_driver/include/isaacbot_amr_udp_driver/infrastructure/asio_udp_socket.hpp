@@ -14,7 +14,7 @@
 //
 // Developed by LeoDrive, 2021
 //
-// Modified 2026 by Mechatronics Academy: UdpSocket -> AsioUdpSocket implementing
+// Modified 2026 by IsaacBot: UdpSocket -> AsioUdpSocket implementing
 // isaacbot::transport::ByteStreamPort (ros-drivers/transport_drivers v1.2.0). UdpDriver, a
 // two-member shared_ptr holder, was dropped in favour of the factories below.
 

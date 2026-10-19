@@ -328,7 +328,7 @@ of 10 % as "not proven" and repeat the run. Runs 10/11 differ by one clamp step 
 ## 4. Reproducing the rig (container was rebuilt — do these in order)
 
 ```bash
-cd /root/ros2_ws/rover_a1
+cd /root/ros2_ws/ardennes
 source /opt/ros/lyrical/setup.bash
 source install/setup.bash
 export ISAACBOT_AMR_SYSTEM_NAMESPACE=isaacbot
@@ -382,7 +382,7 @@ and `samples.csv` (columns `wheel,t,reference,feedback,output`).
 #!/bin/bash
 # usage: setpw.sh <p> <i> <d> <ff> <clamp_fl> <clamp_fr> <clamp_rl> <clamp_rr>
 source /opt/ros/lyrical/setup.bash
-source /root/ros2_ws/rover_a1/install/setup.bash
+source /root/ros2_ws/ardennes/install/setup.bash
 P=$1; I=$2; D=$3; FF=$4
 declare -A C=( [fl]=$5 [fr]=$6 [rl]=$7 [rr]=$8 )
 for w in fl fr rl rr; do
@@ -407,7 +407,7 @@ done
 
 ```python
 import csv, sys, os
-sys.path.insert(0, '/root/ros2_ws/rover_a1/src/isaacbot_amr_ros/isaacbot_amr_controller')
+sys.path.insert(0, '/root/ros2_ws/ardennes/src/isaacbot_amr_ros/isaacbot_amr_controller')
 from isaacbot_amr_controller.response_analysis import analyze_step, Sample
 
 run = sys.argv[1]

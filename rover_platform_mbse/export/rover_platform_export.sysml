@@ -583,8 +583,8 @@
       }
     }
     package SWRS_DESC {
-      requirement <'SWR-DESC-001'> 'Build: The rover_description shall generate the rover_a1 robot description from urdf/rover_a1....' {
-        doc /* The rover_description shall generate the rover_a1 robot description from urdf/rover_a1.urdf.xacro with the xacro arguments use_sim, namespace, wheel_config_file, battery_config_file, controller_config_file, imu_xyz/imu_rpy, lidar_xyz/lidar_rpy and gps_xyz/gps_rpy. */
+      requirement <'SWR-DESC-001'> 'Build: The rover_description shall generate the ardennes robot description from urdf/ardennes....' {
+        doc /* The rover_description shall generate the ardennes robot description from urdf/ardennes.urdf.xacro with the xacro arguments use_sim, namespace, wheel_config_file, battery_config_file, controller_config_file, imu_xyz/imu_rpy, lidar_xyz/lidar_rpy and gps_xyz/gps_rpy. */
       }
       requirement <'SWR-DESC-002'> 'Interface: The rover_description shall define the frame tree base_footprint -> base_link -> body_l...' {
         doc /* The rover_description shall define the frame tree base_footprint -> base_link -> body_link with imu_link, lidar_link, gps_link and the four _wheel_base_link / _wheel_link frames as children of body_link, using REP-103 axes (+x forward, +y left, +z up) and prefixing every frame with "/" when a namespace is set. */
@@ -838,7 +838,7 @@
         doc /* The rover_led shall publish each panel frame additionally on led/channel__preview (sensor_msgs/Image, best effort, depth 1) at preview_publish_rate, default 5.0 Hz, and shall create no preview topics when preview_publish_rate is 0. */
       }
       requirement <'SWR-LED-009'> 'Parameter: The rover_led shall load the panel layout and animation catalog from the file given by ...' {
-        doc /* The rover_led shall load the panel layout and animation catalog from the file given by animations_config_path (mandatory, non-empty) and, for rover_a1, shall configure two panels (channel 1 front, channel 2 rear) of 40 LEDs folded into 2 rows each and a catalog containing every rover_msgs/LedAnimation id from 0 (E_STOP) to 17 (FLOOD_LIGHT). */
+        doc /* The rover_led shall load the panel layout and animation catalog from the file given by animations_config_path (mandatory, non-empty) and, for ardennes, shall configure two panels (channel 1 front, channel 2 rear) of 40 LEDs folded into 2 rows each and a catalog containing every rover_msgs/LedAnimation id from 0 (E_STOP) to 17 (FLOOD_LIGHT). */
       }
       requirement <'SWR-LED-010'> 'Functional: The rover_led shall provide a catalog animation for each of the SYS-SR-010 states Emerg...' {
         doc /* The rover_led shall provide a catalog animation for each of the SYS-SR-010 states Emergency Stop (E_STOP, id 0, STATE layer), Idle (READY, id 1, STATE), Teleoperation (MANUAL_ACTION, id 4, STATE), Autonomous (AUTONOMOUS_READY id 11 and AUTONOMOUS_ACTION id 12, STATE), Fault (ERROR, id 2, ERROR layer) and Low Battery (LOW_BATTERY id 5 and CRITICAL_BATTERY id 6, INFO layer). */
@@ -847,10 +847,10 @@
         doc /* The rover_led shall encode each RGBA panel frame as an SK9822 packet: a 4-byte start frame of 0x00, one 4-byte word per LED of 0xE0 | 5-bit brightness (pixel alpha x global brightness level 0-31 / 255) followed by blue, green and red after gamma 2.2 correction scaled to 240/255/245, and a 4-byte end frame of 0xFF, each word rotated left by one byte for the UDP LED bridge. */
       }
       requirement <'SWR-LED-012'> 'Functional: The rover_led shall drop, without sending, any received panel frame that is older than ...' {
-        doc /* The rover_led shall drop, without sending, any received panel frame that is older than frame_timeout (default and rover_a1 value 0.1 s), older than the previously received frame, not rgba8-encoded, or whose height x width or data size does not match the channel's LED count, and shall report each dropped frame as a WARN diagnostic broadcast. */
+        doc /* The rover_led shall drop, without sending, any received panel frame that is older than frame_timeout (default and ardennes value 0.1 s), older than the previously received frame, not rgba8-encoded, or whose height x width or data size does not match the channel's LED count, and shall report each dropped frame as a WARN diagnostic broadcast. */
       }
       requirement <'SWR-LED-013'> 'Interface: The rover_led shall subscribe to led/channel_1_frame and led/channel_2_frame (sensor_ms...' {
-        doc /* The rover_led shall subscribe to led/channel_1_frame and led/channel_2_frame (sensor_msgs/Image, depth 5) and publish the encoded packets on udp_write/led_channel_1 and udp_write/led_channel_2 (udp_msgs/UdpPacket, depth 5), sized by channel_1_num_led and channel_2_num_led (40 each for rover_a1). */
+        doc /* The rover_led shall subscribe to led/channel_1_frame and led/channel_2_frame (sensor_msgs/Image, depth 5) and publish the encoded packets on udp_write/led_channel_1 and udp_write/led_channel_2 (udp_msgs/UdpPacket, depth 5), sized by channel_1_num_led and channel_2_num_led (40 each for ardennes). */
       }
       requirement <'SWR-LED-014'> 'Interface: The rover_led shall provide the service led/set_brightness (rover_msgs/SetLedBrightness...' {
         doc /* The rover_led shall provide the service led/set_brightness (rover_msgs/SetLedBrightness) accepting a global brightness in [0.0, 1.0], shall reject values outside that range with success=false and unchanged brightness, shall store an accepted value in the global_brightness parameter so it survives a reconfigure, and shall publish the brightness in effect on led/brightness (std_msgs/Float32, reliable, transient-local, depth 1) on activation and after each change. */
@@ -1529,7 +1529,7 @@
             address = "192.168.77.202:3334 (ch1), 192.168.77.201:3333 (ch2)";
             bus = "UDP";
             rate = "50 Hz";
-            source = "rover_led/config/rover_a1_udp_led_channel_1.yaml:3-4";
+            source = "rover_led/config/ardennes_udp_led_channel_1.yaml:3-4";
           }
         }
         connect bms_udp to rover_transport.bms_udp {
@@ -2039,7 +2039,7 @@
           out port robot_description: $::RoverPlatform::RoverPlatformInterfaces::ByteStream {
             out attribute length redefines length;
           }
-          satisfy $::RoverPlatform::SWRS_DESC::'Build: The rover_description shall generate the rover_a1 robot description from urdf/rover_a1....';
+          satisfy $::RoverPlatform::SWRS_DESC::'Build: The rover_description shall generate the ardennes robot description from urdf/ardennes....';
           satisfy $::RoverPlatform::SWRS_DESC::'Interface: The rover_description shall define the frame tree base_footprint -> base_link -> body_l...';
           satisfy $::RoverPlatform::SWRS_DESC::'Functional: The rover_description shall place base_link above base_footprint by tyre_radius minus t...';
           satisfy $::RoverPlatform::SWRS_DESC::'Parameter: The rover_description shall take wheel geometry only from config/wheel_01.yaml (tyre_ra...';
@@ -2235,7 +2235,7 @@
           @$::RoverPlatform::RoverPlatformProfile::Ros2Control {
             interfaces = "<joint>/position|velocity|effort state interfaces";
             rate = "100 Hz (encoders refresh at 10 Hz)";
-            source = "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:104-129";
+            source = "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:104-129";
           }
         }
         connect rover_description.robot_description to rover_controller.robot_description {
@@ -2252,7 +2252,7 @@
             address = "192.168.88.11:502";
             bus = "Modbus TCP FC1/FC2";
             rate = "10 Hz poll";
-            source = "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:178";
+            source = "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:178";
           }
         }
         connect rover_controller.wheel_velocity_command to rover_hardware_interface.wheel_velocity_command {
@@ -2275,7 +2275,7 @@
             address = "channels FL=0 FR=1 RL=4 RR=5";
             bus = "Phidget22 USB/VINT";
             rate = "100 Hz";
-            source = "rover_hardware_interface/src/rover_driver/rover_a1_driver.cpp:73-80";
+            source = "rover_hardware_interface/src/rover_driver/ardennes_driver.cpp:73-80";
           }
         }
         connect rover_description.tf_static to tf_static {
@@ -2342,7 +2342,7 @@
             address = "encoder 1024 CPR";
             bus = "Phidget22 USB/VINT";
             rate = "10 Hz";
-            source = "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:190,254";
+            source = "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:190,254";
           }
         }
         connect rover_hardware_interface.modbus_coils to modbus_coils {
@@ -2350,7 +2350,7 @@
             address = "192.168.88.11:502";
             bus = "Modbus TCP FC5";
             rate = "5 Hz watchdog kick + on demand";
-            source = "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:148-170";
+            source = "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:148-170";
           }
         }
         connect rover_hardware_interface.safety_status to safety_status {
@@ -2653,7 +2653,7 @@
           address = "encoder 1024 CPR";
           bus = "Phidget22 USB/VINT";
           rate = "10 Hz";
-          source = "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:190,254";
+          source = "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:190,254";
         }
       }
       connect PlatformServices.teleop_web_cmd_vel_stamped to Orchestrator.teleop_web_cmd_vel_stamped {
@@ -2730,7 +2730,7 @@
           address = "192.168.88.11:502";
           bus = "Modbus TCP FC5";
           rate = "5 Hz watchdog kick + on demand";
-          source = "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:148-170";
+          source = "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:148-170";
         }
       }
       connect DriveControl.safety_command_echo to Safety.safety_command_echo {
@@ -2817,7 +2817,7 @@
           address = "192.168.88.11:502";
           bus = "Modbus TCP FC1/FC2";
           rate = "10 Hz poll";
-          source = "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:178";
+          source = "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:178";
         }
       }
       connect CommandArbitration.cmd_vel to DriveControl.cmd_vel {
@@ -2869,7 +2869,7 @@
           address = "192.168.77.202:3334 (ch1), 192.168.77.201:3333 (ch2)";
           bus = "UDP";
           rate = "50 Hz";
-          source = "rover_led/config/rover_a1_udp_led_channel_1.yaml:3-4";
+          source = "rover_led/config/ardennes_udp_led_channel_1.yaml:3-4";
         }
       }
       connect CommandArbitration.e_stop_services to DriveControl.e_stop_services {
@@ -2903,7 +2903,7 @@
           address = "channels FL=0 FR=1 RL=4 RR=5";
           bus = "Phidget22 USB/VINT";
           rate = "100 Hz";
-          source = "rover_hardware_interface/src/rover_driver/rover_a1_driver.cpp:73-80";
+          source = "rover_hardware_interface/src/rover_driver/ardennes_driver.cpp:73-80";
         }
       }
       connect PlatformServices.rc_raw_udp to CommandArbitration.rc_raw_udp {
@@ -2953,31 +2953,31 @@
     part def RoverPlatformDeployment {
       part SensorsContainer {
         @$::RoverPlatform::RoverPlatformProfile::ExecutionNode {
-          description = "rover-a1-sensors container (GNSS, lidar)";
+          description = "ardennes-sensors container (GNSS, lidar)";
           source = "rover_gps_heading/src/infrastructure/rover_gps_heading_node.cpp:104-105";
         }
       }
       part SafetyPlcNode {
         @$::RoverPlatform::RoverPlatformProfile::ExecutionNode {
           description = "Safety PLC (Modbus TCP 192.168.88.11:502)";
-          source = "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:148-149";
+          source = "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:148-149";
         }
       }
       part PlatformContainer {
         @$::RoverPlatform::RoverPlatformProfile::ExecutionNode {
-          description = "rover-a1-platform container: ARM64 rover computer, Ubuntu 26.04, ROS 2 Lyrical, rmw_zenoh_cpp";
-          source = "rover_docker/rover_a1_platform/Dockerfile:1-5 (outside rover_ros)";
+          description = "ardennes-platform container: ARM64 rover computer, Ubuntu 26.04, ROS 2 Lyrical, rmw_zenoh_cpp";
+          source = "rover_docker/ardennes_platform/Dockerfile:1-5 (outside rover_ros)";
         }
       }
       part PhidgetVintHub {
         @$::RoverPlatform::RoverPlatformProfile::ExecutionNode {
           description = "Phidget VINT hub: 4x DCC1000 + MOT0110 IMU (USB)";
-          source = "rover_hardware_interface/src/rover_driver/rover_a1_driver.cpp:73-80";
+          source = "rover_hardware_interface/src/rover_driver/ardennes_driver.cpp:73-80";
         }
       }
       part OrchestratorContainer {
         @$::RoverPlatform::RoverPlatformProfile::ExecutionNode {
-          description = "rover-a1-orchestrator container (Nav 2, missions)";
+          description = "ardennes-orchestrator container (Nav 2, missions)";
           source = "rover_twist_mux/config/rover_twist_mux.yaml:5-9";
         }
       }
@@ -2990,7 +2990,7 @@
       part LedControllers {
         @$::RoverPlatform::RoverPlatformProfile::ExecutionNode {
           description = "SK9822 panel UDP controllers 192.168.77.201/202";
-          source = "rover_led/config/rover_a1_udp_led_channel_1.yaml:3-4";
+          source = "rover_led/config/ardennes_udp_led_channel_1.yaml:3-4";
         }
       }
       part Esp32BmsBridge {

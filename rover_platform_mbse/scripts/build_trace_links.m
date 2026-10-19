@@ -7,7 +7,7 @@ function build_trace_links()
 %   Requirements Editor survive a re-run. The test link sets (tests/t*~m.slmx) hold
 %   generated links only and are rebuilt, so edited test files never keep stale ranges.
 
-% Copyright 2026 Mechatronics Academy
+% Copyright 2026 IsaacBot
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
 % you may not use this file except in compliance with the License.

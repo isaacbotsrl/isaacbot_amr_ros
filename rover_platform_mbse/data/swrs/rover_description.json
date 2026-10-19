@@ -1,17 +1,17 @@
 {
   "package": "rover_description",
   "prefix": "DESC",
-  "document": "ROVER-A1-ROVER_DESCRIPTION-SWRS-V-001",
+  "document": "ARDENNES-ROVER_DESCRIPTION-SWRS-V-001",
   "title": "rover_description Software Requirements Specification",
   "scope": "rover_description holds the URDF/xacro model of Rover A1: the kinematic tree and frames (REP-103/105), wheel geometry and joint limits, inertial properties, meshes, sensor mount frames, the simulation sensors and battery, and the <ros2_control> blocks that select and parameterise the hardware plugins (RoverA1System, PhidgetImuSensor) or gz_ros2_control in simulation. All hardware-interface timing and drive-train parameters are URDF <param> tags here. Its launch file generates the URDF and runs robot_state_publisher, which publishes robot_description and the static/joint TF.",
   "requirements": [
     {
       "id": "SWR-DESC-001",
       "category": "Build",
-      "text": "The rover_description shall generate the rover_a1 robot description from urdf/rover_a1.urdf.xacro with the xacro arguments use_sim, namespace, wheel_config_file, battery_config_file, controller_config_file, imu_xyz/imu_rpy, lidar_xyz/lidar_rpy and gps_xyz/gps_rpy.",
+      "text": "The rover_description shall generate the ardennes robot description from urdf/ardennes.urdf.xacro with the xacro arguments use_sim, namespace, wheel_config_file, battery_config_file, controller_config_file, imu_xyz/imu_rpy, lidar_xyz/lidar_rpy and gps_xyz/gps_rpy.",
       "rationale": "A single parameterised model serves hardware and simulation (SYS-SR-020 ros2_control based software).",
       "verification": "Test",
-      "acceptance": "xacro urdf/rover_a1.urdf.xacro with default arguments and with use_sim:=true controller_config_file:=<file> both produce a URDF that parses; test_wheel_geometry processes the xacro without error.",
+      "acceptance": "xacro urdf/ardennes.urdf.xacro with default arguments and with use_sim:=true controller_config_file:=<file> both produce a URDF that parses; test_wheel_geometry processes the xacro without error.",
       "priority": "Must",
       "status": "As-Built",
       "parents": [
@@ -19,8 +19,8 @@
       ],
       "derived_rationale": "",
       "evidence": [
-        "rover_description/urdf/rover_a1.urdf.xacro:1-29",
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:4-16",
+        "rover_description/urdf/ardennes.urdf.xacro:1-29",
+        "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:4-16",
         "rover_description/README.md:21-23",
         "rover_description/CMakeLists.txt:6-15"
       ],
@@ -44,8 +44,8 @@
       ],
       "derived_rationale": "",
       "evidence": [
-        "rover_description/urdf/rover_a1/base.urdf.xacro:16-33",
-        "rover_description/urdf/rover_a1/base.urdf.xacro:62-85",
+        "rover_description/urdf/ardennes/base.urdf.xacro:16-33",
+        "rover_description/urdf/ardennes/base.urdf.xacro:62-85",
         "rover_description/urdf/common/wheel.urdf.xacro:4-6",
         "rover_description/urdf/common/wheel.urdf.xacro:33-45",
         "rover_description/launch/rover_load_urdf.launch.py:191-199",
@@ -71,8 +71,8 @@
       ],
       "derived_rationale": "",
       "evidence": [
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:37-38",
-        "rover_description/urdf/rover_a1/base.urdf.xacro:20-33"
+        "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:37-38",
+        "rover_description/urdf/ardennes/base.urdf.xacro:20-33"
       ],
       "implementation": "Implemented",
       "verified_by": [
@@ -96,8 +96,8 @@
       "derived_rationale": "",
       "evidence": [
         "rover_description/config/wheel_01.yaml:1-10",
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:32-36",
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:71-101",
+        "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:32-36",
+        "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:71-101",
         "rover_description/urdf/common/wheel.urdf.xacro:7-37"
       ],
       "implementation": "Implemented",
@@ -146,12 +146,12 @@
       ],
       "derived_rationale": "",
       "evidence": [
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:103-145",
+        "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:103-145",
         "rover_description/README.md:25-38"
       ],
       "implementation": "Implemented",
       "verified_by": [
-        "rover_hardware_interface/test/rover_system/test_rover_a1_system_on_init.cpp"
+        "rover_hardware_interface/test/rover_system/test_ardennes_system_on_init.cpp"
       ],
       "comments": ""
     },
@@ -170,7 +170,7 @@
       ],
       "derived_rationale": "",
       "evidence": [
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:147-187",
+        "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:147-187",
         "rover_arch/SAFETY_CHAIN.md:136-148"
       ],
       "implementation": "Implemented",
@@ -192,13 +192,13 @@
       ],
       "derived_rationale": "",
       "evidence": [
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:209-302"
+        "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:209-302"
       ],
       "implementation": "Implemented",
       "verified_by": [
-        "rover_hardware_interface/test/rover_system/test_rover_a1_system_on_init.cpp"
+        "rover_hardware_interface/test/rover_system/test_ardennes_system_on_init.cpp"
       ],
-      "comments": "DCC1020 swap: motor_current_limit 15.0 A is an ASSUMPTION carried over from the DCC1000 setup (Phidgets suggests ~1.1x rated, ~11.5 A; URDF comment). The optional on-board velocity-loop parameters (velocity_kp/ki/kd, velocity_deadband_rpm, motor_acceleration_rpm_s, motor_surge_current_limit, motor_stall_velocity_rpm, motor_failsafe_current_limit, motor_inductance, motor_data_interval_ms) are commented out as TBD (rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:262-286): the boards run their defaults until tuned on the robot."
+      "comments": "DCC1020 swap: motor_current_limit 15.0 A is an ASSUMPTION carried over from the DCC1000 setup (Phidgets suggests ~1.1x rated, ~11.5 A; URDF comment). The optional on-board velocity-loop parameters (velocity_kp/ki/kd, velocity_deadband_rpm, motor_acceleration_rpm_s, motor_surge_current_limit, motor_stall_velocity_rpm, motor_failsafe_current_limit, motor_inductance, motor_data_interval_ms) are commented out as TBD (rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:262-286): the boards run their defaults until tuned on the robot."
     },
     {
       "id": "SWR-DESC-009",
@@ -214,7 +214,7 @@
       ],
       "derived_rationale": "",
       "evidence": [
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:304-336"
+        "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:304-336"
       ],
       "implementation": "Implemented",
       "verified_by": [],
@@ -263,7 +263,7 @@
       ],
       "implementation": "Implemented",
       "verified_by": [],
-      "comments": "Not covered by a test. With use_sim true the macro replaces the IMU pose with (-0.09, 0.0, 0.2) / (0, 0, 0) and lifts an all-zero lidar pose to z 0.45 (rover_a1_macro.urdf.xacro:18-29). The IMU default roll of 3.14159 rad (upside-down mount) is a launch default, not a measured value (TBC)."
+      "comments": "Not covered by a test. With use_sim true the macro replaces the IMU pose with (-0.09, 0.0, 0.2) / (0, 0, 0) and lifts an all-zero lidar pose to z 0.45 (ardennes_macro.urdf.xacro:18-29). The IMU default roll of 3.14159 rad (upside-down mount) is a launch default, not a measured value (TBC)."
     },
     {
       "id": "SWR-DESC-012",
@@ -279,7 +279,7 @@
       ],
       "derived_rationale": "",
       "evidence": [
-        "rover_description/urdf/rover_a1/base.urdf.xacro:54-59",
+        "rover_description/urdf/ardennes/base.urdf.xacro:54-59",
         "rover_description/config/wheel_01.yaml:3",
         "rover_description/urdf/common/wheel.urdf.xacro:70-80"
       ],
@@ -323,7 +323,7 @@
         "rover_description/urdf/common/imu.urdf.xacro:52-93",
         "rover_description/urdf/common/lidar.urdf.xacro:12-53",
         "rover_description/urdf/common/gps.urdf.xacro:12-58",
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:18-29"
+        "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:18-29"
       ],
       "implementation": "Implemented",
       "verified_by": [],
@@ -365,8 +365,8 @@
       "evidence": [
         "rover_description/config/battery.yaml:1-17",
         "rover_description/urdf/common/battery.urdf.xacro:4-28",
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:45-48",
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:297-302"
+        "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:45-48",
+        "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:297-302"
       ],
       "implementation": "Implemented",
       "verified_by": [],

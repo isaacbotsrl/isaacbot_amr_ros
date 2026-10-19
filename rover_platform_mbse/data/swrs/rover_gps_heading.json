@@ -1,7 +1,7 @@
 {
   "package": "rover_gps_heading",
   "prefix": "GPSH",
-  "document": "ROVER-A1-ROVER_GPS_HEADING-SWRS-V-001",
+  "document": "ARDENNES-ROVER_GPS_HEADING-SWRS-V-001",
   "title": "rover_gps_heading Software Requirements Specification",
   "scope": "rover_gps_heading provides rover_gps_heading_node, a C++ Clean Architecture node that derives the rover's absolute East-North-Up (ENU) heading from GNSS course while the rover drives straight. It estimates a fixed yaw offset between the local odom frame and ENU from gps/fix and odom, latches it once enough straight segments agree, and then republishes every odom yaw as an ENU heading on gps/heading_imu for rover_navsat_transform_node. It is localization logic, not a GPS driver: the receiver driver and fix-health diagnostics are in the sensor payload (rover_sensors, outside this boundary). It is started by rover_localization in GPS mode.",
   "requirements": [

@@ -6,7 +6,7 @@ function build_all(opts)
 %   data/swrs/*.json, discarding edits made in the Requirements Editor.
 %   Afterwards, from WSL: uv run --no-project --with openpyxl python scripts/format_exports.py
 
-% Copyright 2026 Mechatronics Academy
+% Copyright 2026 IsaacBot
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
 % you may not use this file except in compliance with the License.

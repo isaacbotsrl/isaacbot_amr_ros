@@ -1,7 +1,7 @@
 {
   "package": "rover_hardware_interface",
   "prefix": "HWI",
-  "document": "ROVER-A1-ROVER_HARDWARE_INTERFACE-SWRS-V-001",
+  "document": "ARDENNES-ROVER_HARDWARE_INTERFACE-SWRS-V-001",
   "title": "rover_hardware_interface Software Requirements Specification",
   "scope": "rover_hardware_interface provides the two ros2_control hardware plugins of Rover A1: RoverA1System (hardware_interface::SystemInterface) drives the four wheel joints through four Phidget DCC1020 DC motor controllers (on-board velocity loop, libphidget22 >= 1.26 C API) and talks Modbus TCP to the safety PLC (E-Stop latch, CPU watchdog heartbeat, contactor feedback, general-purpose aux IO); PhidgetImuSensor (hardware_interface::SensorInterface) reads the Phidgets Spatial MOT0110 IMU through a Madgwick filter. RoverA1System also runs the rover_hardware_controller helper node inside the controller_manager process, which publishes the safety, aux IO and driver state topics, serves the software E-Stop / latch reset / aux output services and reports /diagnostics. It is responsible for gating motor commands on the E-Stop state and on latched hardware faults; the contactor opening in hardware remains the primary stop.",
   "requirements": [
@@ -21,14 +21,14 @@
       "derived_rationale": "",
       "evidence": [
         "rover_hardware_interface/rover_hardware_interfaces.xml:3-7",
-        "rover_hardware_interface/include/rover_hardware_interface/rover_system/rover_a1_system.hpp:92",
+        "rover_hardware_interface/include/rover_hardware_interface/rover_system/ardennes_system.hpp:92",
         "rover_hardware_interface/src/rover_system/rover_system.cpp:57-89",
         "rover_hardware_interface/src/rover_system/rover_system.cpp:287-313",
         "rover_hardware_interface/src/rover_system/rover_system.cpp:396-478"
       ],
       "implementation": "Implemented",
       "verified_by": [
-        "rover_hardware_interface/test/rover_system/test_rover_a1_system_on_init.cpp"
+        "rover_hardware_interface/test/rover_system/test_ardennes_system_on_init.cpp"
       ],
       "comments": ""
     },
@@ -48,11 +48,11 @@
       "derived_rationale": "",
       "evidence": [
         "rover_hardware_interface/src/rover_driver/phidget_driver/phidget_utils.cpp:84-96",
-        "rover_hardware_interface/src/rover_driver/rover_a1_driver.cpp:46",
+        "rover_hardware_interface/src/rover_driver/ardennes_driver.cpp:46",
         "rover_hardware_interface/src/rover_driver/phidget_driver/phidget_motor_driver.cpp:383-394",
         "rover_hardware_interface/src/rover_driver/phidget_driver/phidget_motor_driver.cpp:926-937",
         "rover_hardware_interface/src/domain/driver_data_snapshot.cpp:99-110",
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:289-302"
+        "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:289-302"
       ],
       "implementation": "Implemented",
       "verified_by": [
@@ -78,11 +78,11 @@
         "rover_hardware_interface/src/rover_system/rover_system.cpp:587-650",
         "rover_hardware_interface/src/rover_driver/phidget_driver/phidget_motor_driver.cpp:204-227",
         "rover_hardware_interface/src/rover_driver/phidget_driver/phidget_motor_driver.cpp:383-521",
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:253-293"
+        "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:253-293"
       ],
       "implementation": "Implemented",
       "verified_by": [
-        "rover_hardware_interface/test/rover_system/test_rover_a1_system_on_init.cpp"
+        "rover_hardware_interface/test/rover_system/test_ardennes_system_on_init.cpp"
       ],
       "comments": "motor_current_limit 15.0 A is an ASSUMPTION carried over from the DCC1000 setup; Phidgets suggests ~1.1x rated current (~11.5 A) (URDF comment). The velocity-loop gains, acceleration and stall threshold are TBD (board defaults until tuned on the robot). The board-range check (setInRange) needs the device and is not unit-tested. Traced to SYS-SR-014: motor_acceleration_rpm_s (trapezoidal profile) bounds how fast the drives decelerate on a software zero command; the stopping-distance limit is still TBD."
     },
@@ -188,8 +188,8 @@
         "rover_hardware_interface/src/rover_safety_controller/rover_safety_controller.cpp:475-514",
         "rover_hardware_interface/src/rover_system/rover_system.cpp:343",
         "rover_hardware_interface/src/rover_system/rover_system.cpp:363-391",
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:160",
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:178"
+        "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:160",
+        "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:178"
       ],
       "implementation": "Partial",
       "verified_by": [],
@@ -213,8 +213,8 @@
         "rover_hardware_interface/src/rover_system/rover_system.cpp:662-672",
         "rover_hardware_interface/src/rover_system/rover_system.cpp:881-955",
         "rover_hardware_interface/src/domain/emergency_stop.cpp:82-97",
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:275",
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:284"
+        "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:275",
+        "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:284"
       ],
       "implementation": "Implemented",
       "verified_by": [
@@ -242,7 +242,7 @@
         "rover_hardware_interface/src/rover_system/rover_system.cpp:674-706",
         "rover_hardware_interface/src/domain/emergency_stop.cpp:99-109",
         "rover_hardware_interface/src/rover_safety_controller/rover_safety_controller.cpp:246-265",
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:187",
+        "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:187",
         "rover_hardware_interface/src/rover_driver/phidget_driver/phidget_motor_driver.cpp:863-919"
       ],
       "implementation": "Implemented",
@@ -321,8 +321,8 @@
         "rover_hardware_interface/src/rover_safety_controller/rover_safety_controller.cpp:147-176",
         "rover_hardware_interface/src/rover_safety_controller/rover_safety_controller.cpp:204-223",
         "rover_hardware_interface/src/rover_safety_controller/rover_safety_controller.cpp:399-470",
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:162-170",
-        "rover_hardware_interface/src/rover_system/rover_a1_system.cpp:109-120"
+        "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:162-170",
+        "rover_hardware_interface/src/rover_system/ardennes_system.cpp:109-120"
       ],
       "implementation": "Implemented",
       "verified_by": [
@@ -344,9 +344,9 @@
       ],
       "derived_rationale": "",
       "evidence": [
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:147-160",
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:178",
-        "rover_hardware_interface/src/rover_system/rover_a1_system.cpp:86-125",
+        "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:147-160",
+        "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:178",
+        "rover_hardware_interface/src/rover_system/ardennes_system.cpp:86-125",
         "rover_hardware_interface/src/rover_safety_controller/rover_safety_controller.cpp:104-145",
         "rover_hardware_interface/src/rover_safety_controller/rover_safety_controller.cpp:342-397",
         "rover_hardware_interface/src/rover_safety_controller/rover_safety_controller.cpp:472-514"
@@ -355,7 +355,7 @@
       "verified_by": [
         "rover_hardware_interface/test/rover_safety_controller/test_contact_coil_handler.cpp",
         "rover_hardware_interface/test/rover_safety_controller/test_safety_controller_adapters.cpp",
-        "rover_hardware_interface/test/rover_system/test_rover_a1_system_on_init.cpp"
+        "rover_hardware_interface/test/rover_system/test_ardennes_system_on_init.cpp"
       ],
       "comments": ""
     },
@@ -377,7 +377,7 @@
         "rover_hardware_interface/src/system_ros_interface/system_ros_interface.cpp:299-304",
         "rover_hardware_interface/src/system_ros_interface/system_ros_interface.cpp:314-341",
         "rover_hardware_interface/src/rover_system/rover_system.cpp:329-341",
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:190"
+        "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:190"
       ],
       "implementation": "Implemented",
       "verified_by": [
@@ -425,8 +425,8 @@
       ],
       "derived_rationale": "",
       "evidence": [
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:178",
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:190",
+        "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:178",
+        "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:190",
         "rover_hardware_interface/src/rover_system/rover_system.cpp:329-341",
         "rover_hardware_interface/src/rover_safety_controller/rover_safety_controller.cpp:475-514"
       ],
@@ -522,7 +522,7 @@
       ],
       "derived_rationale": "",
       "evidence": [
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:229-251",
+        "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:229-251",
         "rover_hardware_interface/src/rover_system/rover_system.cpp:241-268",
         "rover_hardware_interface/src/rover_driver/phidget_driver/phidget_motor_driver.cpp:542-570",
         "rover_hardware_interface/src/rover_driver/phidget_driver/phidget_motor_driver.cpp:739-831",
@@ -557,7 +557,7 @@
         "rover_hardware_interface/src/rover_system/rover_system.cpp:329-334",
         "rover_hardware_interface/src/rover_system/rover_system.cpp:492-493",
         "rover_hardware_interface/src/rover_driver/phidget_driver/phidget_motor_driver.cpp:472-485",
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:189-208"
+        "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:189-208"
       ],
       "implementation": "Implemented",
       "verified_by": [
@@ -582,7 +582,7 @@
       "evidence": [
         "rover_hardware_interface/src/rover_system/rover_system.cpp:155-162",
         "rover_hardware_interface/src/rover_system/rover_system.cpp:766-822",
-        "rover_hardware_interface/src/rover_system/rover_a1_system.cpp:209-289",
+        "rover_hardware_interface/src/rover_system/ardennes_system.cpp:209-289",
         "rover_hardware_interface/src/system_ros_interface/system_ros_interface.cpp:129-131",
         "rover_hardware_interface/src/system_ros_interface/system_ros_interface.cpp:188",
         "rover_hardware_interface/src/domain/safety_link_diagnosis.cpp:20-53"

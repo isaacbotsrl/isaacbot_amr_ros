@@ -1,4 +1,4 @@
-// Copyright 2025 Mechatronics Academy
+// Copyright 2025 IsaacBot
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -86,7 +86,7 @@ public:
     ShutdownHost(
         const std::string ip,
         const std::string & port = "3003",
-        const std::string secret = "root",
+        const std::string secret = "",
         const float timeout = 5.0);
 
     ~ShutdownHost() = default;

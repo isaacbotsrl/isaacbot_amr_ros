@@ -8,7 +8,7 @@
 #include <stdexcept>
 #include <string>
 
-// Modified 2026 by Mechatronics Academy: dropped <libnet.h> (unused, never linked); it
+// Modified 2026 by IsaacBot: dropped <libnet.h> (unused, never linked); it
 // was transitively supplying ::close(), so <unistd.h> is now explicit.
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -31,7 +31,7 @@ class Server {
     Server(Server &&moved) {
         _serverfd = moved._serverfd;
         _port     = moved._port;
-        // Modified 2026 by Mechatronics Academy: carry _server across moves. It was
+        // Modified 2026 by IsaacBot: carry _server across moves. It was
         // dropped by both move operations, leaving awaitConnection() to hand an
         // uninitialised sockaddr_in to ::accept() on any moved-to Server.
         _server         = moved._server;

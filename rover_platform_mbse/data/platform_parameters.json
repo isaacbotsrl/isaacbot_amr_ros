@@ -125,14 +125,14 @@
       "name": "wheel_mount_point_z",
       "value": 0.037363,
       "unit": "m",
-      "source": "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:43"
+      "source": "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:43"
     },
     {
       "component": "rover_description",
       "name": "body_mass",
       "value": 39.5026,
       "unit": "kg",
-      "source": "rover_description/urdf/rover_a1/base.urdf.xacro:78"
+      "source": "rover_description/urdf/ardennes/base.urdf.xacro:78"
     },
     {
       "component": "rover_description",
@@ -146,77 +146,77 @@
       "name": "modbus_response_timeout",
       "value": 0.15,
       "unit": "s",
-      "source": "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:160"
+      "source": "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:160"
     },
     {
       "component": "rover_hardware_interface",
       "name": "safety_wdg_kick_period",
       "value": 0.2,
       "unit": "s",
-      "source": "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:170"
+      "source": "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:170"
     },
     {
       "component": "rover_hardware_interface",
       "name": "safety_io_poll_period",
       "value": 0.1,
       "unit": "s",
-      "source": "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:178"
+      "source": "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:178"
     },
     {
       "component": "rover_hardware_interface",
       "name": "safety_latch_reset_pulse",
       "value": 0.1,
       "unit": "s",
-      "source": "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:187"
+      "source": "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:187"
     },
     {
       "component": "rover_hardware_interface",
       "name": "driver_states_update_frequency",
       "value": 20,
       "unit": "Hz",
-      "source": "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:190"
+      "source": "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:190"
     },
     {
       "component": "rover_hardware_interface",
       "name": "driver_comm_timeout",
       "value": 0.3,
       "unit": "s",
-      "source": "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:208"
+      "source": "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:208"
     },
     {
       "component": "rover_hardware_interface",
       "name": "motor_failsafe_timeout",
       "value": 0.5,
       "unit": "s",
-      "source": "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:220"
+      "source": "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:220"
     },
     {
       "component": "rover_hardware_interface",
       "name": "motor_current_limit",
       "value": 15.0,
       "unit": "A",
-      "source": "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:233"
+      "source": "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:233"
     },
     {
       "component": "rover_hardware_interface",
       "name": "gear_ratio",
       "value": 23.3,
       "unit": "1",
-      "source": "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:245"
+      "source": "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:245"
     },
     {
       "component": "rover_hardware_interface",
       "name": "velocity_command_zero_tolerance",
       "value": 0.4,
       "unit": "rad/s",
-      "source": "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:275"
+      "source": "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:275"
     },
     {
       "component": "rover_hardware_interface",
       "name": "velocity_state_zero_tolerance",
       "value": 0.05,
       "unit": "rad/s",
-      "source": "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:284"
+      "source": "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:284"
     },
     {
       "component": "rover_hardware_interface",

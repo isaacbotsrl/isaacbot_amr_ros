@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.13)
 project(isaacbot_amr_modbus)
 
-# Modified 2026 by Mechatronics Academy: converted from a plain-CMake vendored project
+# Modified 2026 by IsaacBot: converted from a plain-CMake vendored project
 # into an ament_cmake package. Previously this had to be built and `sudo make install`ed
 # to /usr/local by hand before colcon could build anything that depended on it (see
 # isaacbot_amr_ros/README.md and the platform Dockerfile). As an ament package it is ordered by
@@ -29,7 +29,7 @@ add_subdirectory(src)
 ament_export_include_directories(include)
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 
-# Modified 2026 by Mechatronics Academy: added. Fork commit c5d53cb deleted the upstream
+# Modified 2026 by IsaacBot: added. Fork commit c5d53cb deleted the upstream
 # test suite, so the fixes listed under "Local changes to this fork" in README.md had no
 # test in the package that owns them. Built with the -Werror flags above.
 if(BUILD_TESTING)

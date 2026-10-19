@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Modified 2026 by Mechatronics Academy: relayouted from udp_driver/udp_receiver_node.hpp
+// Modified 2026 by IsaacBot: relayouted from udp_driver/udp_receiver_node.hpp
 // (ros-drivers/transport_drivers v1.2.0).
 
 #ifndef ISAACBOT_AMR_UDP_DRIVER_INFRASTRUCTURE_UDP_RECEIVER_NODE_HPP_

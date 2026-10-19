@@ -11,7 +11,7 @@
 #include <type_traits>
 
 #include <cerrno>
-// Modified 2026 by Mechatronics Academy: dropped <libnet.h>. No libnet_* symbol is used
+// Modified 2026 by IsaacBot: dropped <libnet.h>. No libnet_* symbol is used
 // anywhere in this library and the target never linked -lnet; the include existed only
 // here and in server.hpp, and it cost both Dockerfiles and the README an unnecessary
 // libnet1-dev install. It was, however, what transitively supplied ::close() and
@@ -57,7 +57,7 @@ class Connection {
 
         _sockfd    = other._sockfd;
         _messageID = other._messageID;
-        // Modified 2026 by Mechatronics Academy: carry the timeouts across moves. They
+        // Modified 2026 by IsaacBot: carry the timeouts across moves. They
         // were dropped here and in the move constructor, so a connection configured and
         // then moved - which Connection::with() does, since it returns by value - would
         // silently revert to the defaults.
@@ -88,7 +88,7 @@ class Connection {
 
     void setMessageId(uint16_t messageId) { _messageID = messageId; }
 
-    // Modified 2026 by Mechatronics Academy: added. _timeout was private with no setter,
+    // Modified 2026 by IsaacBot: added. _timeout was private with no setter,
     // so the response timeout was effectively frozen at 500 ms for every consumer.
     [[nodiscard]] int getTimeout() const { return _timeout; }
 

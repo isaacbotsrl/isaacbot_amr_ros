@@ -1,7 +1,7 @@
 {
   "package": "rover_controller",
   "prefix": "CTL",
-  "document": "ROVER-A1-ROVER_CONTROLLER-SWRS-V-001",
+  "document": "ARDENNES-ROVER_CONTROLLER-SWRS-V-001",
   "title": "rover_controller Software Requirements Specification",
   "scope": "rover_controller is the configuration and launch composition of the Rover A1 ros2_control controllers. It starts controller_manager (ros2_control_node) on hardware, loads the robot description, and spawns rover_joint_state_broadcaster, rover_drive_controller (diff_drive_controller, skid-steer kinematics, velocity/acceleration limits, command time-out, wheel odometry) writing the wheel joints' velocity command interfaces directly (each Phidget DCC1020 closes its wheel speed loop on board), and rover_imu_broadcaster. The package still builds rover_controller/SeededPidController (a pid_controller subclass, the former host wheel PID), which the bundled configuration no longer spawns. It also ships drive-train tuning tools (wheel_step_response, wheel_odom_calibration).",
   "requirements": [
@@ -254,7 +254,7 @@
       "evidence": [
         "rover_controller/config/wheel_01_controller.yaml:112-141",
         "rover_description/urdf/common/wheel.urdf.xacro:47",
-        "rover_description/urdf/rover_a1/rover_a1_macro.urdf.xacro:290-292"
+        "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:290-292"
       ],
       "implementation": "Implemented",
       "verified_by": [
@@ -429,7 +429,7 @@
       "text": "The rover_controller shall, in rover_controller.launch.py, select the controller configuration in the order explicit controller_config_path, then <common_dir_path>/rover_controller/config/<wheel_type>_controller.yaml, then the bundled config/<wheel_type>_controller.yaml, replace every \"<namespace>/\" placeholder with the namespace prefix, and pass the same resolved file to controller_manager, every spawner and the simulation robot description.",
       "rationale": "One resolved configuration for all consumers avoids hardware and simulation diverging.",
       "verification": "Test",
-      "acceptance": "For namespace in {\"\", \"rover_a1\"}, use_sim in {False, True} and each selection mode, all five consumers receive one identical path whose content equals the expected namespaced configuration.",
+      "acceptance": "For namespace in {\"\", \"ardennes\"}, use_sim in {False, True} and each selection mode, all five consumers receive one identical path whose content equals the expected namespaced configuration.",
       "priority": "Should",
       "status": "As-Built",
       "parents": [],

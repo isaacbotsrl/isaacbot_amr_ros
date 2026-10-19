@@ -11,7 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# Modified 2026 by Mechatronics Academy: renamed from asio_cmake_module to
+# Modified 2026 by IsaacBot: renamed from asio_cmake_module to
 # isaacbot_amr_asio_cmake_module as part of the isaacbot_amr_transport fork.
 
 cmake_minimum_required(VERSION 3.14.4)

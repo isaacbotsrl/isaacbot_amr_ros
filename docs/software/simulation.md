@@ -54,13 +54,13 @@ Install the Gazebo packages and build with `ISAACBOT_AMR_ROS_BUILD_TYPE=simulati
 
 ```bash
 # Build the workspace, then start the simulation
-~/ros2_ws/rover_a1/src/isaacbot_amr_ros/isaacbot_amr_gazebo/scripts/isaacbot_amr_sim.sh --build
+~/ros2_ws/ardennes/src/isaacbot_amr_ros/isaacbot_amr_gazebo/scripts/isaacbot_amr_sim.sh --build
 
 # Start with GPS fusion and without RViz
-ISAACBOT_AMR_SYSTEM_USE_GPS=true ~/ros2_ws/rover_a1/src/isaacbot_amr_ros/isaacbot_amr_gazebo/scripts/isaacbot_amr_sim.sh use_rviz:=False
+ISAACBOT_AMR_SYSTEM_USE_GPS=true ~/ros2_ws/ardennes/src/isaacbot_amr_ros/isaacbot_amr_gazebo/scripts/isaacbot_amr_sim.sh use_rviz:=False
 
 # Second terminal: a shell on the same local middleware, for ros2 CLI or the orchestrator
-source ~/ros2_ws/rover_a1/src/isaacbot_amr_ros/isaacbot_amr_gazebo/scripts/isaacbot_amr_sim.sh
+source ~/ros2_ws/ardennes/src/isaacbot_amr_ros/isaacbot_amr_gazebo/scripts/isaacbot_amr_sim.sh
 ros2 topic echo /isaacbot/odom
 ```
 

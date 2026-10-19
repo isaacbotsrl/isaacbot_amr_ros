@@ -1,7 +1,7 @@
 function t = sfDefault(parent, dst)
 %SFDEFAULT Default transition into dst, drawn from above its top edge.
 
-% Copyright 2026 Mechatronics Academy
+% Copyright 2026 IsaacBot
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
 % you may not use this file except in compliance with the License.

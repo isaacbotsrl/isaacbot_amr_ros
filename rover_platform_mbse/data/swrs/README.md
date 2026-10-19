@@ -11,7 +11,7 @@ authoring record.
 {
   "package": "rover_twist_mux",
   "prefix": "MUX",
-  "document": "ROVER-A1-ROVER_TWIST_MUX-SWRS-V-001",
+  "document": "ARDENNES-ROVER_TWIST_MUX-SWRS-V-001",
   "title": "rover_twist_mux Software Requirements Specification",
   "scope": "One paragraph: what the package is and what it is responsible for in the platform.",
   "requirements": [

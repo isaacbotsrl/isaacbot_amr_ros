@@ -14,7 +14,7 @@
 
 // Developed by LeoDrive, 2021
 //
-// Modified 2026 by Mechatronics Academy: relayouted from ros-drivers/transport_drivers
+// Modified 2026 by IsaacBot: relayouted from ros-drivers/transport_drivers
 // v1.2.0 into isaacbot_amr_io_context/infrastructure; io_context/common.hpp folded in; restyled
 // to the workspace convention; the rclcpp log line dropped so this package carries no ROS
 // dependency.

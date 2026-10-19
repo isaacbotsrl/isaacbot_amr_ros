@@ -1,6 +1,6 @@
 # Ardennes
 
-Ardennes is Mechatronics Academy's four-wheel-drive, skid-steer mobile platform for indoor and
+Ardennes is IsaacBot's four-wheel-drive, skid-steer mobile platform for indoor and
 outdoor robotics. This manual covers the **platform**: the chassis, drive train, power, safety
 chain, IO and the ROS 2 software in the
 [isaacbot_amr_ros](https://github.com/isaacbotsrl/isaacbot_amr_ros) repository.

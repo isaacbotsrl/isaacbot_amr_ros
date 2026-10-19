@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright 2025 Mechatronics Academy
+# Copyright 2025 IsaacBot
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@
 #
 # Environment (all optional):
 #   ISAACBOT_AMR_WS                  workspace root (default: found from this script, else
-#                             ~/ros2_ws/rover_a1)
+#                             ~/ros2_ws/ardennes)
 #   ISAACBOT_AMR_SYSTEM_NAMESPACE    robot namespace (default: isaacbot, as in docker-compose)
 #   ISAACBOT_AMR_SYSTEM_USE_GPS, ISAACBOT_AMR_SYSTEM_GPS_MAP_TF
 #                             passed through to the simulation
@@ -56,7 +56,7 @@ _isaacbot_amr_sim_find_ws() {
         fi
         dir=$(dirname "$dir")
     done
-    echo "$HOME/ros2_ws/rover_a1"
+    echo "$HOME/ros2_ws/ardennes"
 }
 
 _isaacbot_amr_sim_setup_env() {

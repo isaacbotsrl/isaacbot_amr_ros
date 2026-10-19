@@ -13,7 +13,7 @@ function build_command_arbitration()
 %   Each source has <vx, wz, msg>, where msg = 1 in the step a message arrives.
 %   All parameters come from data/platform_parameters.json.
 
-% Copyright 2026 Mechatronics Academy
+% Copyright 2026 IsaacBot
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
 % you may not use this file except in compliance with the License.

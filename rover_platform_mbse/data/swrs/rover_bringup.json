@@ -1,7 +1,7 @@
 {
   "package": "rover_bringup",
   "prefix": "BRG",
-  "document": "ROVER-A1-ROVER_BRINGUP-SWRS-V-001",
+  "document": "ARDENNES-ROVER_BRINGUP-SWRS-V-001",
   "title": "rover_bringup Software Requirements Specification",
   "scope": "rover_bringup holds the top-level launch files that start the Rover A1 platform software on real hardware. rover_bringup.launch.py gates start-up on the hardware-configuration flag, checks the OS build version, starts rover_controller (ros2_control) and rover_diag_manager first, and starts battery, LED, safety, localization, CRSF teleop and twist_mux once the controllers are active. rover_web_bridges.launch.py starts foxglove_bridge (with topic/service whitelists), rosbridge and rosapi for the web UIs and ros-mcp. Automatic start at power-up is done by the rover_docker container start script, outside this package boundary; the GPS and lidar drivers belong to the sensor payload (rover_sensors). Simulation uses rover_gazebo instead.",
   "requirements": [

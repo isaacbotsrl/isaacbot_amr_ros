@@ -30,7 +30,7 @@ The transport packages (`isaacbot_amr_asio_cmake_module`, `isaacbot_amr_io_conte
 v1.2.0 - see `isaacbot_amr_transport/README.md`.
 
 ```bash
-cd ~/ros2_ws/rover_a1
+cd ~/ros2_ws/ardennes
 export ISAACBOT_AMR_ROS_BUILD_TYPE=hardware   # or simulation
 vcs import src < src/isaacbot_amr_ros/isaacbot_amr_metapackage/${ISAACBOT_AMR_ROS_BUILD_TYPE}_deps.repos
 rosdep install --from-paths src -y -i

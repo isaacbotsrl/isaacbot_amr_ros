@@ -11,7 +11,7 @@ selects between two modes:
 
 With GPS, `odom` stays continuous for local control, and GPS corrections show up only in
 `map → odom`. The GPS driver and its fix diagnostics (`gps/fix`) are the sensor payload
-(`isaacbot_amr_sensors/isaacbot_amr_gps`, container `rover-a1-sensors`). The ENU heading (`gps/heading_imu`)
+(`isaacbot_amr_sensors/isaacbot_amr_gps`, container `ardennes-sensors`). The ENU heading (`gps/heading_imu`)
 comes from `isaacbot_amr_gps_heading_node` (package `isaacbot_amr_gps_heading`), started here in GPS mode.
 
 > By default (`ISAACBOT_AMR_SYSTEM_GPS_MAP_TF=false`, `publish_global_tf:=false`) the global EKF

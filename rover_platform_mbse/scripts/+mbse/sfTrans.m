@@ -2,7 +2,7 @@ function t = sfTrans(parent, src, dst, label, order, srcClock, dstClock)
 %SFTRANS Add a transition src -> dst with a guard label and execution order.
 %   srcClock/dstClock: attachment points (0-12, o'clock) to keep arrows readable.
 
-% Copyright 2026 Mechatronics Academy
+% Copyright 2026 IsaacBot
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
 % you may not use this file except in compliance with the License.

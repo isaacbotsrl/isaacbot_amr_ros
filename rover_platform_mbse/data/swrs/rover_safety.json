@@ -1,7 +1,7 @@
 {
   "package": "rover_safety",
   "prefix": "SAF",
-  "document": "ROVER-A1-ROVER_SAFETY-SWRS-V-001",
+  "document": "ARDENNES-ROVER_SAFETY-SWRS-V-001",
   "title": "rover_safety Software Requirements Specification",
   "scope": "rover_safety provides behavior-tree driven safety supervision in two nav2::LifecycleNodes that configure and activate themselves. rover_safety_node evaluates the battery (health + temperature) with a pure domain policy and, through the RoverSafety tree, trips the software E-Stop or starts a controlled shutdown of the ROS controller (trip E-Stop, shut down remote hosts, power off), also on request via ~/shutdown. rover_led_safety_node selects LED animations (E-Stop, manual action, ready, error, battery level/charging) and requests them from rover_led. The package is outside the hard E-Stop chain (rover_arch/SAFETY_CHAIN.md). It does not implement a platform state machine today; this SWRS assigns the SYS-SR-010 mode manager, its Low Battery thresholds and the SYS-SR-009 state-to-LED mapping to this package as Proposed requirements.",
   "requirements": [

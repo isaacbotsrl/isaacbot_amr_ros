@@ -15,7 +15,7 @@ Server::Server(int port) {
     if (_serverfd == -1)
         throw std::runtime_error("Cannot create socket, errno = " + std::to_string(errno));
 
-    // Modified 2026 by Mechatronics Academy: these two were
+    // Modified 2026 by IsaacBot: these two were
     // `setsockopt(..., new int(1), sizeof(int))` - a heap allocation per call that was
     // never freed, with the return value ignored. Use a stack value and check.
     const int enable = 1;
@@ -40,7 +40,7 @@ Server::Server(int port) {
     _server.sin_addr.s_addr = INADDR_ANY;
     _server.sin_port        = ::htons(static_cast<uint16_t>(_port));
 
-    // Modified 2026 by Mechatronics Academy: close the listening socket before throwing.
+    // Modified 2026 by IsaacBot: close the listening socket before throwing.
     // The destructor cannot run for an object whose constructor threw, so every failed
     // bind() leaked _serverfd.
     if (::bind(_serverfd, reinterpret_cast<struct sockaddr *>(&_server), sizeof(_server)) < 0) {
@@ -50,7 +50,7 @@ Server::Server(int port) {
         throw std::runtime_error("Cannot bind socket, errno = " + std::to_string(err));
     }
 
-    // Modified 2026 by Mechatronics Academy: ::listen()'s return value was ignored, so a
+    // Modified 2026 by IsaacBot: ::listen()'s return value was ignored, so a
     // Server that never entered the listening state looked successfully constructed.
     if (::listen(_serverfd, 255) < 0) {
         const int err = errno;
@@ -73,7 +73,7 @@ std::optional<Connection> Server::awaitConnection() {
     auto connfd =
         ::accept(_serverfd, reinterpret_cast<struct sockaddr *>(&_server), &addrLen);
 
-    // Modified 2026 by Mechatronics Academy: this was a bare `throw;` outside any catch
+    // Modified 2026 by IsaacBot: this was a bare `throw;` outside any catch
     // block, which with no active exception calls std::terminate() and takes the whole
     // process down. The return type is already optional, so report the failure that way.
     if (connfd < 0)

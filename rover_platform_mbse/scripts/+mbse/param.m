@@ -2,7 +2,7 @@ function [value, unit, source] = param(name)
 %PARAM Value of a named parameter from data/platform_parameters.json.
 %   All model values come from this file, which cites the rover_ros source line.
 
-% Copyright 2026 Mechatronics Academy
+% Copyright 2026 IsaacBot
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
 % you may not use this file except in compliance with the License.

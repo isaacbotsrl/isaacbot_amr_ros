@@ -1,4 +1,4 @@
-// Copyright 2026 Mechatronics Academy
+// Copyright 2026 IsaacBot
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -60,7 +60,7 @@ class ModbusDiscreteIoClient : public DiscreteIoPort
 
 public:
 
-    // Modified 2026 by Mechatronics Academy: was a public non-static `const uint8_t`
+    // Modified 2026 by IsaacBot: was a public non-static `const uint8_t`
     // data member, which cost per-instance storage and suppressed the implicit
     // copy-assignment operator.
     static constexpr uint8_t kModbusDeviceId = 255U;

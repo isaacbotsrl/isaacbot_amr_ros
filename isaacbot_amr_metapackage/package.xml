@@ -3,7 +3,7 @@
 <package format="3">
   <name>isaacbot_amr_metapackage</name>
   <version>1.0.1</version>
-  <description>Meta package that contains all packages of Mechatronics Academy Isaacbot</description>
+  <description>Meta package that contains all packages of the IsaacBot isaacbot</description>
   <maintainer email="potlogradu@gmail.com">radupotlog</maintainer>
   <license>Apache License 2.0</license>
 

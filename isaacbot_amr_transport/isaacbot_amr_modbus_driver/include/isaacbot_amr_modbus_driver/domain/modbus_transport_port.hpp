@@ -1,4 +1,4 @@
-// Copyright 2026 Mechatronics Academy
+// Copyright 2026 IsaacBot
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ public:
 
     ModbusTransportPort() = default;
 
-    // Modified 2026 by Mechatronics Academy: added. This class was held by
+    // Modified 2026 by IsaacBot: added. This class was held by
     // std::unique_ptr<ModbusConnection> but declared no virtual destructor, so deleting
     // through the base was undefined behaviour - and in practice ~ModbusTcpConnection
     // never ran, leaking the socket fd on every teardown. close() was a documented no-op,

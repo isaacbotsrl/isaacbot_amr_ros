@@ -1,7 +1,7 @@
 {
   "package": "rover_localization",
   "prefix": "LOC",
-  "document": "ROVER-A1-ROVER_LOCALIZATION-SWRS-V-001",
+  "document": "ARDENNES-ROVER_LOCALIZATION-SWRS-V-001",
   "title": "rover_localization Software Requirements Specification",
   "scope": "rover_localization is a configuration-and-launch package (no own source code) that runs robot_localization filters for the rover. In the default mode it starts rover_ekf_node, which fuses wheel-odometry body velocities and IMU yaw rate into the continuous odom -> base_footprint estimate. With GPS fusion enabled (ROVER_SYSTEM_USE_GPS) it also starts rover_ekf_global_node (map-frame filter adding GPS X/Y), rover_navsat_transform_node and rover_gps_heading_node (package rover_gps_heading). The GPS driver itself belongs to the sensor payload (rover_sensors, outside this boundary).",
   "requirements": [
@@ -118,7 +118,7 @@
       ],
       "implementation": "Implemented",
       "verified_by": [],
-      "comments": "Doc drift: README.md:9 and :32 say odom -> base_link, but the configs use base_footprint (REP-120 footprint; base_footprint -> base_link comes from the URDF, rover_description/urdf/rover_a1/base.urdf.xacro:18-23). Frame chain map/odom/base_footprint/base_link is REP-105 compatible."
+      "comments": "Doc drift: README.md:9 and :32 say odom -> base_link, but the configs use base_footprint (REP-120 footprint; base_footprint -> base_link comes from the URDF, rover_description/urdf/ardennes/base.urdf.xacro:18-23). Frame chain map/odom/base_footprint/base_link is REP-105 compatible."
     },
     {
       "id": "SWR-LOC-007",

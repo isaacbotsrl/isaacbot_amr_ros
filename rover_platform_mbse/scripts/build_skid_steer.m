@@ -10,7 +10,7 @@ function build_skid_steer()
 %                         design, not the traction.
 %     Odometry          - forward kinematics + pose integration, as diff_drive does.
 
-% Copyright 2026 Mechatronics Academy
+% Copyright 2026 IsaacBot
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
 % you may not use this file except in compliance with the License.

@@ -2,7 +2,7 @@ function file = newModel(name, stepSize)
 %NEWMODEL Create an empty fixed-step discrete Simulink model in behaviour/,
 %   deleting an older copy. Outputs are logged to a Dataset (out.yout).
 
-% Copyright 2026 Mechatronics Academy
+% Copyright 2026 IsaacBot
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
 % you may not use this file except in compliance with the License.

@@ -1,12 +1,12 @@
 function export_requirements()
 %EXPORT_REQUIREMENTS Write the review spreadsheets in export/ from the .slreqx masters.
-%   ROVER-A1-<PACKAGE>-SWRS-V-001.xlsx        one SWRS per package (SYS-SR column layout)
-%   ROVER-A1-ROVER_ROS_SYS-SR-COMPLIANCE-V-001.xlsx  SYS-SR compliance, findings, model
+%   ARDENNES-<PACKAGE>-SWRS-V-001.xlsx        one SWRS per package (SYS-SR column layout)
+%   ARDENNES-ROVER_ROS_SYS-SR-COMPLIANCE-V-001.xlsx  SYS-SR compliance, findings, model
 %                                             tests, verification gaps, open questions
-%   ROVER-A1-ROVER_ROS-TRACEABILITY-V-001.xlsx SYS-SR x package matrix, SWR trace list
+%   ARDENNES-ROVER_ROS-TRACEABILITY-V-001.xlsx SYS-SR x package matrix, SWR trace list
 %   Model test results come from results/model_test_results.json (run_model_tests).
 
-% Copyright 2026 Mechatronics Academy
+% Copyright 2026 IsaacBot
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
 % you may not use this file except in compliance with the License.
@@ -65,7 +65,7 @@ for k = 1:numel(specs)
         'Document', s.document; 'Title', s.title; 'Package', ['src/rover_ros/' s.package]; ...
         'Version', 'V-001'; 'Date', today; 'Scope', s.scope; ...
         'Master', ['rover_platform_mbse/requirements/SWRS_' s.prefix '.slreqx (Requirements Toolbox)']; ...
-        'Parent', 'ROVER-A1-ROVER_ROS_SYS-SR-V-002'; ...
+        'Parent', 'ARDENNES-ROVER_ROS_SYS-SR-V-002'; ...
         'Status values', 'As-Built = reverse-engineered from the code; Proposed = needed by a SYS-SR, not (fully) in the code'; ...
         'Implementation values', 'Implemented / Partial / Gap (not implemented) / Deviation (differs from the SYS-SR or the documentation)'}, ...
         file, 'Sheet', 'Document');
@@ -76,7 +76,7 @@ for k = 1:numel(specs)
 end
 
 %% Compliance workbook
-file = fullfile(outDir, 'ROVER-A1-ROVER_ROS_SYS-SR-COMPLIANCE-V-001.xlsx');
+file = fullfile(outDir, 'ARDENNES-ROVER_ROS_SYS-SR-COMPLIANCE-V-001.xlsx');
 freshFile(file);
 items = containers.Map({comp.items.id}, num2cell(comp.items));
 sysReqs = sysSet.find('Type', 'Requirement');
@@ -130,7 +130,7 @@ writecell([{'Ref', 'Question', 'Answer', 'Answered By'}; ...
     [{oq.ref}', {oq.question}', repmat({''}, numel(oq), 2)]], file, 'Sheet', 'Open Questions');
 
 %% Traceability workbook
-file = fullfile(outDir, 'ROVER-A1-ROVER_ROS-TRACEABILITY-V-001.xlsx');
+file = fullfile(outDir, 'ARDENNES-ROVER_ROS-TRACEABILITY-V-001.xlsx');
 freshFile(file);
 pkgs = cellfun(@(s) s.package, specs, 'UniformOutput', false);
 M = cell(numel(sysReqs), numel(pkgs));

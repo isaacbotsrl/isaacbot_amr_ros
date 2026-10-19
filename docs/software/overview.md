@@ -11,8 +11,8 @@ package does, and how to build and start it.
 |------|-------|
 | ROS 2 distribution | `lyrical` |
 | Middleware (RMW) | `rmw_zenoh_cpp`, ROS domain `0` |
-| Zenoh router | Runs in its own container, `rover-a1-zenoh-router`, on TCP port `7447` |
-| Platform container | `rover-a1-platform`. Its image is built from `rover_docker/rovera1_app` (separate repository) |
+| Zenoh router | Runs in its own container, `ardennes-zenoh-router`, on TCP port `7447` |
+| Platform container | `ardennes-platform`. Its image is built from `rover_docker/rovera1_app` (separate repository) |
 | Device management | balenaCloud. Device variables such as `ISAACBOT_AMR_SYSTEM_USE_GPS` reach the launch files as environment variables; the container's `start.sh` normalizes them |
 | Isaacbot LAN address | `192.168.1.201` (default target of the PC setup script) |
 | Robot namespace | `isaacbot` (`ISAACBOT_AMR_SYSTEM_NAMESPACE`) |
@@ -31,9 +31,9 @@ The platform container runs two launch files: `isaacbot_amr_bringup.launch.py` (
 
     | Repository | Container | Role |
     |------------|-----------|------|
-    | [`isaacbot_amr_ros`](https://github.com/isaacbotsrl/isaacbot_amr_ros) | `rover-a1-platform` | This platform: drive, safety IO, localization, power, LEDs, teleop, diagnostics. |
-    | [`isaacbot_amr_sensors`](https://github.com/isaacbotsrl/isaacbot_amr_sensors) | `rover-a1-sensors` | Sensor payload: GNSS and lidar drivers. Publishes `gps/fix`, `scan` and `rslidar_points`. |
-    | [`isaacbot_amr_orchestrator`](https://github.com/isaacbotsrl/isaacbot_amr_orchestrator) | `rover-a1-orchestrator` | Autonomy: Nav 2 and mission supervision. Publishes `nav_cmd_vel_stamped`. |
+    | [`isaacbot_amr_ros`](https://github.com/isaacbotsrl/isaacbot_amr_ros) | `ardennes-platform` | This platform: drive, safety IO, localization, power, LEDs, teleop, diagnostics. |
+    | [`isaacbot_amr_sensors`](https://github.com/isaacbotsrl/isaacbot_amr_sensors) | `ardennes-sensors` | Sensor payload: GNSS and lidar drivers. Publishes `gps/fix`, `scan` and `rslidar_points`. |
+    | [`isaacbot_amr_orchestrator`](https://github.com/isaacbotsrl/isaacbot_amr_orchestrator) | `ardennes-orchestrator` | Autonomy: Nav 2 and mission supervision. Publishes `nav_cmd_vel_stamped`. |
 
     Source: `README.md`, `isaacbot_amr_bringup/README.md`.
 
@@ -160,8 +160,8 @@ Most packages with nodes follow a Clean Architecture layout (`domain/`, `applica
 ### Create the workspace
 
 ```bash
-mkdir -p ~/ros2_ws/rover_a1
-cd ~/ros2_ws/rover_a1
+mkdir -p ~/ros2_ws/ardennes
+cd ~/ros2_ws/ardennes
 git clone -b master https://github.com/isaacbotsrl/isaacbot_amr_ros.git src/isaacbot_amr_ros
 ```
 

@@ -14,7 +14,7 @@
 //
 // Developed by LeoDrive, 2021
 //
-// Modified 2026 by Mechatronics Academy: relayouted from
+// Modified 2026 by IsaacBot: relayouted from
 // udp_driver/src/udp_sender_node.cpp (ros-drivers/transport_drivers v1.2.0).
 
 #include "isaacbot_amr_udp_driver/infrastructure/udp_sender_node.hpp"
