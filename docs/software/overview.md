@@ -192,7 +192,6 @@ export ISAACBOT_AMR_ROS_BUILD_TYPE=hardware     # real isaacbot
 | `ISAACBOT_AMR_ROS_BUILD_TYPE` | `isaacbot_amr_metapackage`, `vcs import` | `hardware` builds `isaacbot_amr_bringup`; `simulation` builds `isaacbot_amr_gazebo`. |
 | `ISAACBOT_AMR_SYSTEM_NAMESPACE` | all launch files | Default `namespace` argument. The isaacbot uses `isaacbot`. |
 | `ISAACBOT_AMR_SYSTEM_USE_GPS` | `isaacbot_amr_bringup`, `isaacbot_amr_gazebo` | `true` adds GPS fusion (dual EKF). Default `false`. |
-| `ISAACBOT_AMR_SYSTEM_GPS_MAP_TF` | `isaacbot_amr_localization`, `isaacbot_amr_gazebo` | `true` lets the global EKF broadcast `map → odom`. Default `false`. |
 | `RMW_IMPLEMENTATION` | all nodes | `rmw_zenoh_cpp` (set by the setup script). |
 | `ZENOH_CONFIG_OVERRIDE` | all nodes | Client mode to `tcp/<isaacbot-ip>:7447` (set by the setup script). |
 

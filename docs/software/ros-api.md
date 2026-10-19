@@ -433,7 +433,7 @@ More: [isaacbot_amr_crsf_teleop README](https://github.com/isaacbotsrl/isaacbot_
 | sub | `odometry/wheels`, `imu/data` | as above | |
 | sub | `odometry/gps` | `nav_msgs/Odometry` | GPS position (X, Y) from navsat_transform. |
 | pub | `odometry/global` | `nav_msgs/Odometry` | Filtered pose in `isaacbot/map`. |
-| pub | `/tf` | `tf2_msgs/TFMessage` | `isaacbot/map` → `isaacbot/odom`, only with `publish_global_tf:=true` (`ISAACBOT_AMR_SYSTEM_GPS_MAP_TF`). |
+| pub | `/tf` | `tf2_msgs/TFMessage` | `isaacbot/map` → `isaacbot/odom`, only with `publish_global_tf:=true` (default `false`; never on the isaacbot, where `isaacbot_amr_indoor_nav_manager` owns it). |
 | srv | `localization/global/set_pose`, `localization/global/enable`, `localization/global/toggle` | `robot_localization` services | |
 
 ### `isaacbot_amr_navsat_transform_node` (GPS mode)
@@ -592,7 +592,7 @@ All frames carry the `isaacbot/` prefix (`frame_prefix` of `isaacbot_amr_state_p
 
 ```mermaid
 flowchart TB
-  map["map"] -.->|"isaacbot_amr_ekf_global_node (publish_global_tf), or AMCL / SLAM (orchestrator)"| odom["odom"]
+  map["map"] -.->|"AMCL / SLAM / odometry hold (isaacbot_amr_indoor_nav_manager, orchestrator)"| odom["odom"]
   odom -->|"isaacbot_amr_ekf_node"| fp["base_footprint"]
   fp -- fixed --> bl["base_link"]
   bl -- fixed --> body["body_link"]

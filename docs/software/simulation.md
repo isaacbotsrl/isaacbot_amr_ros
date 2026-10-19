@@ -94,7 +94,7 @@ Source: `isaacbot_amr_gazebo/scripts/isaacbot_amr_sim.sh`, `isaacbot_amr_scripts
 | `gz_gui` | `isaacbot_amr_gazebo/config/teleop.config` | Gazebo GUI layout; `{namespace}` in it is replaced. |
 | `log_level` | `INFO` | Logging level. |
 | `use_gps` | `$ISAACBOT_AMR_SYSTEM_USE_GPS`, else `false` | Fuse the simulated GNSS (dual EKF, navsat_transform, GPS heading). |
-| `publish_global_tf` | `$ISAACBOT_AMR_SYSTEM_GPS_MAP_TF`, else `false` | `isaacbot_amr_ekf_global_node` broadcasts `map → odom`. |
+| `publish_global_tf` | `false` | `isaacbot_amr_ekf_global_node` broadcasts `map → odom`. Leave `false` with the orchestrator's navigation, whose `isaacbot_amr_indoor_nav_manager` owns `map → odom`. |
 | `x`, `y`, `z`, `roll`, `pitch`, `yaw` | `0.0`, `-2.0`, `0.2`, `0.0`, `0.0`, `0.0` | Spawn pose. |
 | `add_world_transform` | `False` | Publish a static `world` → `odom` at the spawn pose. |
 | `gz_bridge_config_path` | `isaacbot_amr_gazebo/config/gz_bridge.yaml` | Bridge configuration. |

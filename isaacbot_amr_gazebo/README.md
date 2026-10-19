@@ -63,7 +63,7 @@ isaacbot's router would join the simulated nodes to the real isaacbot.
 |----------|---------|-------------|
 | `namespace` | `$ISAACBOT_AMR_SYSTEM_NAMESPACE`, else empty | Namespace of the robot's nodes and topics. |
 | `use_gps` | `$ISAACBOT_AMR_SYSTEM_USE_GPS`, else `false` | Fuse the simulated GNSS (dual EKF + navsat_transform). |
-| `publish_global_tf` | `$ISAACBOT_AMR_SYSTEM_GPS_MAP_TF`, else `false` | `isaacbot_amr_ekf_global_node` broadcasts `map → odom`. |
+| `publish_global_tf` | `false` | `isaacbot_amr_ekf_global_node` broadcasts `map → odom`. Leave `false` with the orchestrator's navigation, whose `isaacbot_amr_indoor_nav_manager` owns `map → odom`. |
 | `use_rviz` | `True` | Start RViz (`simulation.launch.py`). |
 | `gz_gui` | `config/teleop.config` | Gazebo GUI layout; `{namespace}` in the file is replaced with `namespace`. |
 | `gz_headless_mode` | `False` | Run Gazebo server-only with headless rendering (`isaacbot_amr_world`). |
@@ -121,7 +121,7 @@ ISAACBOT_AMR_SYSTEM_USE_GPS=true ~/ros2_ws/ardennes/src/isaacbot_amr_ros/isaacbo
 
 # terminal 2: orchestrator / ros2 CLI on the same local middleware
 source ~/ros2_ws/ardennes/src/isaacbot_amr_ros/isaacbot_amr_gazebo/scripts/isaacbot_amr_sim.sh
-ros2 launch isaacbot_amr_navigation bringup.launch.py use_sim_time:=True localization_source:=slam
+ros2 launch isaacbot_amr_navigation bringup.launch.py use_sim_time:=True
 ```
 
 It uses rmw_zenoh because FastDDS inter-process discovery does not work on the WSL host.
@@ -133,7 +133,7 @@ ros2 launch isaacbot_amr_gazebo simulation.launch.py
 ISAACBOT_AMR_SYSTEM_NAMESPACE=isaacbot ISAACBOT_AMR_SYSTEM_USE_GPS=true ros2 launch isaacbot_amr_gazebo simulation.launch.py use_rviz:=False
 
 # then the orchestrator, e.g.
-ros2 launch isaacbot_amr_navigation bringup.launch.py use_sim_time:=True localization_source:=slam
+ros2 launch isaacbot_amr_navigation bringup.launch.py use_sim_time:=True
 ```
 
 With `ISAACBOT_AMR_SYSTEM_USE_GPS=true`, `gps/heading_imu` (and so `odometry/gps` / `odometry/global`) only

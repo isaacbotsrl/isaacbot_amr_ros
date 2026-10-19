@@ -79,8 +79,9 @@ def generate_launch_description():
     publish_global_tf = LaunchConfiguration("publish_global_tf")
     declare_publish_global_tf_arg = DeclareLaunchArgument(
         "publish_global_tf",
-        default_value=EnvironmentVariable("ISAACBOT_AMR_SYSTEM_GPS_MAP_TF", default_value="false"),
-        description="Let isaacbot_amr_ekf_global_node broadcast map -> odom (GPS fusion only).",
+        default_value="false",
+        description="Let isaacbot_amr_ekf_global_node broadcast map -> odom (GPS fusion only). "
+        "Leave false with the orchestrator: isaacbot_amr_indoor_nav_manager owns map -> odom.",
     )
 
     robot_model = LaunchConfiguration("robot_model")

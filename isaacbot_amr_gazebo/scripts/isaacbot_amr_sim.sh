@@ -30,14 +30,13 @@
 #   isaacbot_amr_sim.sh --build
 #   ISAACBOT_AMR_SYSTEM_USE_GPS=true isaacbot_amr_sim.sh use_rviz:=False gz_headless_mode:=True
 #   source isaacbot_amr_sim.sh && ros2 launch isaacbot_amr_navigation bringup.launch.py \
-#     use_sim_time:=True localization_source:=slam
+#     use_sim_time:=True
 #
 # Environment (all optional):
 #   ISAACBOT_AMR_WS                  workspace root (default: found from this script, else
 #                             ~/ros2_ws/ardennes)
 #   ISAACBOT_AMR_SYSTEM_NAMESPACE    robot namespace (default: isaacbot, as in docker-compose)
-#   ISAACBOT_AMR_SYSTEM_USE_GPS, ISAACBOT_AMR_SYSTEM_GPS_MAP_TF
-#                             passed through to the simulation
+#   ISAACBOT_AMR_SYSTEM_USE_GPS      passed through to the simulation
 
 _isaacbot_amr_sim_is_sourced() { [ "${BASH_SOURCE[0]}" != "$0" ]; }
 
