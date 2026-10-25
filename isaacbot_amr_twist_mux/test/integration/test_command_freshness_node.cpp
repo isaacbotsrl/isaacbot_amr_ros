@@ -55,6 +55,7 @@ protected:
             "teleop_driver_interface_cmd_vel_fresh_stamped", commandQos(),
             [this](const geometry_msgs::msg::TwistStamped & msg) {
                 received_.push_back(msg.twist.linear.x);
+                received_msgs_.push_back(msg);
             });
 
         node_ = std::make_shared<CommandFreshnessNode>("isaacbot_amr_command_freshness_node");
@@ -121,12 +122,13 @@ protected:
     }
 
     // Publishes fresh commands until the node passes one on, so discovery is done before the
-    // test proper: a command lost to discovery would look like a dropped one.
-    void establishBaseline()
+    // test proper: a command lost to discovery would look like a dropped one. `clock_offset` puts
+    // the sender's clock that far behind the isaacbot's.
+    void establishBaseline(const std::chrono::milliseconds clock_offset = 0ms)
     {
         const auto deadline = std::chrono::steady_clock::now() + 3s;
         while (std::chrono::steady_clock::now() < deadline && received_.empty()) {
-            publish(0.01);
+            publish(0.01, clock_offset);
             spinFor(50ms);
         }
         ASSERT_FALSE(received_.empty()) << "no command made it through the node";
@@ -140,14 +142,35 @@ protected:
     rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr fresh_sub_;
 
     std::vector<double> received_;
+    std::vector<geometry_msgs::msg::TwistStamped> received_msgs_;
 };
 
-TEST_F(CommandFreshnessNodeTest, FreshCommandsArePassedOnUnchanged)
+TEST_F(CommandFreshnessNodeTest, FreshCommandsArePassedOn)
 {
     establishBaseline();
 
     publish(0.5);
     EXPECT_TRUE(spinUntil([this] { return received(0.5); }, 2000ms));
+}
+
+// A browser whose clock runs 1.6 s behind (the Ardennes Driver UI, 2026-10-25): its commands are
+// fresh by its own baseline and must come out stamped with the isaacbot's clock, or diff_drive
+// drops every one as older than cmd_vel_timeout and the wheels never move.
+TEST_F(CommandFreshnessNodeTest, CommandsFromALaggingClockAreRestampedWithTheIsaacbotsClock)
+{
+    establishBaseline(1600ms);
+
+    publish(0.6, 1600ms);
+    ASSERT_TRUE(spinUntil([this] { return received(0.6); }, 2000ms));
+
+    const auto & msg = received_msgs_.back();
+    const double now_s = std::chrono::duration<double>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+    const double stamp_s = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9;
+
+    EXPECT_NEAR(stamp_s, now_s, 0.5) << "the output still carries the sender's clock";
+    EXPECT_EQ(msg.header.frame_id, "base_link");
+    EXPECT_DOUBLE_EQ(msg.twist.linear.x, 0.6);
 }
 
 // A command stamped 2 s before it arrives sat in a buffer: it must not reach twist_mux.

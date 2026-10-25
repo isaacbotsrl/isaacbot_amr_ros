@@ -8,7 +8,9 @@ command_freshness:
     type: string
     default_value: "teleop_driver_interface_cmd_vel_fresh_stamped"
     read_only: true
-    description: Where fresh commands are republished unchanged; the twist_mux input.
+    description: >
+      Where fresh commands are republished, restamped with the isaacbot's clock (diff_drive
+      checks the stamp against its own); the twist_mux input.
   max_delay:
     type: double
     default_value: 0.3

@@ -110,7 +110,15 @@ void CommandFreshnessNode::commandCallback(const geometry_msgs::msg::TwistStampe
                 "Re-baselined on a steady run of late commands (sender clock stepped?); "
                 "passing commands again.");
         }
-        command_pub_->publish(*msg);
+
+        // Restamped with the isaacbot's clock: the sender's stamp is on the browser's clock, which
+        // can be seconds off, and diff_drive drops any command older than cmd_vel_timeout by its
+        // own clock. On the Ardennes a browser 1.6 s behind made every Driver UI command look
+        // stale there ("Ignoring the received message ... older than the current time"), so the
+        // wheels never moved. Freshness was judged above, against the sender's own baseline.
+        auto restamped = *msg;
+        restamped.header.stamp = this->get_clock()->now();
+        command_pub_->publish(restamped);
         return;
     }
 
