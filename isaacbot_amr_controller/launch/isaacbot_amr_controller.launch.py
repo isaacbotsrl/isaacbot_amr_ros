@@ -39,6 +39,13 @@ import yaml
 # The spawner prints this once the controller (or group) is active.
 SPAWNER_ACTIVATED = b'Configured and activated'
 
+# How long a spawner waits for controller_manager's services. The first spawner starts together
+# with ros2_control_node, whose services only come up once the hardware is initialized: on the
+# Ardennes that is four DCC1020 channel opens, the IMU and the safety Modbus link, ~11 s on
+# 2026-10-25, plus up to 3 driver-init retries. The old 10 s lost that race now and then, and a
+# failed spawner takes the whole launch down. 60 s still fails loudly on a hung controller_manager.
+CONTROLLER_MANAGER_TIMEOUT_S = '60'
+
 
 def spawner_activation_watcher(spawner, activated):
     """Set activated["seen"] when the spawner reports the activation."""
@@ -283,7 +290,7 @@ def generate_launch_description():
                 '--controller-manager',
                 'controller_manager',
                 '--controller-manager-timeout',
-                '10',
+                CONTROLLER_MANAGER_TIMEOUT_S,
             ]
             for param_file in param_files:
                 arguments.extend(['--param-file', param_file])
