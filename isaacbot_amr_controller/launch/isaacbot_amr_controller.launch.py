@@ -50,7 +50,9 @@ CONTROLLER_MANAGER_TIMEOUT_S = '60'
 def spawner_activation_watcher(spawner, activated):
     """Set activated["seen"] when the spawner reports the activation."""
     def on_output(event):
-        if SPAWNER_ACTIVATED in event.text:
+        # event.text can be None (a stream closing as the spawner exits); `in None` raised and
+        # took the whole launch down a few seconds after the controllers came up.
+        if event.text and SPAWNER_ACTIVATED in event.text:
             activated['seen'] = True
 
     return RegisterEventHandler(
