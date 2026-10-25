@@ -7,18 +7,17 @@ selects between two modes:
 | Mode | Nodes | Transforms |
 |------|-------|------------|
 | `ISAACBOT_AMR_SYSTEM_USE_GPS=false` (default) | `isaacbot_amr_ekf_node`: wheels + IMU yaw rate | `<ns>/odom → <ns>/base_footprint` |
-| `ISAACBOT_AMR_SYSTEM_USE_GPS=true` | `isaacbot_amr_ekf_node` (unchanged), `isaacbot_amr_ekf_global_node`: wheels + IMU yaw rate + GPS position, `isaacbot_amr_gps_heading_node`, `isaacbot_amr_navsat_transform_node` | also `<ns>/map → <ns>/odom`, only with `ISAACBOT_AMR_SYSTEM_GPS_MAP_TF=true` |
+| `ISAACBOT_AMR_SYSTEM_USE_GPS=true` | `isaacbot_amr_ekf_node` (unchanged), `isaacbot_amr_ekf_global_node`: wheels + IMU yaw rate + GPS position, `isaacbot_amr_gps_heading_node`, `isaacbot_amr_navsat_transform_node` | same; the global EKF publishes `odometry/global`, not `<ns>/map → <ns>/odom` |
 
 With GPS, `odom` stays continuous for local control, and GPS corrections show up only in
-`map → odom`. The GPS driver and its fix diagnostics (`gps/fix`) are the sensor payload
+`odometry/global`. The GPS driver and its fix diagnostics (`gps/fix`) are the sensor payload
 (`isaacbot_amr_sensors/isaacbot_amr_gps`, container `ardennes-sensors`). The ENU heading (`gps/heading_imu`)
 comes from `isaacbot_amr_gps_heading_node` (package `isaacbot_amr_gps_heading`), started here in GPS mode.
 
-> By default (`ISAACBOT_AMR_SYSTEM_GPS_MAP_TF=false`, `publish_global_tf:=false`) the global EKF
-> publishes `odometry/global` but does not broadcast `map → odom`, which is left to AMCL
-> (`isaacbot_amr_orchestrator/isaacbot_amr_navigation/launch/localization.launch.py`) or SLAM. With
-> `ISAACBOT_AMR_SYSTEM_GPS_MAP_TF=true` it broadcasts `map → odom` itself; do not run AMCL or SLAM
-> alongside it then.
+> The global EKF publishes `odometry/global` but never broadcasts `map → odom` on the isaacbot
+> (`publish_global_tf` defaults to `false` and no environment variable sets it).
+> `isaacbot_amr_orchestrator`'s `isaacbot_amr_indoor_nav_manager` owns `map → odom` (AMCL, SLAM, or
+> its own hold while no lidar or camera works).
 
 ## Interfaces
 
@@ -89,7 +88,7 @@ The filters run at 50 Hz in 2D mode (`two_d_mode: true`).
 |----------|---------|-------------|
 | `use_ekf` | `False` | Start the EKFs. `isaacbot_amr_bringup` and `isaacbot_amr_gazebo` pass `True`. |
 | `fuse_gps` | `$ISAACBOT_AMR_SYSTEM_USE_GPS`, else `false` | GPS mode (`true`/`1`/`yes`/`on`, any case). Selects the `_with_gps` config. `isaacbot_amr_bringup` and `isaacbot_amr_gazebo` pass their `use_gps` (default `$ISAACBOT_AMR_SYSTEM_USE_GPS`, else `false`). |
-| `publish_global_tf` | `$ISAACBOT_AMR_SYSTEM_GPS_MAP_TF`, else `false` | GPS mode only: `isaacbot_amr_ekf_global_node` broadcasts `map → odom` (`true`/`1`/`yes`/`on`, any case). Overrides the config's `publish_tf`. `false` (default) leaves `map → odom` to SLAM/AMCL; `odometry/global` is still published. |
+| `publish_global_tf` | `false` | GPS mode only: `isaacbot_amr_ekf_global_node` broadcasts `map → odom` (`true`/`1`/`yes`/`on`, any case). Overrides the config's `publish_tf`. `false` (default) leaves `map → odom` to `isaacbot_amr_indoor_nav_manager`; `odometry/global` is still published. Leave it `false` whenever the orchestrator runs: two owners of `map → odom` fight. |
 | `namespace` | `$ISAACBOT_AMR_SYSTEM_NAMESPACE`, else empty | Namespace and TF prefix. |
 | `localization_mode` | `rel` | `rel`: relative to the start pose; `enu`: East-North-Up orientation. Selects `config/<mode>_localization[_with_gps].yaml`. |
 | `localization_config_path` | `config/<mode>_localization[_with_gps].yaml` | Explicit EKF config. |

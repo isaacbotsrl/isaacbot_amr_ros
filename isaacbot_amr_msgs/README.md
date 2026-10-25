@@ -27,7 +27,7 @@ Custom messages and services of the Ardennes stack.
 | `RcCalibrationState` | RC calibration phase (`IDLE`/`CENTER`/`SWEEP`/`REVIEW`), samples, progress, teleop inhibit, verified E-Stop state | `isaacbot_amr_crsf_teleop` → `rc/calibration/state` (latched) |
 | `DriveMode` | header, driving `mode` (`MANUAL`/`ASSISTED`/`AUTOMATIC`), obstacle `guard` state (`GUARD_BYPASSED`/`CLEAR`/`SLOWING`/`STOPPED`/`NO_DATA`), `reason` of the last change | `isaacbot_amr_drive_mode` (isaacbot_amr_orchestrator) → `drive_mode` (latched) |
 | `MissionState` | mission id, state (`IDLE`/`RUNNING`/`HELD`/`SUCCEEDED`/`FAILED`/`CANCELLED`), current waypoint index, total, message | `isaacbot_amr_mission_manager` (isaacbot_amr_orchestrator) → `mission_state` (latched) |
-| `LocalizationState` | indoor localization mode (`UNAVAILABLE`/`MAPPING`/`LOCALIZATION`/`SWITCHING`), map name, message | `isaacbot_amr_indoor_nav_manager` (isaacbot_amr_orchestrator) → `localization_state` (latched) |
+| `LocalizationState` | localization mode (`UNAVAILABLE`/`MAPPING`/`LOCALIZATION`/`SWITCHING`/`ODOMETRY`), map name, message, `scan_source` (`SCAN_NONE`/`SCAN_LIDAR`/`SCAN_CAMERA`) | `isaacbot_amr_indoor_nav_manager` (isaacbot_amr_orchestrator) → `localization_state` (latched) |
 | `MapInfo` / `MapList` | stored maps (name, resolution, size, save time) and the active map | `isaacbot_amr_indoor_nav_manager` → `maps` (latched) |
 | `Place` / `PlaceList` | named poses (id, name, map, x, y, theta) on the active map | `isaacbot_amr_indoor_nav_manager` → `places` (latched) |
 
