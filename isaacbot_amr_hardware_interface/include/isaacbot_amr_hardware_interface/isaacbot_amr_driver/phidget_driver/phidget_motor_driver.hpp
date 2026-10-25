@@ -242,6 +242,12 @@ private:
         Phidget_ErrorEventCode code,
         const char * description);
 
+    // Sets motor_inductance on attach - the only point at which it skips the board's motor
+    // characterization, which fails while the motor contactor is open.
+    static void CCONV attachHandler(
+        PhidgetHandle phid,
+        void * ctx);
+
     std::weak_ptr<PhidgetDriver> driver_;
 
     const DrivetrainSettings settings_;

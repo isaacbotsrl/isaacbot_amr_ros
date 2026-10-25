@@ -166,7 +166,7 @@ Source: `isaacbot_amr_controller/config/wheel_01_controller.yaml`, `isaacbot_amr
 | `raw_current_to_amps_scale` | 0.01 | Current is reported in 10 mA units |
 | `motor_failsafe_timeout_ms` | 500 ms | DCC1020 hardware watchdog. Disengages the motor if commands stop. |
 | `motor_failsafe_braking_enabled` | `true` (default) | Brake (not coast) on a failsafe trip |
-| `velocity_kp` / `velocity_ki` / `velocity_kd`, `velocity_deadband_rpm`, `motor_acceleration_rpm_s`, `motor_surge_current_limit`, `motor_stall_velocity_rpm`, `motor_failsafe_current_limit`, `motor_inductance`, `motor_data_interval_ms` | not set (**TBD**) | Optional on-board loop settings. Absent = board default, logged at configure |
+| `velocity_kp` / `velocity_ki` / `velocity_kd`, `velocity_deadband_rpm`, `motor_acceleration_rpm_s`, `motor_surge_current_limit`, `motor_stall_velocity_rpm`, `motor_failsafe_current_limit`, `motor_inductance`, `motor_data_interval_ms` | not set (**TBD**) | Optional on-board loop settings. Absent = board default, logged at configure. `motor_inductance` is set when the channel attaches, which skips the motor characterization (the beeps) at every open. Without it the board characterizes the motor at open, which fails with a latched `motor_setup_fault` (error 0x1011) while the motor contactor is open; `sw_e_stop_latch_reset` then re-opens the channel |
 | `driver_comm_timeout_ms` | 300 ms | Telemetry age that counts as a communication error |
 
 `motor_acceleration` (DCC1000 duty/s) and `motor_supply_voltage` (DCC1000 current-regulator gain) were removed. `on_init()` rejects a URDF that still sets them.

@@ -209,12 +209,11 @@ void throwOnError(const PhidgetReturnCode ret, const std::string & what, const s
 using VelocityControllerGetter = PhidgetReturnCode (*)(PhidgetMotorVelocityControllerHandle, double *);
 using VelocityControllerSetter = PhidgetReturnCode (*)(PhidgetMotorVelocityControllerHandle, double);
 
-// Sets a configured value after checking it against the board's own range, so an out-of-range
-// URDF value fails configure with its name instead of an anonymous SDK error.
-void setInRange(
+// Checks a configured value against the board's own range, so an out-of-range URDF value fails
+// configure with its name instead of an anonymous SDK error.
+void checkInRange(
     PhidgetMotorVelocityControllerHandle handle, const std::uint8_t channel, const std::string & name,
-    const double value, VelocityControllerGetter get_min, VelocityControllerGetter get_max,
-    VelocityControllerSetter set)
+    const double value, VelocityControllerGetter get_min, VelocityControllerGetter get_max)
 {
     double min_value = 0.0;
     double max_value = 0.0;
@@ -227,7 +226,14 @@ void setInRange(
             std::to_string(min_value) + ", " + std::to_string(max_value) + "] on motor hub port " +
             std::to_string(channel));
     }
+}
 
+void setInRange(
+    PhidgetMotorVelocityControllerHandle handle, const std::uint8_t channel, const std::string & name,
+    const double value, VelocityControllerGetter get_min, VelocityControllerGetter get_max,
+    VelocityControllerSetter set)
+{
+    checkInRange(handle, channel, name, value, get_min, get_max);
     throwOnError(set(handle, value), "Setting " + name, channel);
 }
 
@@ -253,6 +259,9 @@ void PhidgetMotorDriver::initialize()
     throwOnError(
         PhidgetMotorVelocityController_setOnVelocityChangeHandler(motor_handle_, velocityChangeHandler, this),
         "Setting the velocity change handler", channel_);
+    throwOnError(
+        Phidget_setOnAttachHandler(asHandle(motor_handle_), attachHandler, this),
+        "Setting the attach handler", channel_);
 
     openWaitForAttachment(asHandle(motor_handle_), serial_number_, channel_, false, 0);
 
@@ -451,11 +460,22 @@ void PhidgetMotorDriver::configureMotorChannel()
             PhidgetMotorVelocityController_setStallVelocity);
     }
 
+    // Already set by attachHandler() - setting it after the open is too late to skip the motor
+    // characterization. Only check it here, where configure can still fail with its name.
     if (settings_.motor_inductance) {
-        setInRange(
+        checkInRange(
             motor_handle_, channel_, "motor_inductance", *settings_.motor_inductance,
-            PhidgetMotorVelocityController_getMinInductance, PhidgetMotorVelocityController_getMaxInductance,
-            PhidgetMotorVelocityController_setInductance);
+            PhidgetMotorVelocityController_getMinInductance, PhidgetMotorVelocityController_getMaxInductance);
+
+        double applied_inductance = 0.0;
+
+        if (PhidgetMotorVelocityController_getInductance(motor_handle_, &applied_inductance) == EPHIDGET_OK &&
+            applied_inductance != *settings_.motor_inductance)
+        {
+            RCLCPP_WARN(
+                logger_, "Motor hub port %d: motor_inductance = %g, but the board runs with %g.", channel_,
+                *settings_.motor_inductance, applied_inductance);
+        }
     }
 
     // The SDK publishes no range for the gains, the dead band or the failsafe current limit.
@@ -784,6 +804,28 @@ void CCONV PhidgetMotorDriver::errorHandler(
     }
 }
 
+void CCONV PhidgetMotorDriver::attachHandler(PhidgetHandle phid, void * ctx)
+{
+    (void)phid;
+
+    PhidgetMotorDriver * driver = static_cast<PhidgetMotorDriver*>(ctx);
+
+    if (!driver->settings_.motor_inductance) {
+        return;
+    }
+
+    // SDK callback thread - never throw from here. An out-of-range value also fails here, and
+    // configureMotorChannel() then rejects it by name.
+    const PhidgetReturnCode ret = PhidgetMotorVelocityController_setInductance(
+        driver->motor_handle_, *driver->settings_.motor_inductance);
+
+    if (ret != EPHIDGET_OK) {
+        RCLCPP_ERROR(
+            driver->logger_, "Motor hub port %d: setting motor_inductance = %g on attach failed: %s",
+            driver->channel_, *driver->settings_.motor_inductance, phidgetReturnCodeToString(ret).c_str());
+    }
+}
+
 PhidgetMotorDriver::ErrorEventEffect PhidgetMotorDriver::errorEventEffect(const Phidget_ErrorEventCode code)
 {
     ErrorEventEffect effect;
@@ -830,6 +872,13 @@ PhidgetMotorDriver::ErrorEventEffect PhidgetMotorDriver::errorEventEffect(const 
 
         // The watchdog tripped - reported here even when no command was in flight to see it.
         case EEPHIDGET_FAILSAFE:
+            effect.latches_failsafe = true;
+            break;
+
+        // Motor characterization at open saw an open circuit - typically the motor contactor still
+        // open. The board stays unusable until the channel is re-opened with the motor connected.
+        case EEPHIDGET_BADCONNECTION:
+            effect.set_fault_bits = faultBit(FaultFlag::kMotorSetupFaultBit);
             effect.latches_failsafe = true;
             break;
 

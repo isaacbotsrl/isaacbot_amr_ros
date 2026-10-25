@@ -279,7 +279,10 @@
                Dangerous-stall threshold; 0 disables stall protection:
           <param name="motor_stall_velocity_rpm">TBD</param>
           <param name="motor_failsafe_current_limit">TBD</param>
-               Skips the inductance measurement (beeps) at every open; SDK unit:
+               Skips the inductance measurement (beeps) at every open. Without it the board
+               measures at open, which fails (error 0x1011, latched motor_setup_fault) while the
+               motor contactor is open. Take the value from the "inductance=" configure log
+               line after a successful open; SDK unit:
           <param name="motor_inductance">TBD</param>
                Velocity feedback interval; omitted = the board's minimum:
           <param name="motor_data_interval_ms">TBD</param>

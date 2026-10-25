@@ -102,7 +102,7 @@ The hardware interface node `isaacbot_amr_hardware_controller` offers three `std
 |---|---|---|
 | `hardware_interface/sw_user_e_stop_set` | Asserts the SW user E-Stop (`COIL_2`), which trips the latch | Modbus write fails |
 | `hardware_interface/sw_user_e_stop_reset` | Releases the SW user E-Stop | Hardware interface not ACTIVE; any wheel velocity command above `velocity_command_zero_tolerance` (0.4 rad/s); any measured wheel velocity above `velocity_state_zero_tolerance` (0.05 rad/s) |
-| `hardware_interface/sw_e_stop_latch_reset` | Pulses `COIL_4` for `safety_latch_reset_pulse_ms` (100 ms). Also clears latched motor-failsafe, DCC1020 E-Stop / stall / energy-dump and welded-contactor faults: it re-opens each motor channel, re-arms its watchdog and engages it again | Hardware interface not ACTIVE |
+| `hardware_interface/sw_e_stop_latch_reset` | Pulses `COIL_4` for `safety_latch_reset_pulse_ms` (100 ms). Also clears latched motor-failsafe, DCC1020 E-Stop / stall / energy-dump / motor-setup (open circuit at init, e.g. the contactor was open when the channel opened) and welded-contactor faults: it re-opens each motor channel, re-arms its watchdog and engages it again | Hardware interface not ACTIVE |
 
 Source: `isaacbot_amr_hardware_interface/src/isaacbot_amr_system/isaacbot_amr_system.cpp` (`resetEStop()`, `resetEStopLatch()`, `areVelocityCommandsNearZero()`), `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro`.
 

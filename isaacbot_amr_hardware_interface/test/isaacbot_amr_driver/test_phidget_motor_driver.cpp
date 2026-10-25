@@ -195,6 +195,16 @@ TEST(PhidgetMotorDriverErrorEventTest, DisengagingFaultsLatch)
     EXPECT_TRUE(failsafe.latches_failsafe);
 }
 
+TEST(PhidgetMotorDriverErrorEventTest, OpenCircuitAtInitRaisesMotorSetupFaultAndLatches)
+{
+    // 0x1011 "Motor initialization failed. Probable open circuit" - e.g. the motor contactor is
+    // still open when the channel opens. Latching it is what lets the E-Stop latch reset re-open it.
+    const auto effect = PhidgetMotorDriver::errorEventEffect(EEPHIDGET_BADCONNECTION);
+
+    EXPECT_EQ(effect.set_fault_bits, bit(FaultFlag::kMotorSetupFaultBit));
+    EXPECT_TRUE(effect.latches_failsafe);
+}
+
 TEST(PhidgetMotorDriverErrorEventTest, TransientFaultsDoNotLatch)
 {
     const std::pair<Phidget_ErrorEventCode, std::size_t> cases[] = {
