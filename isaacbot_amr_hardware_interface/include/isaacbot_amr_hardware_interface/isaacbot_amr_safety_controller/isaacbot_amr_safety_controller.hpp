@@ -118,8 +118,13 @@ public:
     // SW E-STOP USER BTN - sw_e_stop_user_button
     void eStopUserBtnTrigger(const bool state);
 
-    // SW E-STOP MOTOR DRIVER FAULT - sw_e_stop_motor_driver_fault
+    // SW E-STOP MOTOR DRIVER FAULT - sw_e_stop_motor_driver_fault. `false` also cancels a
+    // requestMotorDriverFault() that has not been written yet.
     void eStopMotorDriverFaultTrigger(const bool state);
+
+    // Asks for eStopMotorDriverFaultTrigger(true) from the RT thread: only sets a flag, which the
+    // IO poll thread turns into the coil write on its next cycle.
+    void requestMotorDriverFault();
 
     // SW E-STOP LATCH RESET - sw_e_stop_latch_reset
     void eStopLatchReset();
@@ -182,6 +187,18 @@ private:
     std::atomic_uint64_t poll_error_count_ {0};
     std::atomic_bool wdg_thread_running_ {false};
     std::atomic_bool poll_thread_running_ {false};
+
+    // Pending requestMotorDriverFault(), written by the poll thread. motor_driver_fault_mtx_
+    // orders that write against a release, so a release can never be overtaken by a request
+    // that was already pending and set the latch again.
+    std::atomic_bool motor_driver_fault_requested_ {false};
+    std::mutex motor_driver_fault_mtx_;
+
+    // Writes the motor-driver-fault coil. Caller holds motor_driver_fault_mtx_.
+    void writeMotorDriverFaultCoil(const bool state);
+
+    // Poll-thread side of requestMotorDriverFault().
+    void applyRequestedMotorDriverFault();
 };
 
 class IsaacbotSafetyController
@@ -207,8 +224,13 @@ public:
     // SW E-STOP USER BTN - sw_e_stop_user_button
     void eStopUserBtnTrigger(const bool state);
 
-    // SW E-STOP MOTOR DRIVER FAULT - sw_e_stop_motor_driver_fault
+    // SW E-STOP MOTOR DRIVER FAULT - sw_e_stop_motor_driver_fault. `false` also cancels a
+    // requestMotorDriverFault() that has not been written yet.
     void eStopMotorDriverFaultTrigger(const bool state);
+
+    // Asks for eStopMotorDriverFaultTrigger(true) from the RT thread: only sets a flag, which the
+    // IO poll thread turns into the coil write on its next cycle.
+    void requestMotorDriverFault();
 
     // SW E-STOP LATCH RESET - sw_e_stop_latch_reset
     void eStopLatchReset();

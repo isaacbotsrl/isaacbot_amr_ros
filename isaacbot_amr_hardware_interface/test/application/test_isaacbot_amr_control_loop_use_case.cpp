@@ -381,4 +381,87 @@ TEST_F(ContactorPlausibilityTest, ResetContactorFaultClearsTheLatch)
     EXPECT_FALSE(use_case.isHardwareFaultLatched());
 }
 
+// --- Wheel runaway ----------------------------------------------------------------------------
+//
+// A DCC1020 whose encoder counts against its motor ran its wheel at full speed against a zero
+// command (Ardennes front left, 2026-10-25). Zeros cannot stop that, so a latched runaway must
+// both inhibit motion and ask the relay to cut motor power.
+
+class WheelRunawayTest : public ::testing::Test
+{
+protected:
+    std::shared_ptr<FakeIsaacbotDriver> driver = std::make_shared<FakeIsaacbotDriver>();
+    std::shared_ptr<FakeEmergencyStop> e_stop = std::make_shared<FakeEmergencyStop>();
+    IsaacbotErrorFilter error_filter{1, 1, 1, 1, 1};
+    IsaacbotControlLoopUseCase use_case{driver, e_stop, error_filter};
+
+    std::chrono::steady_clock::time_point t0 {};
+
+    const std::vector<float> targets {0.0f, 0.0f, 0.0f, 0.0f};
+    const std::vector<double> runaway {-13.0, 0.0, 0.0, 0.0};
+
+    // Feeds the same observation every 20 ms over [from, to]; returns whether any cycle latched.
+    bool feed(const std::vector<double> & measured, const int from_ms, const int to_ms)
+    {
+        bool latched = false;
+        for (int t = from_ms; t <= to_ms; t += 20) {
+            latched = use_case.updateWheelRunaway(targets, measured, t0 + std::chrono::milliseconds(t)) || latched;
+        }
+        return latched;
+    }
+};
+
+TEST_F(WheelRunawayTest, LatchedRunawayInhibitsMotionAndRequestsThePowerCut)
+{
+    ASSERT_TRUE(feed(runaway, 0, 400));
+
+    EXPECT_TRUE(use_case.isRunawayFaultLatched());
+    EXPECT_TRUE(use_case.isHardwareFaultLatched());
+    EXPECT_EQ(e_stop->request_motor_driver_fault_calls, 1u);
+    EXPECT_EQ(use_case.runawayMonitor().latchedWheel(), 0);
+    EXPECT_EQ(
+        IsaacbotControlLoopUseCase::decideWriteCommand(true, false, false, use_case.isHardwareFaultLatched()),
+        WriteCommandMode::kCommandZero);
+}
+
+TEST_F(WheelRunawayTest, RequestsThePowerCutOnlyOnce)
+{
+    ASSERT_TRUE(feed(runaway, 0, 400));
+    EXPECT_FALSE(feed(runaway, 420, 2000));
+
+    EXPECT_EQ(e_stop->request_motor_driver_fault_calls, 1u);
+}
+
+TEST_F(WheelRunawayTest, NotEvaluatedWhileTheContactorIsOpen)
+{
+    e_stop->contactor_engaged = false;
+
+    EXPECT_FALSE(feed(runaway, 0, 2000));
+    EXPECT_FALSE(use_case.isRunawayFaultLatched());
+    EXPECT_EQ(e_stop->request_motor_driver_fault_calls, 0u);
+}
+
+TEST_F(WheelRunawayTest, EvaluatedWithoutAnEStopPort)
+{
+    IsaacbotControlLoopUseCase no_e_stop{driver, nullptr, error_filter};
+
+    bool latched = false;
+    for (int t = 0; t <= 400; t += 20) {
+        latched = no_e_stop.updateWheelRunaway(targets, runaway, t0 + std::chrono::milliseconds(t)) || latched;
+    }
+
+    EXPECT_TRUE(latched);
+    EXPECT_TRUE(no_e_stop.isHardwareFaultLatched());
+}
+
+TEST_F(WheelRunawayTest, ResetRunawayFaultClearsTheLatch)
+{
+    ASSERT_TRUE(feed(runaway, 0, 400));
+
+    use_case.resetRunawayFault();
+
+    EXPECT_FALSE(use_case.isRunawayFaultLatched());
+    EXPECT_FALSE(use_case.isHardwareFaultLatched());
+}
+
 }  // namespace isaacbot_amr_hardware_interface

@@ -101,6 +101,7 @@ void EmergencyStop::resetEStopLatch()
     std::lock_guard<std::mutex> e_stop_lck(e_stop_manipulation_mtx_);
 
     try {
+        io_->triggerMotorDriverFault(false);
         io_->resetLatch();
     } catch (const std::exception & e) {
         // Widened from std::runtime_error: see setEStop() above.
@@ -115,6 +116,11 @@ void EmergencyStop::releaseStartupTriggers()
     std::lock_guard<std::mutex> e_stop_lck(e_stop_manipulation_mtx_);
     io_->triggerUserButton(false);
     io_->triggerMotorDriverFault(false);
+}
+
+void EmergencyStop::requestMotorDriverFault()
+{
+    io_->requestMotorDriverFault();
 }
 
 }  // namespace isaacbot_amr_hardware_interface

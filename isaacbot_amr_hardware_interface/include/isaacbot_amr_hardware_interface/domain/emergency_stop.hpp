@@ -48,6 +48,11 @@ public:
     // input; like triggerUserButton(), `true` asserts it.
     virtual void triggerMotorDriverFault(const bool state) = 0;
 
+    // Asks for triggerMotorDriverFault(true) without performing it: RT-safe, never blocks. The
+    // adapter writes it from a non-RT thread; a later triggerMotorDriverFault(false) cancels a
+    // request that has not been written yet.
+    virtual void requestMotorDriverFault() = 0;
+
     virtual void resetLatch() = 0;
 };
 
@@ -73,6 +78,11 @@ public:
     virtual void resetEStopLatch() = 0;
 
     virtual void releaseStartupTriggers() = 0;
+
+    // Asserts the relay's motor-driver-fault input, which latches the E-Stop and opens the motor
+    // contactor. RT-safe (see EmergencyStopIoPort::requestMotorDriverFault()); for faults that a
+    // zero command cannot stop, such as a runaway on-board velocity loop.
+    virtual void requestMotorDriverFault() = 0;
 };
 
 // Owns the "can't clear the E-Stop while the isaacbot is still being commanded to move" safety
@@ -99,6 +109,8 @@ public:
 
     void resetEStop() override;
 
+    // Releases the motor-driver-fault input before pulsing the reset: the relay latch is
+    // set-dominant, so a still-asserted fault input would set it again at once.
     void resetEStopLatch() override;
 
     // Configure-time only: called once from IsaacbotSystem::configureIsaacbotController(), right after
@@ -114,6 +126,9 @@ public:
     // Port exceptions propagate unwrapped (unlike setEStop()/resetEStop()), so a failed write
     // reaches on_configure()'s log with the port's own message.
     void releaseStartupTriggers() override;
+
+    // Lock-free, unlike the other writers: it is called from the RT read() cycle.
+    void requestMotorDriverFault() override;
 
 protected:
 

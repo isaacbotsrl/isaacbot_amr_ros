@@ -51,6 +51,11 @@ void IsaacbotSafetyControllerEStopIo::triggerMotorDriverFault(const bool state)
     isaacbot_amr_controller_->eStopMotorDriverFaultTrigger(state);
 }
 
+void IsaacbotSafetyControllerEStopIo::requestMotorDriverFault()
+{
+    isaacbot_amr_controller_->requestMotorDriverFault();
+}
+
 void IsaacbotSafetyControllerEStopIo::resetLatch()
 {
     isaacbot_amr_controller_->eStopLatchReset();

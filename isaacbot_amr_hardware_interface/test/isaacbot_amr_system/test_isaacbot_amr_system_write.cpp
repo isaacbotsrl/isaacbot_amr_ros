@@ -38,6 +38,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -463,6 +464,41 @@ TEST_F(IsaacbotSystemWriteTest, AllowsEStopResetOnlyWhenBothCommandsAndWheelsAre
     EXPECT_TRUE(system_.eStopResetWouldBeAllowed());
 }
 
+// A wheel driving itself against a zero command (the Ardennes front-left encoder-polarity fault)
+// must latch, ask the relay to cut motor power once, send zeros, and say so in /diagnostics. The
+// monitor runs on steady_clock, so this reads until it latches, bounded by a deadline.
+TEST_F(IsaacbotSystemWriteTest, WheelRunawayCutsPowerSendsZerosAndIsDiagnosed)
+{
+    setActive();
+    system_.setControllerCommand(0.0);
+    write();
+    system_.setMeasuredVelocity(5.0);
+
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+    std::int64_t ms = 0;
+    while (system_.fakeEStop()->request_motor_driver_fault_calls == 0 &&
+        std::chrono::steady_clock::now() < deadline)
+    {
+        readAtMs(ms += 20);
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    }
+
+    ASSERT_EQ(system_.fakeEStop()->request_motor_driver_fault_calls, 1u);
+
+    driver_->sent_speed_cmds.clear();
+    system_.setControllerCommand(1.0);
+    write();
+    ASSERT_FALSE(driver_->sent_speed_cmds.empty());
+    for (const float cmd : driver_->sent_speed_cmds.back()) {
+        EXPECT_EQ(cmd, 0.0f);
+    }
+
+    diagnostic_updater::DiagnosticStatusWrapper status;
+    system_.runSafetyLinkDiagnostic(status);
+    EXPECT_EQ(status.level, diagnostic_updater::DiagnosticStatusWrapper::ERROR);
+    EXPECT_EQ(status.message, "Wheel runaway on fl - motor power cut, reset the E-Stop latch to clear");
+}
+
 TEST_F(IsaacbotSystemWriteTest, NonFiniteMeasuredVelocityFailsSafe)
 {
     system_.setControllerCommand(0.0);
@@ -477,7 +513,7 @@ TEST_F(IsaacbotSystemWriteTest, NonFiniteMeasuredVelocityFailsSafe)
 // --- "safety plc link" diagnostic ----------------------------------------------------------
 //
 // The verdict itself is covered by test/domain/test_safety_link_diagnosis.cpp. These check the
-// callback around it: the nine key/values in their order and formatting, and the severity mapped
+// callback around it: the ten key/values in their order and formatting, and the severity mapped
 // onto the DiagnosticStatus level.
 
 TEST_F(IsaacbotSystemWriteTest, SafetyLinkDiagnosticSummarisesAHealthyLinkAsOk)
@@ -504,6 +540,7 @@ TEST_F(IsaacbotSystemWriteTest, SafetyLinkDiagnosticSummarisesAHealthyLinkAsOk)
         {"Last IO poll age (ms)", "40"},
         {"Contactor fault latched", "False"},
         {"Contactor failed open", "False"},
+        {"Wheel runaway latched", "False"},
     };
 
     ASSERT_EQ(status.values.size(), expected.size());

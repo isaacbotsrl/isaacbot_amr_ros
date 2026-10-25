@@ -32,7 +32,7 @@ struct FakeIoError : std::exception
     const char * what() const noexcept override { return "fake IO error"; }
 };
 
-enum class PortWrite { kUserButton, kMotorDriverFault };
+enum class PortWrite { kUserButton, kMotorDriverFault, kLatchReset };
 
 class FakeEmergencyStopIo : public EmergencyStopIoPort
 {
@@ -65,9 +65,15 @@ public:
         write_log.emplace_back(PortWrite::kMotorDriverFault, state);
     }
 
+    void requestMotorDriverFault() override
+    {
+        request_motor_driver_fault_calls++;
+    }
+
     void resetLatch() override
     {
         reset_latch_calls++;
+        write_log.emplace_back(PortWrite::kLatchReset, true);
         latch_active = false;
     }
 
@@ -76,6 +82,7 @@ public:
     bool contactor_engaged = true;
     std::vector<bool> trigger_user_button_calls;
     unsigned reset_latch_calls = 0;
+    unsigned request_motor_driver_fault_calls = 0;
     // Both triggers, in call order.
     std::vector<std::pair<PortWrite, bool>> write_log;
     bool throw_on_user_button = false;
@@ -152,6 +159,40 @@ TEST_F(EmergencyStopTest, ResetEStopLatchResetsThePort)
     e_stop->resetEStopLatch();
 
     EXPECT_EQ(io->reset_latch_calls, 1u);
+}
+
+// The relay latch is set-dominant: a motor-driver-fault input still asserted (by the runaway
+// guard) would set it again the moment the reset pulse ends.
+TEST_F(EmergencyStopTest, ResetEStopLatchReleasesTheMotorDriverFaultFirst)
+{
+    makeEStop([]() { return true; });
+
+    e_stop->resetEStopLatch();
+
+    const std::vector<std::pair<PortWrite, bool>> expected = {
+        {PortWrite::kMotorDriverFault, false},
+        {PortWrite::kLatchReset, true},
+    };
+    EXPECT_EQ(io->write_log, expected);
+}
+
+TEST_F(EmergencyStopTest, ResetEStopLatchWrapsAFailedRelease)
+{
+    makeEStop([]() { return true; });
+    io->throw_on_motor_driver_fault = true;
+
+    EXPECT_THROW(e_stop->resetEStopLatch(), std::runtime_error);
+    EXPECT_EQ(io->reset_latch_calls, 0u);
+}
+
+TEST_F(EmergencyStopTest, RequestMotorDriverFaultPassesThroughWithoutWriting)
+{
+    makeEStop([]() { return true; });
+
+    e_stop->requestMotorDriverFault();
+
+    EXPECT_EQ(io->request_motor_driver_fault_calls, 1u);
+    EXPECT_TRUE(io->write_log.empty());
 }
 
 // --- releaseStartupTriggers(): configure-time release of both software E-Stop inputs ---------

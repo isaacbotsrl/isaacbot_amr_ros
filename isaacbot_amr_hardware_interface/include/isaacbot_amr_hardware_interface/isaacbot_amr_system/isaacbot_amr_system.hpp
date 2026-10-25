@@ -164,6 +164,10 @@ protected:
 
     void updateContactorPlausibility();
 
+    // Feeds IsaacbotControlLoopUseCase's wheel-runaway check with what write() last sent
+    // (speed_cmd_buffer_) and the measured velocities; logs once when it latches.
+    void updateWheelRunaway();
+
     double readPositiveToleranceParam(
         const std::string & key, const double default_value) const;
 

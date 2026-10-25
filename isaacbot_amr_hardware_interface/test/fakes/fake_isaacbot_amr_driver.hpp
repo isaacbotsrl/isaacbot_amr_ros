@@ -95,11 +95,13 @@ public:
     void resetEStop() override {}
     void resetEStopLatch() override {}
     void releaseStartupTriggers() override { ++release_startup_triggers_calls; }
+    void requestMotorDriverFault() override { ++request_motor_driver_fault_calls; }
 
     bool user_e_stop_triggered = false;
     bool latch_active = false;
     bool contactor_engaged = true;
     unsigned release_startup_triggers_calls = 0;
+    unsigned request_motor_driver_fault_calls = 0;
 };
 
 }  // namespace isaacbot_amr_hardware_interface

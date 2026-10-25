@@ -239,8 +239,46 @@ void ContactCoilHandler::eStopUserBtnTrigger(const bool state)
 // SW E-STOP MOTOR DRIVER FAULT - sw_e_stop_motor_driver_fault
 void ContactCoilHandler::eStopMotorDriverFaultTrigger(const bool state)
 {
+    std::lock_guard<std::mutex> fault_lck(motor_driver_fault_mtx_);
+
+    if (!state) {
+        motor_driver_fault_requested_ = false;
+    }
+
+    writeMotorDriverFaultCoil(state);
+}
+
+void ContactCoilHandler::requestMotorDriverFault()
+{
+    motor_driver_fault_requested_ = true;
+}
+
+void ContactCoilHandler::writeMotorDriverFaultCoil(const bool state)
+{
     ModbusLinkGuard lck(modbus_link_, true);
     isaacbot_amr_modbus_->writeDiscreteCoil(coils_config_info_storage_[kEStopMotorDriverFaultCoilIdx].coil_info, state);
+}
+
+void ContactCoilHandler::applyRequestedMotorDriverFault()
+{
+    if (!motor_driver_fault_requested_.load()) {
+        return;
+    }
+
+    std::lock_guard<std::mutex> fault_lck(motor_driver_fault_mtx_);
+
+    // Re-checked under the lock: a release may have cancelled it in the meantime.
+    if (!motor_driver_fault_requested_.exchange(false)) {
+        return;
+    }
+
+    try {
+        writeMotorDriverFaultCoil(true);
+    } catch (...) {
+        // Not written - keep it pending, so the next poll cycle tries again.
+        motor_driver_fault_requested_ = true;
+        throw;
+    }
 }
 
 // SW E-STOP LATCH RESET - sw_e_stop_latch_reset
@@ -483,6 +521,9 @@ void ContactCoilHandler::contactCoilHandlerPollThread()
         next_deadline += period;
 
         try {
+            // First, so a requested stop goes out ahead of this cycle's reads.
+            applyRequestedMotorDriverFault();
+
             // Built outside io_state_mtx_ so that lock is only ever held for the swap below,
             // never across the Modbus reads.
             auto fresh_io_state = queryControlInterfaceIOStates();
@@ -555,6 +596,15 @@ void IsaacbotSafetyController::eStopMotorDriverFaultTrigger(const bool state)
     }
 
     contactCoilHandler_->eStopMotorDriverFaultTrigger(state);
+}
+
+void IsaacbotSafetyController::requestMotorDriverFault()
+{
+    if (!contactCoilHandler_ || !contactCoilHandler_->isContactCoilHandlerEnabled()) {
+        return;
+    }
+
+    contactCoilHandler_->requestMotorDriverFault();
 }
 
 // SW E-STOP LATCH RESET - sw_e_stop_latch_reset

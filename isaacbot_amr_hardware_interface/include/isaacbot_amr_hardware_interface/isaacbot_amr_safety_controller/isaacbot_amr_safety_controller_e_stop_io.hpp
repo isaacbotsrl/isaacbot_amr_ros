@@ -42,6 +42,8 @@ public:
 
     void triggerMotorDriverFault(const bool state) override;
 
+    void requestMotorDriverFault() override;
+
     void resetLatch() override;
 
 private:

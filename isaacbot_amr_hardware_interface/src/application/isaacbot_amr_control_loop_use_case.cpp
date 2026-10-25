@@ -88,9 +88,34 @@ bool IsaacbotControlLoopUseCase::isContactorFaultLatched() const
     return contactor_monitor_.isWeldedFaultLatched();
 }
 
+bool IsaacbotControlLoopUseCase::updateWheelRunaway(
+    const std::vector<float> & targets, const std::vector<double> & measured,
+    const std::chrono::steady_clock::time_point now)
+{
+    // The contactor's aux contact, not the latch: a welded contactor keeps the motors live under
+    // an asserted latch. With no E-Stop port there is no power reading, so the monitor runs - the
+    // cautious direction for a check whose only cost is a false stop.
+    const bool motors_powered = !e_stop_ || e_stop_->readContactorEngagedState();
+
+    if (!runaway_monitor_.update(targets, measured, motors_powered, now)) {
+        return false;
+    }
+
+    if (e_stop_) {
+        e_stop_->requestMotorDriverFault();
+    }
+
+    return true;
+}
+
+bool IsaacbotControlLoopUseCase::isRunawayFaultLatched() const
+{
+    return runaway_monitor_.isLatched();
+}
+
 bool IsaacbotControlLoopUseCase::isHardwareFaultLatched() const
 {
-    return isMotorFailsafeLatched() || isContactorFaultLatched();
+    return isMotorFailsafeLatched() || isContactorFaultLatched() || isRunawayFaultLatched();
 }
 
 void IsaacbotControlLoopUseCase::resetContactorFault()
@@ -101,6 +126,16 @@ void IsaacbotControlLoopUseCase::resetContactorFault()
 const ContactorMonitor & IsaacbotControlLoopUseCase::contactorMonitor() const
 {
     return contactor_monitor_;
+}
+
+void IsaacbotControlLoopUseCase::resetRunawayFault()
+{
+    runaway_monitor_.reset();
+}
+
+const WheelRunawayMonitor & IsaacbotControlLoopUseCase::runawayMonitor() const
+{
+    return runaway_monitor_;
 }
 
 bool IsaacbotControlLoopUseCase::updateEStopActiveState()

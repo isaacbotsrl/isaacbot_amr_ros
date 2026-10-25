@@ -23,11 +23,13 @@
 #include <mutex>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include "isaacbot_amr_hardware_interface/domain/contactor_monitor.hpp"
 #include "isaacbot_amr_hardware_interface/domain/emergency_stop.hpp"
 #include "isaacbot_amr_hardware_interface/domain/isaacbot_amr_driver.hpp"
 #include "isaacbot_amr_hardware_interface/domain/isaacbot_amr_error_filter.hpp"
+#include "isaacbot_amr_hardware_interface/domain/wheel_runaway_monitor.hpp"
 
 namespace isaacbot_amr_hardware_interface
 {
@@ -137,6 +139,18 @@ public:
     // E-Stop flag itself.
     bool isContactorFaultLatched() const;
 
+    // Feeds the wheel-runaway monitor with what write() last sent to each wheel (`targets`) and
+    // the velocities read back (`measured`), and returns true on the cycle a runaway latches. On
+    // that cycle it also asks the E-Stop port for the motor-driver-fault stop: a runaway on-board
+    // loop ignores a zero command, so only opening the contactor stops it. Evaluated only while
+    // the contactor reports engaged. Call every read() cycle; RT-safe.
+    bool updateWheelRunaway(
+        const std::vector<float> & targets, const std::vector<double> & measured,
+        const std::chrono::steady_clock::time_point now);
+
+    // Whether a wheel runaway has been latched. Same shape as isContactorFaultLatched().
+    bool isRunawayFaultLatched() const;
+
     // Every latched hardware fault that must inhibit motion, OR-ed. This is what write() passes
     // to decideWriteCommand().
     bool isHardwareFaultLatched() const;
@@ -146,6 +160,11 @@ public:
     void resetContactorFault();
 
     const ContactorMonitor & contactorMonitor() const;
+
+    // Clears the latched runaway. Wired to the latch-reset service, like resetContactorFault().
+    void resetRunawayFault();
+
+    const WheelRunawayMonitor & runawayMonitor() const;
 
     // Recomputes and returns whether the E-Stop (user-triggered or latched) is currently active.
     // Fail-safe: returns true when no EmergencyStopInterface was configured.
@@ -203,6 +222,8 @@ private:
     IsaacbotErrorFilter & error_filter_;
 
     ContactorMonitor contactor_monitor_;
+
+    WheelRunawayMonitor runaway_monitor_;
 
     // Serializes calls to performWriteOperation() - the same single mutex write() (speed command)
     // and updateFaultFlagStatus() (error-flag reset) shared before this extraction, so the two

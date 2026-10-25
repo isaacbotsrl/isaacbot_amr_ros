@@ -431,6 +431,7 @@ return_type IsaacbotSystem::read(const rclcpp::Time & time, const rclcpp::Durati
 
     updateEStopState();
     updateContactorPlausibility();
+    updateWheelRunaway();
 
     return return_type::OK;
 }
@@ -824,6 +825,10 @@ void IsaacbotSystem::resetEStopLatch()
     // the very next read() cycle re-latches it, so this cannot hand back a false all-clear.
     control_loop_use_case_->resetContactorFault();
 
+    // Same signal again: the runaway latch is cleared by the operator, never by itself. The
+    // motor-driver-fault input it asserted was already released by e_stop_->resetEStopLatch().
+    control_loop_use_case_->resetRunawayFault();
+
     // This service callback runs on a non-RT, MutuallyExclusive callback-group thread (never the
     // RT read()/write() path - see check_rt_path_purity.sh), so the blocking Phidget SDK calls
     // inside resetFailsafe() are safe here. A single sw_e_stop_latch_reset call both clears the
@@ -1107,6 +1112,23 @@ void IsaacbotSystem::diagnoseSafetyLink(diagnostic_updater::DiagnosticStatusWrap
     status.add("Contactor fault latched", contactor_fault);
     status.add("Contactor failed open", contactor_failed_open);
 
+    const auto & runaway = control_loop_use_case_->runawayMonitor();
+    status.add("Wheel runaway latched", runaway.isLatched());
+
+    if (runaway.isLatched()) {
+        const int wheel = runaway.latchedWheel();
+        const std::string wheel_name =
+            (wheel >= 0 && static_cast<std::size_t>(wheel) < joint_order_.size()) ? joint_order_[wheel] : "?";
+        status.add("Runaway wheel", wheel_name);
+        status.add("Runaway target (rad/s)", runaway.latchedTarget());
+        status.add("Runaway measured (rad/s)", runaway.latchedMeasured());
+        // Above everything evaluateSafetyLinkHealth() ranks: motor power has been cut on purpose.
+        status.summary(
+            diagnostic_msgs::msg::DiagnosticStatus::ERROR,
+            "Wheel runaway on " + wheel_name + " - motor power cut, reset the E-Stop latch to clear");
+        return;
+    }
+
     const auto d = evaluateSafetyLinkHealth(health, contactor_fault, contactor_failed_open);
     status.summary(toDiagnosticLevel(d.severity), d.message);
 }
@@ -1136,6 +1158,29 @@ void IsaacbotSystem::updateContactorPlausibility()
             "Motor contactor reports open while the E-Stop latch is clear - the isaacbot will not "
             "drive. Check the contactor and its supply.");
     }
+}
+
+// steady_clock for the same reason as updateContactorPlausibility(): the hold time is a hardware
+// deadline. Logged once, on the latching cycle - a rare event, like the contactor fault above.
+void IsaacbotSystem::updateWheelRunaway()
+{
+    if (!control_loop_use_case_->updateWheelRunaway(
+            speed_cmd_buffer_, hw_states_velocities_, std::chrono::steady_clock::now()))
+    {
+        return;
+    }
+
+    const auto & runaway = control_loop_use_case_->runawayMonitor();
+    const int wheel = runaway.latchedWheel();
+    const char * wheel_name =
+        (wheel >= 0 && static_cast<std::size_t>(wheel) < joint_order_.size()) ? joint_order_[wheel].c_str() : "?";
+
+    RCLCPP_ERROR(
+        logger_,
+        "Wheel runaway on %s: measured %.2f rad/s against a commanded %.2f rad/s, not converging. "
+        "Motor-driver-fault E-Stop asserted - the contactor opens. Check that wheel's motor and "
+        "encoder polarity, then call hardware_interface/sw_e_stop_latch_reset.",
+        wheel_name, runaway.latchedMeasured(), runaway.latchedTarget());
 }
 
 void IsaacbotSystem::handleIsaacbotDriverWriteOperation(std::function<void()> write_operation)

@@ -69,7 +69,7 @@ The hardware interface talks to the safety PLC over Modbus TCP at `192.168.88.11
 | `motor_contactor_engaged` | `COIL_0` | PLC to ROS | Contactor aux contact: contacts closed |
 | `cpu_wdg_heartbeat` | `COIL_1` | ROS to PLC | Watchdog heartbeat (toggled) |
 | `sw_e_stop_user_button` | `COIL_2` | ROS to PLC | Software user E-Stop (SET input) |
-| `sw_e_stop_motor_driver_fault` | `COIL_3` | ROS to PLC | Software motor-driver fault (SET input) |
+| `sw_e_stop_motor_driver_fault` | `COIL_3` | ROS to PLC | Software motor-driver fault (SET input). Asserted by the wheel runaway guard, written from the IO poll thread |
 | `sw_e_stop_latch_reset` | `COIL_4` | ROS to PLC (pulse) | Latch reset |
 | `sw_e_stop_latch_status` | `COIL_5` | PLC to ROS | Latch active |
 
@@ -102,7 +102,7 @@ The hardware interface node `isaacbot_amr_hardware_controller` offers three `std
 |---|---|---|
 | `hardware_interface/sw_user_e_stop_set` | Asserts the SW user E-Stop (`COIL_2`), which trips the latch | Modbus write fails |
 | `hardware_interface/sw_user_e_stop_reset` | Releases the SW user E-Stop | Hardware interface not ACTIVE; any wheel velocity command above `velocity_command_zero_tolerance` (0.4 rad/s); any measured wheel velocity above `velocity_state_zero_tolerance` (0.05 rad/s) |
-| `hardware_interface/sw_e_stop_latch_reset` | Pulses `COIL_4` for `safety_latch_reset_pulse_ms` (100 ms). Also clears latched motor-failsafe, DCC1020 E-Stop / stall / energy-dump / motor-setup (open circuit at init, e.g. the contactor was open when the channel opened) and welded-contactor faults: it re-opens each motor channel, re-arms its watchdog and engages it again | Hardware interface not ACTIVE |
+| `hardware_interface/sw_e_stop_latch_reset` | Pulses `COIL_4` for `safety_latch_reset_pulse_ms` (100 ms). Also clears latched motor-failsafe, DCC1020 E-Stop / stall / energy-dump / motor-setup (open circuit at init, e.g. the contactor was open when the channel opened), wheel-runaway and welded-contactor faults; releases `sw_e_stop_motor_driver_fault` before the pulse: it re-opens each motor channel, re-arms its watchdog and engages it again | Hardware interface not ACTIVE |
 
 Source: `isaacbot_amr_hardware_interface/src/isaacbot_amr_system/isaacbot_amr_system.cpp` (`resetEStop()`, `resetEStopLatch()`, `areVelocityCommandsNearZero()`), `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro`.
 
@@ -156,7 +156,7 @@ Source: `isaacbot_amr_safety/include/isaacbot_amr_safety/domain/battery_safety_p
 
 ## Motion gates
 
-Five independent gates stand between a velocity command and a turning wheel, from the wire inwards:
+Six independent gates stand between a velocity command and a turning wheel, from the wire inwards:
 
 | # | Gate | Where | Behaviour |
 |---|---|---|---|
@@ -164,11 +164,12 @@ Five independent gates stand between a velocity command and a turning wheel, fro
 | 2 | Motion lock | `isaacbot_amr_twist_mux` / `isaacbot_amr_motion_lock_node` | Publishes `motion_lock` (`std_msgs/Bool`) at 10 Hz. `twist_mux` lock priority 200 masks every input. Locked before the first message, when either safety topic is older than `gpio_timeout` (1.0 s), when `link_healthy` is false, or when any enabled stop condition is active. A stale lock (0.5 s) also counts as locked. |
 | 3 | Hardware interface `write()` | `isaacbot_amr_hardware_interface` | On any E-Stop or latched hardware fault it sends **zeros** to the motor drivers rather than going silent, so the drivers' own failsafe (`motor_failsafe_timeout_ms`, 500 ms) keeps being fed. The zeros go through each motor's command worker, so a stalled RT loop still starves the watchdog and trips it. |
 | 4 | Contactor plausibility check | `ContactorMonitor` | Latch active and contactor still engaged for more than 500 ms is a latched, fatal "welded contactor" fault. Cleared only by `sw_e_stop_latch_reset`. |
-| 5 | `IsMotionLocked` BT condition | Navigation stack (another repo) | Aborts a navigation tree rather than driving into a closed mux. |
+| 5 | Wheel runaway guard | `WheelRunawayMonitor` | While the contactor is engaged, a wheel faster than its last command (or the wrong way) by more than max(1.0 rad/s, 50 % of the command) for 300 ms, without converging, latches a fault: `write()` sends zeros, and `sw_e_stop_motor_driver_fault` is asserted so the relay opens the contactor. Zeros alone cannot stop it - a DCC1020 whose encoder counts against its motor runs its own velocity loop into full speed. Cleared only by `sw_e_stop_latch_reset`, which also releases `sw_e_stop_motor_driver_fault`. |
+| 6 | `IsMotionLocked` BT condition | Navigation stack (another repo) | Aborts a navigation tree rather than driving into a closed mux. |
 
 Stop conditions enabled in the motion lock: HW E-Stop button, SW user E-Stop, SW motor-driver fault, latch status. `require_motor_contactor_engaged` is off (unverified on hardware).
 
-Source: `isaacbot_amr_arch/SAFETY_CHAIN.md` §5, `isaacbot_amr_twist_mux/config/isaacbot_amr_motion_lock.yaml`, `isaacbot_amr_twist_mux/config/isaacbot_amr_twist_mux.yaml`, `isaacbot_amr_hardware_interface/include/isaacbot_amr_hardware_interface/domain/contactor_monitor.hpp` (`kDefaultContactorDropOutToleranceMs`), `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro`.
+Source: `isaacbot_amr_arch/SAFETY_CHAIN.md` §5, `isaacbot_amr_twist_mux/config/isaacbot_amr_motion_lock.yaml`, `isaacbot_amr_twist_mux/config/isaacbot_amr_twist_mux.yaml`, `isaacbot_amr_hardware_interface/include/isaacbot_amr_hardware_interface/domain/contactor_monitor.hpp` (`kDefaultContactorDropOutToleranceMs`), `isaacbot_amr_hardware_interface/include/isaacbot_amr_hardware_interface/domain/wheel_runaway_monitor.hpp` (`WheelRunawaySettings`), `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro`.
 
 !!! note
     With no hardware interface running there is no safety state, so the motion lock stays closed and the isaacbot accepts no velocity commands. This is intended.
