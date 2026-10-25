@@ -263,13 +263,8 @@
                rescaled to motor-shaft RPM, so velocities are motor RPM and accelerations RPM/s.
                Every one of these is optional: omitted, the board keeps its own default and the
                driver logs the value it runs with at configure ("Motor hub port N ... Kp=..."),
-               which is the starting point for tuning. TBD - tune on the robot (Phidgets
-               Velocity Controller Tuning Guide) and record the source of each value here.
-          <param name="velocity_kp">TBD</param>
-          <param name="velocity_ki">TBD</param>
-          <param name="velocity_kd">TBD</param>
-               Zero-target band in which the controller lets go instead of holding the wheel:
-          <param name="velocity_deadband_rpm">TBD</param>
+               which is the starting point for tuning. The tuned gains are set below this
+               block; the rest are still TBD.
                Trapezoidal-profile acceleration limit. diff_drive / Nav 2 acceleration limits
                (1.4 m/s^2, 1.3 rad/s^2) were measured with the DCC1000 ramp and must be
                re-measured once this is set:
@@ -292,6 +287,20 @@
                5. Port 4 is ~1.8x the others (and reports a 5 A board-default surge limit against
                15 A on the rest) - TBD: check its motor and wiring, then revisit this value. -->
           <param name="motor_inductance">0.000575</param>
+
+          <!-- DCC1020 on-board velocity loop gains (motor RPM units). Tuned on 2026-10-25 with the
+               wheels lifted, by 0.05 / 0.2 / 0.5 m/s velocity steps on joint_states. The board
+               defaults (Kp 0.00683, Ki 0.0683) left a 0.5-0.8 rad/s wheel oscillation that kept
+               going at a zero target once the wheels had moved (backlash limit cycle); halving Ki
+               did nothing, Kp was the cause. With these: steady-state error < 0.7 %, overshoot
+               4-17 %, ripple ~0.1 rad/s at 0.2 m/s and ~8 % of target at 0.5 m/s, wheels still at
+               rest after a stop. Rear left (hub port 4) ripples most in every test. Not yet
+               checked under load on the ground. -->
+          <param name="velocity_kp">0.0017</param>
+          <param name="velocity_ki">0.0341</param>
+          <param name="velocity_kd">0</param>
+          <!-- Zero-target band in which the controller lets go instead of holding the wheel. -->
+          <param name="velocity_deadband_rpm">5</param>
 
           <!-- Motor parameters -->
           <param name="motor_torque_constant">0.11</param>
