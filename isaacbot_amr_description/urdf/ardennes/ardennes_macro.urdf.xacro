@@ -263,12 +263,8 @@
                rescaled to motor-shaft RPM, so velocities are motor RPM and accelerations RPM/s.
                Every one of these is optional: omitted, the board keeps its own default and the
                driver logs the value it runs with at configure ("Motor hub port N ... Kp=..."),
-               which is the starting point for tuning. The tuned gains are set below this
-               block; the rest are still TBD.
-               Trapezoidal-profile acceleration limit. diff_drive / Nav 2 acceleration limits
-               (1.4 m/s^2, 1.3 rad/s^2) were measured with the DCC1000 ramp and must be
-               re-measured once this is set:
-          <param name="motor_acceleration_rpm_s">TBD</param>
+               which is the starting point for tuning. The tuned gains and the acceleration
+               ramp are set below this block; the rest are still TBD.
                Current allowed above motor_current_limit for ~1 s (>= motor_current_limit):
           <param name="motor_surge_current_limit">TBD</param>
                Dangerous-stall threshold; 0 disables stall protection:
@@ -301,6 +297,15 @@
           <param name="velocity_kd">0</param>
           <!-- Zero-target band in which the controller lets go instead of holding the wheel. -->
           <param name="velocity_deadband_rpm">5</param>
+
+          <!-- On-board trapezoidal ramp, motor RPM/s. 1890 = 1.4 m/s^2 at the wheel
+               (1.4 / 0.1651 * 23.3 * 60 / 2pi), diff_drive's linear limit: the board interpolates
+               between diff_drive's 40 ms (25 Hz) command steps instead of jumping to each one.
+               Set on 2026-10-25 together with diff_drive's jerk limit (wheels lifted, see
+               wheel_01_controller.yaml). It caps each wheel on its own, so an accelerating turn
+               that asks the outer wheel for more than 1.4 m/s^2 (up to ~2.1 m/s^2 at the
+               diff_drive limits) is capped on that wheel - TBD: check turns on the ground. -->
+          <param name="motor_acceleration_rpm_s">1890</param>
 
           <!-- Motor parameters -->
           <param name="motor_torque_constant">0.11</param>
