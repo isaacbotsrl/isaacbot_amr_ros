@@ -279,14 +279,19 @@
                Dangerous-stall threshold; 0 disables stall protection:
           <param name="motor_stall_velocity_rpm">TBD</param>
           <param name="motor_failsafe_current_limit">TBD</param>
-               Skips the inductance measurement (beeps) at every open. Without it the board
-               measures at open, which fails (error 0x1011, latched motor_setup_fault) while the
-               motor contactor is open. Take the value from the "inductance=" configure log
-               line after a successful open; SDK unit:
-          <param name="motor_inductance">TBD</param>
                Velocity feedback interval; omitted = the board's minimum:
           <param name="motor_data_interval_ms">TBD</param>
           -->
+
+          <!-- Motor inductance in H, set when each channel attaches so the DCC1020 skips its motor
+               characterization (the beeps) at every open. Without it the board measures at
+               open, which fails (error 0x1011, latched motor_setup_fault) while the motor
+               contactor is open. Measured by the boards themselves on 2026-10-25, contactor
+               bridged, read from the "inductance=" configure log line: port 0 0.000585, port 1
+               0.000559, port 5 0.000581, port 4 0.001014. 0.000575 is the mean of ports 0, 1 and
+               5. Port 4 is ~1.8x the others (and reports a 5 A board-default surge limit against
+               15 A on the rest) - TBD: check its motor and wiring, then revisit this value. -->
+          <param name="motor_inductance">0.000575</param>
 
           <!-- Motor parameters -->
           <param name="motor_torque_constant">0.11</param>

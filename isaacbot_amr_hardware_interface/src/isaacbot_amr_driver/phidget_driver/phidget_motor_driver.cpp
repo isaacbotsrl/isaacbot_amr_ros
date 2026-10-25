@@ -357,9 +357,14 @@ void PhidgetMotorDriver::openEncoderChannel(const std::uint32_t data_interval_ms
 
         openWaitForAttachment(reinterpret_cast<PhidgetHandle>(encoder_handle_), serial_number_, channel_, false, 0);
 
-        throwOnError(
-            PhidgetEncoder_setIOMode(encoder_handle_, ENCODER_IO_MODE_OPEN_COLLECTOR_10K),
-            "Setting the encoder IO mode", channel_);
+        // The DCC1020 has no selectable encoder IO mode and answers Not Supported; that is not a
+        // reason to give up on the encoder. Any other failure still is.
+        const PhidgetReturnCode io_mode_ret =
+            PhidgetEncoder_setIOMode(encoder_handle_, ENCODER_IO_MODE_OPEN_COLLECTOR_10K);
+
+        if (io_mode_ret != EPHIDGET_UNSUPPORTED) {
+            throwOnError(io_mode_ret, "Setting the encoder IO mode", channel_);
+        }
 
         // Position only needs to be as fresh as the velocity feedback; the encoder could report
         // every 1 ms, which would just be 4 x 1 kHz of callbacks for nothing.
