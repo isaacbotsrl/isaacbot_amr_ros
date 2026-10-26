@@ -169,9 +169,9 @@ def cmd_measure(bridge: Bridge, args) -> int:
 def confirm_cal_en(args) -> None:
     if args.yes:
         return
-    print(f'Calibration drives Arduino D{args.cal_en_pin} HIGH as the MT6835 CAL_EN (chip pin 4).')
-    print('Check on the encoder board that this line really reaches pin 4 (the header label is')
-    print('HVPP, which is not an MT6835 pin name). Wheels lifted, motor power within reach.')
+    print(f'Calibration drives Arduino D{args.cal_en_pin} HIGH as the MT6835 CAL_EN (chip pin 4):')
+    print('on the encoder board that is the HVPP net, JP2 pin 1 (10k pull-down R1).')
+    print('Wheels lifted, motor power within reach.')
     if input('Type CAL_EN to continue: ').strip() != 'CAL_EN':
         raise SystemExit('aborted')
 

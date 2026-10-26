@@ -18,24 +18,28 @@ laptop ──USB── Arduino Uno/Nano ──SPI + CAL_EN── encoder board J
        └─USB── VINT hub ── DCC1020 ── motor (the one carrying that encoder)
 ```
 
-| Arduino | Encoder board | MT6835 pin |
-|---|---|---|
-| D13 (SCK) | CLK | 7 SCK |
-| D12 (MISO) | MISO | 5 MISO |
-| D11 (MOSI) | MOSI | 6 MOSI |
-| D10 | CS | 8 CSN |
-| D7 (any of D2–D9, `--cal-en-pin`) | **CAL_EN** (see below) | 4 CAL_EN |
-| GND | GND | 12 VSS |
+Use the encoder board's **JP2** (7 pins); it carries SPI and CAL_EN. From the board schematic:
+
+| Arduino | JP2 pin | Board net | MT6835 pin |
+|---|---|---|---|
+| D7 (any of D2–D9, `--cal-en-pin`), through ~1 kΩ | 1 | HVPP | 4 CAL_EN |
+| (leave open) | 2 | +5V | 9 VDD |
+| D12 (MISO) | 3 | MISO | 5 MISO |
+| D11 (MOSI) | 4 | MOSI | 6 MOSI |
+| D13 (SCK) | 5 | CLK | 7 SCK |
+| D10 | 6 | CS | 8 CSN |
+| GND | 7 | GND | 12 VSS |
+
+The other headers: JP1 is 1 GND, 2 CS, 3 CLK, 4 MOSI, 5 MISO, 6 +5V. JP3 is 1 +5V, 2 A, 3 B,
+4 Z, 5 U, 6 V, 7 W, 8 GND (the DCC1020 side).
 
 - A 5 V Arduino matches the encoder board's 5 V logic. A 3.3 V board (ESP32, RP2040) needs a
   level shifter.
 - The encoder stays powered from its own 5 V. Don't power it from the Arduino.
-- **CAL_EN:** the header is labelled `HVPP`, which isn't an MT6835 pin name. Before calibrating,
-  check with a meter (or the board schematic) that the line you connect reaches **MT6835 pin 4
-  (CAL_EN)**. When `CAL_EN` is high at power-on, the chip starts calibrating. Make sure it's low
-  (or pulled down) whenever the encoder powers up. The tool drives it low before and after
-  calibrating.
-- The JP1/JP2 pin order on the board is **TBD**. Take it from the board, not from this table.
+- **CAL_EN is the board's `HVPP` net** (JP2 pin 1). The schematic labels U1 pin 4 `HVPP`, and
+  R1 (10 kΩ) pulls it to GND. So CAL_EN is low by default, and the chip can't start calibrating
+  by itself at power-on. Driving it to 5 V draws 0.5 mA through R1. The ~1 kΩ series resistor
+  only protects against a wiring mistake.
 
 ### Software
 
