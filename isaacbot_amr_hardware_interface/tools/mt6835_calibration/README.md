@@ -104,6 +104,24 @@ never sends the Program-EEPROM command (EEPROM endurance is 1000 cycles, §5).
 Afterwards: move the hub back to the rover and repeat the 0.1 / 0.3 m/s cruise test. The rear-left
 ripple should fall from 6–8 % toward the other wheels.
 
+## Without the Arduino: speed-ripple spectrum
+
+`velocity_spectrum.py` needs only a velocity CSV from the Phidget Control Panel. Run the DCC1020
+open loop at a fixed duty (wheels lifted), with a 10 ms data interval and moving average 1, then
+export the velocity graph:
+
+```bash
+python3 velocity_spectrum.py rear_left_rpm.csv [more.csv ...]
+```
+
+The script reports the ripple once per wheel turn and at 1×–4× per motor turn. For the
+per-motor-turn terms it also gives the equivalent encoder angle error in degrees. At 20 ms
+sampling, the higher harmonics land above Nyquist and are marked as not measurable. Results at
+duty ~0.2, 2026-10-26: the 2× term was ±0.5–0.9° on FL/FR/RR and ±2.26° on RL (factory INL max
+±1.0°). To separate encoder error from motor torque ripple, record the same wheel at two duties.
+An encoder error keeps the same angle in degrees; a torque ripple shrinks as a percentage at the
+higher speed.
+
 ## Tests
 
 ```bash
