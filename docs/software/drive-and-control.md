@@ -118,7 +118,7 @@ Because the two axes are limited separately, the outer wheel's rim speed can rea
 | `isaacbot_amr_imu_broadcaster` | 25 Hz | The manager's rate; the EKF runs at 50 Hz and predicts between samples |
 | `isaacbot_amr_joint_state_broadcaster` | 25 Hz | The manager's rate |
 | Motor driver state, safety topics | 20 Hz | `driver_states_update_frequency` |
-| Velocity feedback (DCC1020 `OnVelocityChange`) | Board minimum data interval, or `motor_data_interval_ms` (**TBD**) | Replaces the DCC1000's 10 Hz encoder counts |
+| Velocity feedback (DCC1020 `OnVelocityChange`) | Always the board minimum data interval (value **TBD**, logged at configure) | Replaces the DCC1000's 10 Hz encoder counts |
 | EKF (`isaacbot_amr_ekf_node`) | 50 Hz | |
 
 Every controller rate must divide the manager's 25 Hz (`isaacbot_amr_controller/test/test_wheel_geometry.py`).
@@ -169,7 +169,7 @@ Source: `isaacbot_amr_controller/config/wheel_01_controller.yaml`, `isaacbot_amr
 | `velocity_kp` / `velocity_ki` / `velocity_kd`, `velocity_deadband_rpm` | 0.0017 / 0.0341 / 0 / 5 RPM | Tuned 2026-10-25, wheels lifted (see the URDF comment for the step results); not yet checked under load |
 | `motor_inductance` | 0.000575 H | Measured by the boards, mean of hub ports 0, 1, 5. `motor_inductance` is set when the channel attaches, which skips the motor characterization (the beeps) at every open. Without it the board characterizes the motor at open, which fails with a latched `motor_setup_fault` (error 0x1011) while the motor contactor is open; `sw_e_stop_latch_reset` then re-opens the channel |
 | `motor_acceleration_rpm_s` | 1890 RPM/s | = 1.4 m/s² at the wheel, diff_drive's linear limit: smooths diff_drive's 25 Hz command steps. Caps each wheel on its own, so the outer wheel in an accelerating turn is limited to 1.4 m/s² (**TBD** check on the ground) |
-| `motor_surge_current_limit`, `motor_stall_velocity_rpm`, `motor_failsafe_current_limit`, `motor_data_interval_ms` | not set (**TBD**) | Optional on-board loop settings. Absent = board default, logged at configure. |
+| `motor_surge_current_limit`, `motor_stall_velocity_rpm`, `motor_failsafe_current_limit` | not set (**TBD**) | Optional on-board loop settings. Absent = board default, logged at configure. |
 | `driver_comm_timeout_ms` | 300 ms | Telemetry age that counts as a communication error |
 
 `motor_acceleration` (DCC1000 duty/s) and `motor_supply_voltage` (DCC1000 current-regulator gain) were removed. `on_init()` rejects a URDF that still sets them.

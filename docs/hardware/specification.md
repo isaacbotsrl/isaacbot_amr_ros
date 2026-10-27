@@ -108,7 +108,7 @@ Sources: `isaacbot_amr_controller/config/wheel_01_controller.yaml`,
 | Sensor | Model | Rate | Notes |
 |---|---|---|---|
 | IMU | Phidgets Spatial MOT0110 (USB) | 8 ms data interval (125 Hz), published at 50 Hz | Orientation filter (gain/zeta), magnetometer off (`use_mag: false`), ENU |
-| Wheel encoders | MT6835 magnetic encoders on the motors (5 V, 1024 lines per revolution as configured) | Velocity feedback from the DCC1020 at its minimum data interval (or `motor_data_interval_ms`; value **TBD**), 20 Hz driver state, 25 Hz control loop | The DCC1020 decodes the encoder (x4) and closes the speed loop on board; the sensor's propagation delay is under 10 µs. See [Components](components.md) |
+| Wheel encoders | MT6835 magnetic encoders on the motors (5 V, 1024 lines per revolution as configured) | Velocity feedback from the DCC1020 at its minimum data interval (value **TBD**), 20 Hz driver state, 25 Hz control loop | The DCC1020 decodes the encoder (x4) and closes the speed loop on board; the sensor's propagation delay is under 10 µs. See [Components](components.md) |
 | Battery telemetry | Daly BMS | **TBD** | |
 
 The lidar, GNSS and cameras are payload: they belong to the `isaacbot_amr_sensors` repository and are

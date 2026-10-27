@@ -78,8 +78,6 @@ struct DrivetrainSettings
     // Motor inductance in the SDK's unit (bounded by getMin/MaxInductance()). Absent: the board
     // measures it itself when the channel opens (the audible beeps).
     std::optional<float> motor_inductance;
-    // Interval of the velocity feedback events, ms. Absent: the board's minimum.
-    std::optional<unsigned> motor_data_interval_ms;
     // Whether the controller brakes (true) or coasts (false) when its failsafe trips. Defaults
     // to braking, which is what the DCC1000 setup did (braking strength 1.0); the board's own
     // default is to coast.

@@ -620,6 +620,14 @@ void IsaacbotSystem::readDrivetrainSettings()
         }
     }
 
+    // The velocity feedback (and the encoder, which follows it) always runs at the board's
+    // minimum data interval; a leftover override is rejected rather than silently ignored.
+    if (info_.hardware_parameters.count("motor_data_interval_ms") != 0) {
+        throw std::runtime_error(
+            "'motor_data_interval_ms' is no longer supported: the DCC1020 always runs at its minimum "
+            "data interval.");
+    }
+
     const auto & params = info_.hardware_parameters;
 
     if (params.count("motor_current_limit") != 0) {
@@ -648,10 +656,6 @@ void IsaacbotSystem::readDrivetrainSettings()
         readOptionalNonNegativeFloatParam(params, "motor_failsafe_current_limit");
     drivetrain_settings_.motor_inductance =
         readOptionalNonNegativeFloatParam(params, "motor_inductance");
-
-    if (params.count("motor_data_interval_ms") != 0) {
-        drivetrain_settings_.motor_data_interval_ms = readPositiveMsParam(params, "motor_data_interval_ms");
-    }
 
     if (params.count("motor_failsafe_braking_enabled") != 0) {
         drivetrain_settings_.motor_failsafe_braking_enabled =

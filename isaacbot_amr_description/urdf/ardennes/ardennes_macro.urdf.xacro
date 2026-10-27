@@ -270,8 +270,6 @@
                Dangerous-stall threshold; 0 disables stall protection:
           <param name="motor_stall_velocity_rpm">TBD</param>
           <param name="motor_failsafe_current_limit">TBD</param>
-               Velocity feedback interval; omitted = the board's minimum:
-          <param name="motor_data_interval_ms">TBD</param>
           -->
 
           <!-- Motor inductance in H, set when each channel attaches so the DCC1020 skips its motor

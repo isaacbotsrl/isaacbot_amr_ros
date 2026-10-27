@@ -37,7 +37,7 @@ source file first, then the manual page, then remove the item here.
 | Item | Where it is needed |
 |---|---|
 | Wire each DCC1020 hardware E-Stop input into the safety chain. It is always enabled and still jumpered as shipped | [Safety](safety.md), [Components](hardware/components.md) |
-| Tune the on-board speed loop (`velocity_kp/ki/kd`, `velocity_deadband_rpm`, `motor_acceleration_rpm_s`, surge/stall/failsafe current, `motor_data_interval_ms`) and record the source of each value; the boards run on their defaults until then | [Drive and control](software/drive-and-control.md#wheel-speed-loop), `ardennes_macro.urdf.xacro` |
+| Tune the on-board speed loop (`velocity_kp/ki/kd`, `velocity_deadband_rpm`, `motor_acceleration_rpm_s`, surge/stall/failsafe current) and record the source of each value; the boards run on their defaults until then | [Drive and control](software/drive-and-control.md#wheel-speed-loop), `ardennes_macro.urdf.xacro` |
 | Re-measure the `diff_drive` / Nav 2 acceleration limits (1.4 m/s², 1.3 rad/s², measured with the DCC1000) | Drive and control, `wheel_01_controller.yaml` |
 | Bench-check that the Encoder channel opens next to the velocity controller (otherwise joint position is integrated from velocity) | Drive and control |
 | Measure the DCC1020 command latency (`command path` diagnostic) before raising the controller rate above 25 Hz | Drive and control |

@@ -53,8 +53,8 @@ Each runs the wheel speed loop on board (`MotorVelocityController`: trapezoidal 
   per-motor command worker makes the blocking `PhidgetMotorVelocityController_setTargetVelocity`
   call. Targets replaced before they were sent count as `dropped_pending` in the `command path`
   diagnostic. Every send feeds the board failsafe, so a stalled RT loop still trips it.
-- **Feedback.** Velocity from the board's `OnVelocityChange` events (board minimum data interval,
-  or `motor_data_interval_ms`); joint position from the Encoder channel, or integrated from the
+- **Feedback.** Velocity from the board's `OnVelocityChange` events (always the board's minimum
+  data interval; the Encoder channel follows it); joint position from the Encoder channel, or integrated from the
   velocity if the Encoder channel cannot be opened next to the controller (to verify on hardware).
   Current is reported in 10 mA units (`raw_current_to_amps_scale` 0.01).
 - **Activation.** `armFailsafe()` enables, feeds or re-opens the failsafe, then engages the
@@ -68,9 +68,9 @@ Each runs the wheel speed loop on board (`MotorVelocityController`: trapezoidal 
 - **Parameters.** On-board loop settings are optional URDF `<param>`s (`velocity_kp/ki/kd`,
   `velocity_deadband_rpm`, `motor_acceleration_rpm_s`, `motor_surge_current_limit`,
   `motor_stall_velocity_rpm`, `motor_failsafe_current_limit`, `motor_inductance`,
-  `motor_data_interval_ms`, `motor_failsafe_braking_enabled`); absent means board default, logged at
-  configure. The DCC1000 parameters `motor_acceleration` and `motor_supply_voltage` are rejected by
-  `on_init()`.
+  `motor_failsafe_braking_enabled`); absent means board default, logged at configure. The DCC1000
+  parameters `motor_acceleration` and `motor_supply_voltage`, and the removed
+  `motor_data_interval_ms` override, are rejected by `on_init()`.
 
 ## ROS interface (`isaacbot_amr_hardware_controller` node)
 

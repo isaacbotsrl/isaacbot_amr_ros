@@ -412,29 +412,16 @@ void PhidgetMotorDriver::configureMotorChannel()
         PhidgetMotorVelocityController_setRescaleFactor(motor_handle_, rescale_factor),
         "Setting the rescale factor", channel_);
 
+    // Velocity feedback always runs at the board's fastest rate; the encoder follows it.
     std::uint32_t min_interval = 0;
-    std::uint32_t max_interval = 0;
     throwOnError(
         PhidgetMotorVelocityController_getMinDataInterval(motor_handle_, &min_interval),
         "Reading the minimum data interval", channel_);
     throwOnError(
-        PhidgetMotorVelocityController_getMaxDataInterval(motor_handle_, &max_interval),
-        "Reading the maximum data interval", channel_);
-
-    const std::uint32_t requested_interval = settings_.motor_data_interval_ms.value_or(min_interval);
-    const std::uint32_t data_interval = std::clamp(requested_interval, min_interval, max_interval);
-
-    if (data_interval != requested_interval) {
-        RCLCPP_WARN(
-            logger_, "Motor hub port %d: motor_data_interval_ms %u clamped to the board's [%u, %u] ms.",
-            channel_, requested_interval, min_interval, max_interval);
-    }
-
-    throwOnError(
-        PhidgetMotorVelocityController_setDataInterval(motor_handle_, data_interval),
+        PhidgetMotorVelocityController_setDataInterval(motor_handle_, min_interval),
         "Setting the data interval", channel_);
 
-    std::uint32_t actual_interval = data_interval;
+    std::uint32_t actual_interval = min_interval;
     (void)PhidgetMotorVelocityController_getDataInterval(motor_handle_, &actual_interval);
     velocity_stale_timeout_ns_.store(encoderStaleTimeout(actual_interval).count(), std::memory_order_relaxed);
 

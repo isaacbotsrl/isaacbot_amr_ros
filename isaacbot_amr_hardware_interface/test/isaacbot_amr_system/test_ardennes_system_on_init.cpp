@@ -282,7 +282,6 @@ TEST(ArdennesSystemOnInit, SucceedsWithAllVelocityControllerOverrides)
     info.hardware_parameters["motor_stall_velocity_rpm"] = "0";
     info.hardware_parameters["motor_failsafe_current_limit"] = "5.0";
     info.hardware_parameters["motor_inductance"] = "1.2";
-    info.hardware_parameters["motor_data_interval_ms"] = "20";
     info.hardware_parameters["motor_failsafe_braking_enabled"] = "false";
 
     EXPECT_EQ(system.on_init(makeParams(info)), CallbackReturn::SUCCESS);
@@ -307,13 +306,23 @@ TEST(ArdennesSystemOnInit, FailsWithNegativeOrUnparsableVelocityControllerValues
 
 TEST(ArdennesSystemOnInit, FailsWithZeroCurrentLimitOrAcceleration)
 {
-    for (const char * key : {"motor_current_limit", "motor_acceleration_rpm_s", "motor_data_interval_ms"}) {
+    for (const char * key : {"motor_current_limit", "motor_acceleration_rpm_s"}) {
         ArdennesSystem system;
         auto info = buildValidHardwareInfo();
         info.hardware_parameters[key] = "0";
 
         EXPECT_EQ(system.on_init(makeParams(info)), CallbackReturn::ERROR) << key;
     }
+}
+
+TEST(ArdennesSystemOnInit, FailsWithRemovedDataIntervalOverride)
+{
+    // The data interval is always the board's minimum; an override must not be silently ignored.
+    ArdennesSystem system;
+    auto info = buildValidHardwareInfo();
+    info.hardware_parameters["motor_data_interval_ms"] = "20";
+
+    EXPECT_EQ(system.on_init(makeParams(info)), CallbackReturn::ERROR);
 }
 
 TEST(ArdennesSystemOnInit, FailsWithSurgeCurrentLimitBelowCurrentLimit)

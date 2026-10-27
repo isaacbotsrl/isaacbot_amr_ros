@@ -27,7 +27,7 @@
       "verified_by": [
         "rover_controller/test/test_wheel_geometry.py"
       ],
-      "comments": "DCC1020 swap: the host wheel PIDs are no longer spawned; the on-board loop rate is board-internal (TBD). Wheel velocity feedback now comes from the board's OnVelocityChange events at its minimum data interval (or motor_data_interval_ms; TBD, hardware-verify), no longer from 10 Hz encoder counts. Model drift: wheel_01_controller.yaml:12 sets update_rate 25 (chosen for the DCC1000 command latency; re-measure the DCC1020 latency before raising it), so the 100 Hz in this requirement is stale."
+      "comments": "DCC1020 swap: the host wheel PIDs are no longer spawned; the on-board loop rate is board-internal (TBD). Wheel velocity feedback now comes from the board's OnVelocityChange events at its minimum data interval (TBD, hardware-verify), no longer from 10 Hz encoder counts. Model drift: wheel_01_controller.yaml:12 sets update_rate 25 (chosen for the DCC1000 command latency; re-measure the DCC1020 latency before raising it), so the 100 Hz in this requirement is stale."
     },
     {
       "id": "SWR-CTL-002",

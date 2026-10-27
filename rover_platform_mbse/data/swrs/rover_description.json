@@ -198,7 +198,7 @@
       "verified_by": [
         "rover_hardware_interface/test/rover_system/test_ardennes_system_on_init.cpp"
       ],
-      "comments": "DCC1020 swap: motor_current_limit 15.0 A is an ASSUMPTION carried over from the DCC1000 setup (Phidgets suggests ~1.1x rated, ~11.5 A; URDF comment). The optional on-board velocity-loop parameters (velocity_kp/ki/kd, velocity_deadband_rpm, motor_acceleration_rpm_s, motor_surge_current_limit, motor_stall_velocity_rpm, motor_failsafe_current_limit, motor_inductance, motor_data_interval_ms) are commented out as TBD (rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:262-286): the boards run their defaults until tuned on the robot."
+      "comments": "DCC1020 swap: motor_current_limit 15.0 A is an ASSUMPTION carried over from the DCC1000 setup (Phidgets suggests ~1.1x rated, ~11.5 A; URDF comment). The optional on-board velocity-loop parameters (velocity_kp/ki/kd, velocity_deadband_rpm, motor_acceleration_rpm_s, motor_surge_current_limit, motor_stall_velocity_rpm, motor_failsafe_current_limit, motor_inductance) are commented out as TBD (rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:262-286): the boards run their defaults until tuned on the robot."
     },
     {
       "id": "SWR-DESC-009",

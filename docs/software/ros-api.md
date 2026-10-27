@@ -114,7 +114,7 @@ last look, and the age of the last message and of the last valid message.
 | `velocity_kp` / `velocity_ki` / `velocity_kd`, `velocity_deadband_rpm` | 0.0017 / 0.0341 / 0 / 5 | Tuned DCC1020 on-board loop gains, motor RPM units |
 | `motor_inductance` | 0.000575 | Motor inductance in H, set at attach to skip the characterization at open |
 | `motor_acceleration_rpm_s` | 1890 | DCC1020 on-board ramp in motor RPM/s (= 1.4 m/s² at the wheel) |
-| `motor_surge_current_limit`, `motor_stall_velocity_rpm`, `motor_failsafe_current_limit`, `motor_data_interval_ms` | not set | Optional DCC1020 on-board loop settings, in motor RPM. Absent = board default, logged at configure. Values **TBD**. |
+| `motor_surge_current_limit`, `motor_stall_velocity_rpm`, `motor_failsafe_current_limit` | not set | Optional DCC1020 on-board loop settings, in motor RPM. Absent = board default, logged at configure. Values **TBD**. |
 | `max_rpm_motor_speed` / `gear_ratio` | `2800` / `23.3` | Clamp on the motor RPM target, and gearbox ratio. |
 | `encoder_resolution` | `1024` | Encoder resolution; also sets the board's rescale factor. |
 | `raw_current_to_amps_scale` | `0.01` | Current is reported in 10 mA units. |

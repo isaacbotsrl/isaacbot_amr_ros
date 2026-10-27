@@ -39,7 +39,7 @@
       "id": "SYS-SR-002",
       "allocation": "SW+HW",
       "verdict": "Partial",
-      "summary": "Velocity mode on 4 joints; diff_drive writes the wheel velocity interfaces directly and each Phidget DCC1020 closes the wheel speed loop on board (the host wheel PIDs are no longer spawned). Wheel velocity feedback now comes from the board's OnVelocityChange events at its minimum data interval (or motor_data_interval_ms), no longer from 10 Hz encoder counts; the achieved feedback rate and the on-board loop rate are TBD (hardware-verify), so the verdict stays Partial. Model test tSkidSteerKinematics/testEncoderFeedbackRate still encodes the DCC1000 10 Hz (KnownDeviation) and needs the measured DCC1020 value."
+      "summary": "Velocity mode on 4 joints; diff_drive writes the wheel velocity interfaces directly and each Phidget DCC1020 closes the wheel speed loop on board (the host wheel PIDs are no longer spawned). Wheel velocity feedback now comes from the board's OnVelocityChange events at its minimum data interval, no longer from 10 Hz encoder counts; the achieved feedback rate and the on-board loop rate are TBD (hardware-verify), so the verdict stays Partial. Model test tSkidSteerKinematics/testEncoderFeedbackRate still encodes the DCC1000 10 Hz (KnownDeviation) and needs the measured DCC1020 value."
     },
     {
       "id": "SYS-SR-003",
