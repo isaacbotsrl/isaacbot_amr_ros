@@ -425,16 +425,13 @@ TEST_F(IsaacbotSystemWriteTest, UnconfiguredSendsNothingButStillDropsPendingComm
 
 // --- E-Stop reset invariant: measured velocity ----------------------------------------------
 //
-// The command-side check alone is a weak guarantee: a wheel PID without stop_at_zero_reference
-// parks its command at a frozen I-term (up to i_clamp_max) whenever motion is inhibited, which is
-// why the URDF tolerance had drifted up to 1.2 rad/s (~0.2 m/s) - fast enough to walk beside. The
-// measured velocity has no such artifact, so it is what actually prevents clearing the E-Stop
-// mid-roll.
+// The command-side check alone is a weak guarantee: a command at (or near) zero says nothing about
+// whether the wheels have stopped. The measured velocity is what actually prevents clearing the
+// E-Stop mid-roll.
 
 TEST_F(IsaacbotSystemWriteTest, RefusesEStopResetWhileTheWheelsAreStillTurning)
 {
-    // Commands have settled to a plausible frozen I-term, well inside the command tolerance, but
-    // the isaacbot is still rolling.
+    // Commands are well inside the command tolerance, but the isaacbot is still rolling.
     system_.setControllerCommand(0.005);
     system_.setMeasuredVelocity(3.0);
     system_.refreshZeroFlags();

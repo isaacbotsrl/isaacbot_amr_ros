@@ -101,7 +101,7 @@ The hardware interface node `isaacbot_amr_hardware_controller` offers three `std
 | Service | Effect | Refused when |
 |---|---|---|
 | `hardware_interface/sw_user_e_stop_set` | Asserts the SW user E-Stop (`COIL_2`), which trips the latch | Modbus write fails |
-| `hardware_interface/sw_user_e_stop_reset` | Releases the SW user E-Stop | Hardware interface not ACTIVE; any wheel velocity command above `velocity_command_zero_tolerance` (0.4 rad/s); any measured wheel velocity above `velocity_state_zero_tolerance` (0.05 rad/s) |
+| `hardware_interface/sw_user_e_stop_reset` | Releases the SW user E-Stop | Hardware interface not ACTIVE; any wheel velocity command above `velocity_command_zero_tolerance` (0.01 rad/s); any measured wheel velocity above `velocity_state_zero_tolerance` (0.05 rad/s) |
 | `hardware_interface/sw_e_stop_latch_reset` | Pulses `COIL_4` for `safety_latch_reset_pulse_ms` (100 ms). Also clears latched motor-failsafe, DCC1020 E-Stop / stall / energy-dump / motor-setup (open circuit at init, e.g. the contactor was open when the channel opened), wheel-runaway and welded-contactor faults; releases `sw_e_stop_motor_driver_fault` before the pulse: it re-opens each motor channel, re-arms its watchdog and engages it again | Hardware interface not ACTIVE |
 
 Source: `isaacbot_amr_hardware_interface/src/isaacbot_amr_system/isaacbot_amr_system.cpp` (`resetEStop()`, `resetEStopLatch()`, `areVelocityCommandsNearZero()`), `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro`.
@@ -180,7 +180,7 @@ The driving modes (MANUAL, ASSISTED, AUTOMATIC) and the lidar collision monitors
 
 | Stage | Value | Source |
 |---|---|---|
-| `controller_manager`, `read()` / `write()` | 25 Hz | `isaacbot_amr_controller/config/wheel_01_controller.yaml` |
+| `controller_manager`, `read()` / `write()` | 50 Hz | `isaacbot_amr_controller/config/wheel_01_controller.yaml` |
 | `safety_status` / `safety_command_echo` publish | 20 Hz | `driver_states_update_frequency`, URDF |
 | Modbus IO poll | 100 ms (10 Hz) | `safety_io_poll_period_ms`, URDF |
 | Watchdog heartbeat toggle | 200 ms (5 Hz) | `safety_wdg_kick_period_ms`, URDF |
@@ -255,7 +255,7 @@ The latch is set after every start of the hardware interface. Wait until the har
 | Message or symptom | Cause | Fix |
 |---|---|---|
 | `E-Stop reset refused: the wheels are still turning` | A measured wheel speed is above 0.05 rad/s | Wait for the isaacbot to stop. |
-| `E-Stop reset refused: largest` ... `velocity command` ... | A wheel command is above 0.4 rad/s | Stop the source publishing `cmd_vel`. For RC teleop, the stick deadband must cover the sticks' resting offset (calibrate the transmitter). |
+| `E-Stop reset refused: largest` ... `velocity command` ... | A wheel command is above 0.01 rad/s | Stop the source publishing `cmd_vel`. For RC teleop, the stick deadband must cover the sticks' resting offset (calibrate the transmitter). |
 | `... not in ACTIVE state` | Hardware interface not active | Check `ros2 control list_hardware_components`. |
 | Service succeeds but the latch stays set | A trip source is still asserted (set-dominant) | Release the HW button and the SW user E-Stop first. |
 
@@ -298,7 +298,7 @@ The full animation catalog and the LED services are in [Teleop and LEDs](softwar
 From `isaacbot_amr_arch/SAFETY_CHAIN.md` §6, plus what the code shows:
 
 - **The PLC cannot say why it tripped.** `SafetyStatus.latch_cause` exists but reads `LATCH_CAUSE_UNKNOWN` until the PLC program latches the cause into readable coils.
-- **The command-side reset deadband is still wide.** `velocity_command_zero_tolerance` is 0.4 rad/s. It was set that way because the host wheel PIDs' frozen integral kept the command above zero while motion was inhibited. Since the DCC1020 swap there are no host wheel PIDs, so `diff_drive`'s zero command reaches the hardware as exactly 0 and that reason no longer holds. The tolerance has not been lowered yet. The measured-velocity check (0.05 rad/s) closes the actual hazard in the meantime.
+- **The command-side reset deadband was lowered to 0.01 rad/s** on 2026-10-27. It had been 0.4 rad/s because the host wheel PIDs' frozen integral kept the command above zero while motion was inhibited; with those PIDs removed, `diff_drive`'s zero command reaches the hardware as exactly 0. Not yet confirmed on the isaacbot: check that an E-Stop reset at rest succeeds. The measured-velocity check (0.05 rad/s) closes the actual hazard either way.
 - **The DCC1020 hardware E-Stop input is not wired into the safety chain.** It is always enabled but still jumpered as shipped. Wiring it is an [open item](open-items.md).
 - **The new DCC1020 fault bits are diagnostics only.** Over-temperature, over-current, over-voltage, stall and bad-power show as `fault_flag.*` in diagnostics, but the `FaultFlag` message carries only `emergency_stop` and `motor_setup_fault`.
 - **No end-to-end test** that an asserted `motion_lock` stops `cmd_vel` at the mux.

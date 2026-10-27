@@ -36,14 +36,14 @@ Channel N is `channels[N-1]` on `rc/channels`.
 
 | Channel | Function | Range / behaviour |
 |---|---|---|
-| 3 | Linear velocity `linear.x` | −0.95 to 0.95 m/s, expo 0.3 |
+| 3 | Linear velocity `linear.x` | −1.2 to 1.2 m/s, expo 0.3 |
 | 1 | Angular velocity `angular.z` | −1.5 to 1.5 rad/s, inverted, expo 0.5 |
 | 5 | SW user E-Stop | low = `sw_user_e_stop_set`, high = `sw_user_e_stop_reset` |
 | 4 | Latch reset | low = `sw_e_stop_latch_reset` |
 
 - A switch counts as low below `channel_switch_threshold` (500 raw counts). Only a change of position fires a call. The resting position is learned over `switch_settle_frames` (100 ticks, 2 s) at start-up and never fires.
 - Expo shapes the stick as (1 − e)·m + e·m³. Keep the transmitter's own expo at 0 %; the two stack.
-- Stick commands whose outer-wheel rim speed would exceed `max_wheel_rim_speed` (1.7 m/s) are scaled down as a whole, so the isaacbot drives the requested arc more slowly.
+- Stick commands whose outer-wheel rim speed would exceed `max_wheel_rim_speed` (1.97 m/s, ~5 % under the DCC1020 target clamp) are scaled down as a whole, so the isaacbot drives the requested arc more slowly. With today's caps (1.2 m/s, 1.5 rad/s) the outer rim reaches at most 1.968 m/s, so this only engages if the caps are raised.
 - A centred stick (inside `channel_deadband`, 30 counts shipped) maps to exactly zero. After a stop the node publishes zeros for `zero_burst_duration_ms` (300 ms) and then goes silent, so an idle transmitter does not hold the mux.
 - There is no arm switch and no speed-mode switch in the code.
 

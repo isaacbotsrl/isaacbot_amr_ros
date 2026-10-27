@@ -941,8 +941,8 @@ unsigned char toDiagnosticLevel(const SafetyLinkSeverity s)
 }  // namespace
 
 // Where does a velocity command go missing between write() and the motor? Every row of this
-// answers one question: how many were issued, how many were dropped (and why), how the driver's
-// asynchronous calls completed and how long they took, and what each write() cycle did. Counters
+// answers one question: how many were issued, how many were dropped (and why), how each wheel's
+// command-worker calls completed and how long they took, and what each write() cycle did. Counters
 // are cumulative since start; compare two reads to get a rate. The level is ERROR only while
 // completions are still returning errors (see domain/command_path_health.hpp), so a board that
 // is no longer attached (return code 0x34) cannot hide behind a quiet "OK".

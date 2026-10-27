@@ -50,7 +50,7 @@ and *Mass Properties*), `rover_platform_mbse/data/sys_sr_compliance.json` (Nav 2
 | Effective rolling radius (odometry) | 0.1651 m |
 | Wheel width | 0.108 m |
 | Wheel mass | 4.793 kg each |
-| Wheel joint limits | 64.5 N·m, 10.958 rad/s |
+| Wheel joint limits | 64.5 N·m, 12.58 rad/s (= DCC1020 target clamp, 2800 RPM / 23.3) |
 
 The odometry uses the effective radius, which is smaller than the CAD radius: the tyre deflects
 under load. The CAD radius sets the wheel collision cylinder and the height of `base_link`.
@@ -62,12 +62,12 @@ Sources: `isaacbot_amr_description/config/wheel_01.yaml`, `isaacbot_amr_descript
 
 | Parameter | Value | Notes |
 |---|---|---|
-| Maximum linear speed | 0.95 m/s | Forward and reverse, controller limit |
+| Maximum linear speed | 1.2 m/s | Forward and reverse, controller limit (SYS-SR-004) |
 | Maximum angular speed | 1.5 rad/s | Controller limit |
 | Linear acceleration / deceleration | 2.7 m/s² | |
 | Angular acceleration / deceleration | 3.74 rad/s² | |
 | Velocity command timeout | 0.5 s | The drive controller stops when `cmd_vel` goes quiet |
-| Maximum wheel speed | 10.958 rad/s | URDF joint limit; 1.81 m/s at the rim (**derived**, × 0.1651 m) |
+| Maximum wheel speed | 12.58 rad/s | DCC1020 target clamp = URDF joint limit; 2.08 m/s at the rim (**derived**, × 0.1651 m) |
 | Motors | 4 × DOBTIAN 250 W, 24 V brushed DC gear motor with MT6835 encoder | One per wheel; 120 RPM at the output shaft (2800 rpm ÷ 23.3). Seller listing: "250w low speed brush motor" (Dobtian); identifier 254324557 (from the owner). See [Components](components.md) |
 | Motor rated speed | 2800 rpm | |
 | Motor rated voltage / current | 24 V / 13.4 A | Seller listing, not a datasheet. The 15 A driver limit is 112 % of the rated current. Four motors at rated current would draw about 54 A (about 1.3 kW) |
@@ -76,15 +76,16 @@ Sources: `isaacbot_amr_description/config/wheel_01.yaml`, `isaacbot_amr_descript
 | Motor current limit | 15 A | Per motor controller; see the open items |
 | Encoder resolution | 1024 counts | Per motor revolution |
 | Motor controllers | 4 × Phidget DCC1020 (8–30 V, 50 A continuous, 75 A peak, on-board speed loop) | See [Components](components.md) |
-| Drive control rate | 25 Hz | `controller_manager` update rate |
+| Drive control rate | 50 Hz | `controller_manager` update rate |
 
 The linear and angular limits are applied independently. A full-speed turn while driving at
 full speed can ask the outer wheels for more than they can give; the reasoning is in the comment
 above the limits in `wheel_01_controller.yaml`.
 
 !!! note "SYS-SR-004"
-    The requirement sets the linear limit at 1.0 m/s. The answer for the angular limit in the
-    requirements spreadsheet reads "1.7 m/s2". The code limits the angular speed to 1.5 rad/s.
+    The requirement sets the linear limit at 1.2 m/s (raised from 1.0 m/s on 2026-10-27). The answer
+    for the angular limit in the requirements spreadsheet reads "1.7 m/s2". The code limits the
+    angular speed to 1.5 rad/s.
 
 Sources: `isaacbot_amr_controller/config/wheel_01_controller.yaml`,
 `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro` (`<ros2_control>` parameters),
@@ -108,7 +109,7 @@ Sources: `isaacbot_amr_controller/config/wheel_01_controller.yaml`,
 | Sensor | Model | Rate | Notes |
 |---|---|---|---|
 | IMU | Phidgets Spatial MOT0110 (USB) | 8 ms data interval (125 Hz), published at 50 Hz | Orientation filter (gain/zeta), magnetometer off (`use_mag: false`), ENU |
-| Wheel encoders | MT6835 magnetic encoders on the motors (5 V, 1024 lines per revolution as configured) | Velocity feedback from the DCC1020 at its minimum data interval (value **TBD**), 20 Hz driver state, 25 Hz control loop | The DCC1020 decodes the encoder (x4) and closes the speed loop on board; the sensor's propagation delay is under 10 µs. See [Components](components.md) |
+| Wheel encoders | MT6835 magnetic encoders on the motors (5 V, 1024 lines per revolution as configured) | Velocity feedback from the DCC1020 at its minimum data interval (value **TBD**), 20 Hz driver state, 50 Hz control loop | The DCC1020 decodes the encoder (x4) and closes the speed loop on board; the sensor's propagation delay is under 10 µs. See [Components](components.md) |
 | Battery telemetry | Daly BMS | **TBD** | |
 
 The lidar, GNSS and cameras are payload: they belong to the `isaacbot_amr_sensors` repository and are

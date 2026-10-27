@@ -22,7 +22,7 @@
 namespace isaacbot_amr_hardware_interface
 {
 
-// How a motor driver's asynchronous velocity command completed.
+// How a velocity command sent by a wheel's command worker completed.
 enum class CommandCompletion
 {
     kOk,
@@ -31,12 +31,12 @@ enum class CommandCompletion
 };
 
 // Cumulative counters about one wheel's command path, from sendCmdVel() down to the completion of
-// the driver's asynchronous call. Instrumentation only: nothing in the control loop reads these.
-// "Dropped" commands are the ones sendCmdVel() silently never issued.
+// the command worker's call to the board. Instrumentation only: nothing in the control loop reads
+// these. "Dropped" commands are the ones never sent to the board.
 struct MotorCommandStats
 {
-    std::uint64_t submitted{0};           // Async velocity calls actually issued to the driver.
-    std::uint64_t dropped_pending{0};     // Skipped: the previous async call had not completed.
+    std::uint64_t submitted{0};           // Velocity calls actually made to the board.
+    std::uint64_t dropped_pending{0};     // Superseded in the mailbox while the worker was busy.
     std::uint64_t dropped_no_driver{0};   // Skipped: the owning driver object no longer exists.
     std::uint64_t completed_ok{0};
     std::uint64_t completed_failsafe{0};
@@ -45,7 +45,7 @@ struct MotorCommandStats
     std::uint64_t latency_sum_us{0};      // Sum of submit -> completion times of all completions.
     std::uint32_t latency_last_us{0};
     std::uint32_t latency_max_us{0};
-    bool pending{false};                  // An async call is in flight right now.
+    bool pending{false};                  // A call to the board is in flight right now.
     std::uint32_t pending_age_ms{0};      // How long that call has been in flight (0 if none).
 
     std::uint64_t completed() const { return completed_ok + completed_failsafe + completed_error; }
@@ -66,8 +66,8 @@ struct MotorCommandStats
     }
 };
 
-// Lock-free, allocation-free recorder for MotorCommandStats, safe to call from the RT thread
-// (onSubmit / onDropped*) and from the SDK's completion-callback thread (onCompletion) at once.
+// Lock-free, allocation-free recorder for MotorCommandStats, safe to call from the RT thread and
+// from a wheel's command worker at once.
 // Every counter is a relaxed atomic: a diagnostics read may see a few counters from slightly
 // different instants, which is fine for statistics. Timestamps are caller-supplied nanoseconds
 // (steady clock) so the class stays free of clocks and is trivially testable.
@@ -135,7 +135,8 @@ public:
         }
     }
 
-    // `pending` is whether an async call is in flight; `now_ns` ages it against the last submit.
+    // `pending` is whether a call to the board is in flight; `now_ns` ages it against the last
+    // submit.
     MotorCommandStats snapshot(const bool pending, const std::int64_t now_ns) const
     {
         MotorCommandStats s;

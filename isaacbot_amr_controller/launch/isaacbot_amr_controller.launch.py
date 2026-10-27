@@ -34,9 +34,8 @@ from launch.substitutions import (
 from launch_ros.actions import Node, SetParameter
 from launch_ros.substitutions import FindPackageShare
 from nav2_common.launch import ReplaceString
-import yaml
 
-# The spawner prints this once the controller (or group) is active.
+# The spawner prints this once the controller is active.
 SPAWNER_ACTIVATED = b'Configured and activated'
 
 # How long a spawner waits for controller_manager's services. The first spawner starts together
@@ -82,27 +81,6 @@ def spawner_exit_handler(controller_name, next_action=None, activated=None):
         return [next_action] if next_action is not None else []
 
     return on_exit
-
-
-def chained_wheel_controllers(config_path):
-    """Controllers the drive controller writes into, from its '<controller>/<joint>' wheel names.
-
-    diff_drive_controller claims '<wheel name>/velocity'. A wheel name of the form
-    '<controller>/<joint>' points at another controller's reference interface (the wheel PIDs),
-    which must be spawned and activated together with the drive controller.
-    """
-    with open(config_path, encoding='utf-8') as config_file:
-        config = yaml.safe_load(config_file) or {}
-    drive = (config.get('/**', config).get('isaacbot_amr_drive_controller', {})
-             .get('ros__parameters', {}))
-    wheels = list(drive.get('left_wheel_names', [])) + list(drive.get('right_wheel_names', []))
-    chained = []
-    for wheel in wheels:
-        if '/' in wheel:
-            controller = wheel.split('/', 1)[0]
-            if controller not in chained:
-                chained.append(controller)
-    return chained
 
 
 def generate_launch_description():
@@ -285,10 +263,9 @@ def generate_launch_description():
             'rcl', log_level
         ).perform(context)
 
-        def make_spawner(controller_name, include_log_args=False, group=()):
+        def make_spawner(controller_name, include_log_args=False):
             arguments = [
                 controller_name,
-                *group,
                 '--controller-manager',
                 'controller_manager',
                 '--controller-manager-timeout',
@@ -296,11 +273,6 @@ def generate_launch_description():
             ]
             for param_file in param_files:
                 arguments.extend(['--param-file', param_file])
-            if group:
-                # One switch request, so controller_manager activates the chain together. It does
-                # NOT make the PIDs update before diff_drive on the first cycle; the PIDs'
-                # seeded exported state (SeededPidController) is what keeps that cycle valid.
-                arguments.append('--activate-as-group')
             if include_log_args:
                 arguments.extend([
                     '--ros-args',
@@ -318,8 +290,7 @@ def generate_launch_description():
             )
 
         drive_controller_spawner = make_spawner(
-            'isaacbot_amr_drive_controller', include_log_args=True,
-            group=chained_wheel_controllers(config_path),
+            'isaacbot_amr_drive_controller', include_log_args=True
         )
         joint_state_broadcaster_spawner = make_spawner(
             'isaacbot_amr_joint_state_broadcaster'

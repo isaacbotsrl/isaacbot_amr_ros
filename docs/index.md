@@ -19,7 +19,7 @@ chain, IO and the ROS 2 software in the
 
     Mass with batteries (CAD), limit 60 kg
 
--   :material-speedometer: **0.95 m/s · 1.5 rad/s**
+-   :material-speedometer: **1.2 m/s · 1.5 rad/s**
 
     Maximum linear and angular speed
 

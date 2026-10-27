@@ -159,7 +159,7 @@ public:
     // events don't zero the speed of a turning wheel, but never below kMinVelocityStaleTimeout:
     // at a board-minimum interval of a few ms, 3x would be shorter than an ordinary SDK-thread
     // scheduling hiccup.
-    static std::chrono::nanoseconds encoderStaleTimeout(const std::uint32_t data_interval_ms);
+    static std::chrono::nanoseconds velocityStaleTimeout(const std::uint32_t data_interval_ms);
 
     static constexpr std::chrono::milliseconds kMinVelocityStaleTimeout{100};
 
@@ -283,8 +283,8 @@ private:
     // steady_clock ns of the last velocity event; written on the SDK thread, read in readState().
     std::atomic<std::int64_t> last_velocity_event_ns_{0};
 
-    // encoderStaleTimeout() of the interval the controller actually runs at; set when configured.
-    std::atomic<std::int64_t> velocity_stale_timeout_ns_{encoderStaleTimeout(50).count()};
+    // velocityStaleTimeout() of the interval the controller actually runs at; set when configured.
+    std::atomic<std::int64_t> velocity_stale_timeout_ns_{velocityStaleTimeout(50).count()};
 
     const bool direction_reversed_;
 

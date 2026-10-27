@@ -137,7 +137,7 @@ arbitrarily often. A waiting priority holder blocks *new* poll acquisitions.
 
 | Stage | Rate |
 |---|---|
-| `controller_manager`, `read()`/`write()` | 25 Hz |
+| `controller_manager`, `read()`/`write()` | 50 Hz |
 | `safety_status` / `safety_command_echo` publish | 20 Hz |
 | Modbus IO poll | 10 Hz |
 | Watchdog heartbeat toggle | 5 Hz |
@@ -234,7 +234,7 @@ latch reset (`hardware_interface/sw_e_stop_latch_reset`, `resetEStopLatch()`) ha
 no such check: it only needs the hardware interface ACTIVE, like the user E-Stop
 reset. While the user E-Stop is still asserted the set-dominant latch can't clear
 anyway. The second half of the invariant exists because the first is weak on its
-own — the host wheel PIDs used with the DCC1000 parked their command at a
+own — the host wheel PIDs used with the DCC1000 (removed 2026-10-27) parked their command at a
 frozen I-term whenever motion was inhibited, which is why the command-side
 deadband could not be tightened below `i_clamp_max` and had drifted to 1.2 rad/s
 (~0.2 m/s). Since the DCC1020 swap the speed loop runs on the boards and no host
@@ -250,10 +250,9 @@ PIDs are spawned, so diff_drive's zero reaches `write()` as exactly 0.
   coils. This is the single most useful change available on the PLC side: it
   turns "the isaacbot stopped" into "the isaacbot stopped because the watchdog
   expired".
-* **`velocity_command_zero_tolerance` is 0.4 rad/s, not 0.01.** It was bounded
-  below by the host wheel PIDs' frozen integral (`i_clamp_max`, then 0.25 / 0.33).
-  Those PIDs are no longer spawned (DCC1020 on-board loop), so the tolerance can
-  come down toward 0.01 once that is verified on the isaacbot.
+* **`velocity_command_zero_tolerance` is 0.01 rad/s since 2026-10-27** (it was
+  0.4, bounded below by the host wheel PIDs' frozen integral). Those PIDs are
+  removed (DCC1020 on-board loop); confirm an E-Stop reset at rest on the isaacbot.
 * **The DCC1020 hardware E-Stop input is not in the chain.** It is always
   enabled, but each board is still jumpered as shipped. Wiring it to the
   contactor side of the chain (so the drivers also disengage on a hardware stop)

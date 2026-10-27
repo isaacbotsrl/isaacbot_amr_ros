@@ -1,8 +1,5 @@
 # Simulation-only overrides for the drive controller, loaded after isaacbot_amr_controller's
 # wheel_01_controller.yaml (the spawner applies its param files in order, so these win).
-#
-# This used to also detune the host wheel PIDs for Gazebo's ideal velocity joints. The PIDs are
-# gone since the DCC1020 swap (the speed loop runs on the motor controllers), so in simulation
 # diff_drive drives GazeboSimSystem's velocity joints directly, the same topology as the robot.
 /**:
   # Gazebo's wheels are rigid cylinders of the CAD tyre radius (isaacbot_amr_description wheel_01.yaml

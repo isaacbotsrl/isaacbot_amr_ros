@@ -28,7 +28,7 @@ flowchart LR
 4. **`isaacbot_amr_hardware_interface/ArdennesSystem`** receives the wheel velocity commands directly, converts them to motor-shaft RPM targets for four Phidget DCC1020 motor controllers, and owns the safety PLC link.
 5. **Each DCC1020** closes the speed loop on board (trapezoidal motion profile + PID in its `MotorVelocityController` channel).
 
-Until the DCC1020 swap, four host-side `isaacbot_amr_controller/SeededPidController`s sat between `diff_drive` and the hardware. They are no longer spawned (the controller is still built). See [Wheel speed loop](#wheel-speed-loop).
+Until the DCC1020 swap, four host-side wheel PIDs (`SeededPidController`) sat between `diff_drive` and the hardware. They were removed on 2026-10-27. See [Wheel speed loop](#wheel-speed-loop).
 
 Source: `isaacbot_amr_twist_mux/config/isaacbot_amr_twist_mux.yaml`, `isaacbot_amr_twist_mux/launch/isaacbot_amr_twist_mux.launch.py`, `isaacbot_amr_controller/config/wheel_01_controller.yaml`, `isaacbot_amr_hardware_interface/README.md`.
 
@@ -91,37 +91,38 @@ Source: `isaacbot_amr_twist_mux/config/isaacbot_amr_command_freshness.yaml`, `is
 
 | Limit | Value |
 |---|---|
-| Linear velocity `linear.x` | ±0.95 m/s |
-| Linear acceleration / deceleration | 1.4 m/s² (measured with the DCC1000, **TBD** re-measure with the DCC1020) |
+| Linear velocity `linear.x` | ±1.2 m/s (SYS-SR-004, raised from 1.0 m/s on 2026-10-27) |
+| Linear acceleration / deceleration | 2.7 m/s² (SWRS target; ASSUMPTION until confirmed on the ground) |
 | Angular velocity `angular.z` | ±1.5 rad/s |
-| Angular acceleration / deceleration | 1.3 rad/s² (measured with the DCC1000, **TBD** re-measure) |
-| Jerk limits | 2.0 m/s³ / 2.0 rad/s³ (set 2026-10-25, wheels lifted). Applied only while the acceleration builds. Without them a low-speed command reached the wheels as an instant step |
+| Angular acceleration / deceleration | 3.74 rad/s² (SWRS target; ASSUMPTION until confirmed on the ground) |
+| Jerk limits | none (`.NAN`). The 2.0 m/s³ limit of 2026-10-25 smoothed 40 ms command steps at 25 Hz; at 50 Hz each board's ramp smooths them. Bring it back if wheels-lifted steps at 0.05 m/s jump again |
 | `cmd_vel_timeout` | 0.5 s |
-| Wheel joint velocity limit (URDF) | 10.958 rad/s |
+| Wheel joint velocity limit (URDF) | 12.58 rad/s (= the DCC1020 target clamp) |
 | DCC1020 target clamp (`max_rpm_motor_speed` 2800 / `gear_ratio` 23.3) | 12.58 rad/s |
+
+The DCC1000-era limits (0.95 m/s, 1.4 m/s², 1.3 rad/s², jerk 2.0) came from that board's duty ramp and the host wheel PIDs.
 
 Source: `isaacbot_amr_controller/config/wheel_01_controller.yaml`, `isaacbot_amr_description/urdf/common/wheel.urdf.xacro`.
 
-Because the two axes are limited separately, the outer wheel's rim speed can reach v + ω × (effective track) / 2. The config comment gives 0.95 + 1.5 × 0.5102 = 1.715 m/s (10.39 rad/s at r = 0.1651 m), under the URDF joint limit. RC teleop additionally scales stick commands so the outer rim stays under `max_wheel_rim_speed` (1.7 m/s).
+Because the two axes are limited separately, the outer wheel's rim speed can reach v + ω × (effective track) / 2. With an effective track of 0.617 × 1.659 = 1.0236 m that is 1.2 + 1.5 × 0.5118 = 1.968 m/s (11.92 rad/s at r = 0.1651 m), about 5 % under the DCC1020 target clamp. Past the clamp a board would clip its wheel and bend the commanded arc. RC teleop and the web joystick also scale commands against `max_wheel_rim_speed` (1.97 m/s), which only engages if the caps are raised.
 
-`test/test_wheel_geometry.py` checks that the outer wheel reference stays under the URDF joint limit (10.39 ≤ 10.958 rad/s) and under the DCC1020 target clamp (12.58 rad/s). It also checks that `diff_drive` drives the wheel joints directly and that no `SeededPidController` is configured.
+`test/test_wheel_geometry.py` checks that the outer wheel reference stays under the URDF joint limit and the DCC1020 target clamp (11.92 ≤ 12.58 rad/s). It also checks that `diff_drive` drives the wheel joints directly and that no `SeededPidController` is configured.
 
-!!! warning "Source conflict"
-    The effective track width is `wheel_separation` × `wheel_separation_multiplier` = 0.617 × 1.659 = 1.0236 m from `isaacbot_amr_controller/config/wheel_01_controller.yaml`. The comment in the same file says the product is 1.020 m (it assumes a separation of 0.615 m), and `isaacbot_amr_crsf_teleop/config/isaacbot_amr_crsf_teleop.yaml` uses `effective_track_width: 1.0204` (0.62602 × 1.63). The controller uses 0.617 × 1.659.
+The acceleration limits belong to `diff_drive`. Each board's ramp (`motor_acceleration_rpm_s` 6300 RPM/s) sits just above the worst wheel demand at those limits (outer wheel 2.7 + 3.74 × 0.5118 = 4.61 m/s²), so it backs them up per wheel without capping an accelerating turn.
 
 ## Rates
 
 | Component | Rate | Note |
 |---|---|---|
-| `controller_manager` | 25 Hz | `read()` / `write()` cycle. 25 Hz, not 50: with the DCC1000, 22-24 % of the velocity commands were dropped at 50 Hz (see the `command path` diagnostic). Measure the DCC1020 command latency before raising it |
-| `isaacbot_amr_drive_controller` | 25 Hz | Odometry published every update. The speed loop runs on the DCC1020s, not at this rate |
-| `isaacbot_amr_imu_broadcaster` | 25 Hz | The manager's rate; the EKF runs at 50 Hz and predicts between samples |
-| `isaacbot_amr_joint_state_broadcaster` | 25 Hz | The manager's rate |
+| `controller_manager` | 50 Hz | `read()` / `write()` cycle. It ran at 25 Hz for the DCC1000, which dropped 22-24 % of its async commands at 50 Hz. On the DCC1020 `write()` only posts into each wheel's mailbox; check `dropped_pending` in the `command path` diagnostic on the rover |
+| `isaacbot_amr_drive_controller` | 50 Hz | Odometry published every update, matching the EKF. The speed loop runs on the DCC1020s, not at this rate |
+| `isaacbot_amr_imu_broadcaster` | 25 Hz | The EKF runs at 50 Hz and predicts between samples |
+| `isaacbot_amr_joint_state_broadcaster` | 25 Hz | Each message becomes `/tf` for every listener |
 | Motor driver state, safety topics | 20 Hz | `driver_states_update_frequency` |
 | Velocity feedback (DCC1020 `OnVelocityChange`) | Always the board minimum data interval (value **TBD**, logged at configure) | Replaces the DCC1000's 10 Hz encoder counts |
 | EKF (`isaacbot_amr_ekf_node`) | 50 Hz | |
 
-Every controller rate must divide the manager's 25 Hz (`isaacbot_amr_controller/test/test_wheel_geometry.py`).
+Every controller rate must divide the manager's 50 Hz (`isaacbot_amr_controller/test/test_wheel_geometry.py`).
 
 Source: `isaacbot_amr_controller/config/wheel_01_controller.yaml`, `isaacbot_amr_controller/README.md`, `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro`, `isaacbot_amr_localization/config/rel_localization.yaml`.
 
@@ -168,7 +169,7 @@ Source: `isaacbot_amr_controller/config/wheel_01_controller.yaml`, `isaacbot_amr
 | `motor_failsafe_braking_enabled` | `true` (default) | Brake (not coast) on a failsafe trip |
 | `velocity_kp` / `velocity_ki` / `velocity_kd`, `velocity_deadband_rpm` | 0.0017 / 0.0341 / 0 / 5 RPM | Tuned 2026-10-25, wheels lifted (see the URDF comment for the step results); not yet checked under load |
 | `motor_inductance` | 0.000575 H | Measured by the boards, mean of hub ports 0, 1, 5. `motor_inductance` is set when the channel attaches, which skips the motor characterization (the beeps) at every open. Without it the board characterizes the motor at open, which fails with a latched `motor_setup_fault` (error 0x1011) while the motor contactor is open; `sw_e_stop_latch_reset` then re-opens the channel |
-| `motor_acceleration_rpm_s` | 1890 RPM/s | = 1.4 m/s² at the wheel, diff_drive's linear limit: smooths diff_drive's 25 Hz command steps. Caps each wheel on its own, so the outer wheel in an accelerating turn is limited to 1.4 m/s² (**TBD** check on the ground) |
+| `motor_acceleration_rpm_s` | 6300 RPM/s | Per-wheel backstop just above the worst wheel demand at diff_drive's limits (4.61 m/s² = 6213 RPM/s); smooths diff_drive's 20 ms command steps. Whether the motors reach it at `motor_current_limit` is **TBD** on the ground |
 | `motor_surge_current_limit`, `motor_stall_velocity_rpm`, `motor_failsafe_current_limit` | not set (**TBD**) | Optional on-board loop settings. Absent = board default, logged at configure. |
 | `driver_comm_timeout_ms` | 300 ms | Telemetry age that counts as a communication error |
 
@@ -197,16 +198,16 @@ Source: `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro`, `isa
 
 Each DCC1020 runs the wheel speed loop on board: its `MotorVelocityController` channel applies a trapezoidal motion profile (`motor_acceleration_rpm_s`) and a PID (`velocity_kp`, `velocity_ki`, `velocity_kd`, `velocity_deadband_rpm`). The driver rescales the controller to motor-shaft RPM with `rescaleFactor = 60 / (4 × encoder_resolution)`, so the targets, gains and limits are all in motor RPM.
 
-The gains are **TBD**: no value is set in the URDF yet, so the boards run with their own defaults. At configure the driver logs the values each board actually uses, one line per motor:
+The gains are set in the URDF (tuned 2026-10-25 with the wheels lifted, see the table above). At configure the driver logs the values each board actually uses, one line per motor:
 
 ```text
 Motor hub port N (serial S): Kp=... (board default) Ki=... (board default) Kd=... (board default) dead band=... RPM, acceleration=... RPM/s, ...
 ```
 
-To tune, start from those values, set the parameters in `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro`, and check with `wheel_step_response` (below). Then re-measure the `diff_drive` / Nav 2 acceleration limits, which were measured with the DCC1000.
+To tune, start from those values, set the parameters in `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro`, and check with `wheel_step_response` (below). Then confirm the `diff_drive` / Nav 2 acceleration limits on the ground.
 
 !!! note "Host wheel PIDs (historical)"
-    With the DCC1000, which took only a duty cycle and reported the encoder at 10 Hz, the loop was closed on the host by four `isaacbot_amr_controller/SeededPidController`s chained under `diff_drive`, with a feed-forward of the rad/s-scaled duty and a model-reference integral. Since the DCC1020 swap they are no longer spawned. The controller is still built; its design and ground-tune history are in the [isaacbot_amr_controller README](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_controller/README.md) and the [wheel PID tuning notes](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_controller/docs/wheel_pid_tuning_notes.md).
+    With the DCC1000, which took only a duty cycle and reported the encoder at 10 Hz, the loop was closed on the host by four `isaacbot_amr_controller/SeededPidController`s chained under `diff_drive`, with a feed-forward of the rad/s-scaled duty and a model-reference integral. They were no longer spawned after the DCC1020 swap and were removed on 2026-10-27 (the code is in git history). Their ground-tune history is in the [wheel PID tuning notes](https://github.com/isaacbotsrl/isaacbot_amr_ros/blob/main/isaacbot_amr_controller/docs/wheel_pid_tuning_notes.md).
 
 Source: `isaacbot_amr_controller/config/wheel_01_controller.yaml`, `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro`, `isaacbot_amr_hardware_interface/src/isaacbot_amr_driver/phidget_driver/phidget_motor_driver.cpp`.
 
@@ -219,7 +220,7 @@ Both tools publish on the Foxglove input `teleop_foxglove_cmd_vel_stamped` (prio
 
 Run them in this order:
 
-1. **Wheel-speed loop** (`wheel_step_response`). Steps the linear speed (default 0.2, 0.4, 0.6, 0.8, −0.4 m/s) and the angular speed (0.5, 1.0, −1.0 rad/s), and reports overshoot, steady-state error and dead time per wheel. It also reports body acceleration limits derived from the largest wheel acceleration (`margin` 0.8). Target: overshoot under 10 % and steady-state error under 3 %. Run with the wheels lifted first, then on the ground.
+1. **Wheel-speed loop** (`wheel_step_response`). Steps the linear speed (default 0.2, 0.5, 1.0, 1.2, −0.5 m/s) and the angular speed (0.5, 1.0, 1.5, −1.0 rad/s), within diff_drive's caps,, and reports overshoot, steady-state error and dead time per wheel. The reference is the step turned into each wheel's speed and the feedback is `joint_states`, so the result covers diff_drive's limiter, the board ramp and the board PID together. It also reports body acceleration limits derived from the largest wheel acceleration (`margin` 0.8). Target: overshoot under 10 % and steady-state error under 3 %. Run with the wheels lifted first, then on the ground.
 
     ```bash
     ros2 run isaacbot_amr_controller wheel_step_response --ros-args -r __ns:=/isaacbot -p enable_motion:=true

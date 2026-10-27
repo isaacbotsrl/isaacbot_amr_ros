@@ -14,10 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Step the body velocity, record each wheel PID's reference/feedback, report the response.
+"""Step the body velocity, record each wheel's commanded and measured speed, report the response.
 
     ros2 run isaacbot_amr_controller wheel_step_response --ros-args -r __ns:=/<ns> \\
         -p enable_motion:=true
+
+The reference is the step itself, turned into each wheel's speed with the drive controller's
+kinematics; the feedback is the wheel velocity in joint_states (the DCC1020's OnVelocityChange).
+So the response covers the whole chain: diff_drive's limiter, then each board's ramp and PID.
 
 Writes <output_dir>/samples.csv and summary.yaml and logs recommended acceleration limits.
 """
@@ -26,48 +30,57 @@ import csv
 import os
 from statistics import median
 
-from control_msgs.msg import MultiDOFStateStamped
 import rclpy
 from rclpy.executors import ExternalShutdownException
+from sensor_msgs.msg import JointState
 import yaml
 
 from isaacbot_amr_controller.drive_session import DriveSession
-from isaacbot_amr_controller.schedule import build_schedule
+from isaacbot_amr_controller.schedule import active_segment, build_schedule
 from isaacbot_amr_controller.response_analysis import (
     analyze_step, derive_acceleration_limits, finite, Sample)
 
-WHEEL_PIDS = [
-    'pid_controller_fl_wheel_base_to_fl_wheel_joint',
-    'pid_controller_fr_wheel_base_to_fr_wheel_joint',
-    'pid_controller_rl_wheel_base_to_rl_wheel_joint',
-    'pid_controller_rr_wheel_base_to_rr_wheel_joint',
-]
+# Must match isaacbot_amr_drive_controller's left_wheel_names / right_wheel_names.
+LEFT_WHEELS = ['rl_wheel_base_to_rl_wheel_joint', 'fl_wheel_base_to_fl_wheel_joint']
+RIGHT_WHEELS = ['rr_wheel_base_to_rr_wheel_joint', 'fr_wheel_base_to_fr_wheel_joint']
 
 
 class WheelStepResponse(DriveSession):
 
     def __init__(self):
         super().__init__('wheel_step_response')
-        self.declare_parameter('pid_controllers', WHEEL_PIDS)
-        self.declare_parameter('linear_steps', [0.2, 0.4, 0.6, 0.8, -0.4])
-        self.declare_parameter('angular_steps', [0.5, 1.0, -1.0])
-        # Must match isaacbot_amr_drive_controller; only used to turn wheel accel into body limits.
+        self.declare_parameter('left_wheels', LEFT_WHEELS)
+        self.declare_parameter('right_wheels', RIGHT_WHEELS)
+        self.declare_parameter('linear_steps', [0.2, 0.5, 1.0, 1.2, -0.5])
+        self.declare_parameter('angular_steps', [0.5, 1.0, 1.5, -1.0])
+        # Must match isaacbot_amr_drive_controller: the wheel reference and the body limits use it.
         self.declare_parameter('wheel_radius', 0.1651)
         self.declare_parameter('wheel_separation', 0.617)
         self.declare_parameter('wheel_separation_multiplier', 1.659)
         self.declare_parameter('margin', 0.8)
-        self.samples = {}  # wheel -> list of (t, reference, feedback, output)
-        for pid in self.get_parameter('pid_controllers').value:
-            self.create_subscription(
-                MultiDOFStateStamped, f'{pid}/controller_state',
-                lambda msg, pid=pid: self._on_state(pid, msg), 50)
+        self._left = set(self.get_parameter('left_wheels').value)
+        self._right = set(self.get_parameter('right_wheels').value)
+        self.samples = {}  # wheel -> list of (t, reference, feedback)
+        self.create_subscription(JointState, 'joint_states', self._on_joints, 50)
 
-    def _on_state(self, pid, msg):
-        if self._start is None or not msg.dof_states:
+    def _wheel_reference(self, wheel, t):
+        segment = active_segment(self.schedule, t)
+        if segment is None:
+            return 0.0
+        half_track = (self.get_parameter('wheel_separation').value *
+                      self.get_parameter('wheel_separation_multiplier').value / 2.0)
+        side = -1.0 if wheel in self._left else 1.0
+        return ((segment.linear + side * segment.angular * half_track) /
+                self.get_parameter('wheel_radius').value)
+
+    def _on_joints(self, msg):
+        if self._start is None:
             return
-        dof = msg.dof_states[0]
-        self.samples.setdefault(pid, []).append(
-            (self.elapsed(), dof.reference, dof.feedback, dof.output))
+        t = self.elapsed()
+        for name, velocity in zip(msg.name, msg.velocity):
+            if name in self._left or name in self._right:
+                self.samples.setdefault(name, []).append(
+                    (t, self._wheel_reference(name, t), velocity))
 
     def start(self) -> bool:
         commands = [(v, 0.0, f'linear {v:+.2f}')
@@ -80,12 +93,13 @@ class WheelStepResponse(DriveSession):
     def report(self):
         if not self.samples:
             self.get_logger().error(
-                'No controller_state received - are the wheel PIDs active in this namespace?')
+                'No wheel velocities in joint_states - is the joint state broadcaster active in '
+                'this namespace?')
             return
         out = self.output_dir()
         with open(os.path.join(out, 'samples.csv'), 'w', newline='') as f:
             writer = csv.writer(f)
-            writer.writerow(['wheel', 't', 'reference', 'feedback', 'output'])
+            writer.writerow(['wheel', 't', 'reference', 'feedback'])
             for wheel, rows in self.samples.items():
                 writer.writerows([wheel, *row] for row in rows)
 
@@ -96,7 +110,7 @@ class WheelStepResponse(DriveSession):
                 continue
             per_wheel = {}
             for wheel, rows in self.samples.items():
-                window = [Sample(t, ref, fb) for t, ref, fb, _ in rows
+                window = [Sample(t, ref, fb) for t, ref, fb in rows
                           if segment.start - rest / 2 <= t < segment.end]
                 try:
                     per_wheel[wheel] = analyze_step(window, segment.start)
@@ -139,7 +153,8 @@ class WheelStepResponse(DriveSession):
                 f'Wheel accel {alpha:.2f} rad/s^2 -> linear.x {limits.linear:.2f} m/s^2, '
                 f'angular.z {limits.angular:.2f} rad/s^2 (margin '
                 f'{self.get_parameter("margin").value}). If these sit at the drive controller '
-                'limits, the controller ramp was the bottleneck - relax it and re-measure.')
+                'limits, diff_drive (or the board ramp, motor_acceleration_rpm_s) was the '
+                'bottleneck - relax it and re-measure.')
         with open(os.path.join(out, 'summary.yaml'), 'w') as f:
             yaml.safe_dump(summary, f, sort_keys=False)
         self.get_logger().info(f'Wrote {out}')

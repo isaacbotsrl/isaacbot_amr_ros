@@ -71,9 +71,10 @@ using CommandInterface = hardware_interface::CommandInterface;
 //     happens on a dedicated background thread (see ContactCoilHandler).
 //   - All read()-path publishing goes through realtime_tools::RealtimePublisher (see
 //     SystemROSInterface), never a plain rclcpp::Publisher::publish() call.
-//   - Motor commands in write() use the Phidget SDK's async call
-//     (PhidgetDCMotor_setTargetVelocity_async()) and drop the command rather than block if a
-//     prior async call hasn't completed yet.
+//   - Motor commands in write() only post the newest target into each wheel's lock-free
+//     LatestValueMailbox; a per-wheel command worker makes the blocking
+//     PhidgetMotorVelocityController_setTargetVelocity() call off the RT thread and coalesces
+//     targets that arrive meanwhile.
 //   - handleIsaacbotDriverWriteOperation() delegates the actual write attempt to
 //     IsaacbotControlLoopUseCase::performWriteOperation(), which also uses try_lock and skips the
 //     write cycle on contention instead of blocking (see application/isaacbot_amr_control_loop_use_case.hpp).

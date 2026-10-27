@@ -36,8 +36,8 @@ inside `controller_manager`, named after the component in the controller manager
 
 The hardware parameters (Modbus address, timeouts, gear ratio, encoder resolution, …) are the
 `<param>` tags in `urdf/ardennes/ardennes_macro.urdf.xacro` and `urdf/common/imu.urdf.xacro`. The
-DCC1020 on-board velocity loop settings (`velocity_kp/ki/kd`, `velocity_deadband_rpm`,
-`motor_acceleration_rpm_s`, surge/stall/failsafe current, `motor_inductance`) are optional and still TBD (commented out: board defaults);
+DCC1020 on-board velocity loop settings are optional: `velocity_kp/ki/kd`, `velocity_deadband_rpm`,
+`motor_acceleration_rpm_s` and `motor_inductance` are set, surge/stall/failsafe current are still TBD (commented out: board defaults);
 `motor_failsafe_braking_enabled` defaults to true. The DCC1000 parameters `motor_acceleration` and
 `motor_supply_voltage` were removed and are rejected by the hardware interface, as is
 `motor_data_interval_ms` (the feedback always runs at the board's minimum data interval). The CAD-derived

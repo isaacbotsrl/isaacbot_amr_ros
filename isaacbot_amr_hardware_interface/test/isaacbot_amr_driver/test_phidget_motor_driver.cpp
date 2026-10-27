@@ -82,16 +82,16 @@ TEST(PhidgetMotorDriverEncoderTest, StaleTimeoutSpansSeveralDataIntervals)
 {
     using std::chrono::milliseconds;
     // A turning wheel must survive one late velocity event.
-    EXPECT_EQ(PhidgetMotorDriver::encoderStaleTimeout(50), milliseconds(150));
-    EXPECT_EQ(PhidgetMotorDriver::encoderStaleTimeout(200), milliseconds(600));
+    EXPECT_EQ(PhidgetMotorDriver::velocityStaleTimeout(50), milliseconds(150));
+    EXPECT_EQ(PhidgetMotorDriver::velocityStaleTimeout(200), milliseconds(600));
 }
 
 TEST(PhidgetMotorDriverEncoderTest, StaleTimeoutHasAFloorForShortIntervals)
 {
     // At a board-minimum interval of a few ms, 3x would zero a turning wheel on any SDK-thread
     // scheduling hiccup.
-    EXPECT_EQ(PhidgetMotorDriver::encoderStaleTimeout(1), PhidgetMotorDriver::kMinVelocityStaleTimeout);
-    EXPECT_EQ(PhidgetMotorDriver::encoderStaleTimeout(10), PhidgetMotorDriver::kMinVelocityStaleTimeout);
+    EXPECT_EQ(PhidgetMotorDriver::velocityStaleTimeout(1), PhidgetMotorDriver::kMinVelocityStaleTimeout);
+    EXPECT_EQ(PhidgetMotorDriver::velocityStaleTimeout(10), PhidgetMotorDriver::kMinVelocityStaleTimeout);
     EXPECT_GE(PhidgetMotorDriver::kMinVelocityStaleTimeout, std::chrono::milliseconds(80));
 }
 

@@ -423,7 +423,7 @@ void PhidgetMotorDriver::configureMotorChannel()
 
     std::uint32_t actual_interval = min_interval;
     (void)PhidgetMotorVelocityController_getDataInterval(motor_handle_, &actual_interval);
-    velocity_stale_timeout_ns_.store(encoderStaleTimeout(actual_interval).count(), std::memory_order_relaxed);
+    velocity_stale_timeout_ns_.store(velocityStaleTimeout(actual_interval).count(), std::memory_order_relaxed);
 
     setInRange(
         motor_handle_, channel_, "motor_current_limit", settings_.motor_current_limit,
@@ -625,7 +625,7 @@ MotorDriverState PhidgetMotorDriver::readState()
     return state_snapshot_;
 }
 
-std::chrono::nanoseconds PhidgetMotorDriver::encoderStaleTimeout(
+std::chrono::nanoseconds PhidgetMotorDriver::velocityStaleTimeout(
     const std::uint32_t data_interval_ms)
 {
     return std::max<std::chrono::nanoseconds>(

@@ -113,14 +113,14 @@ last look, and the age of the last message and of the last valid message.
 | `motor_current_limit` | `15.0` | DCC1020 current limit [A] (ASSUMPTION carried over from the DCC1000). |
 | `velocity_kp` / `velocity_ki` / `velocity_kd`, `velocity_deadband_rpm` | 0.0017 / 0.0341 / 0 / 5 | Tuned DCC1020 on-board loop gains, motor RPM units |
 | `motor_inductance` | 0.000575 | Motor inductance in H, set at attach to skip the characterization at open |
-| `motor_acceleration_rpm_s` | 1890 | DCC1020 on-board ramp in motor RPM/s (= 1.4 m/s² at the wheel) |
+| `motor_acceleration_rpm_s` | 6300 | DCC1020 on-board ramp in motor RPM/s, just above the worst wheel demand at diff_drive's limits (4.61 m/s²) |
 | `motor_surge_current_limit`, `motor_stall_velocity_rpm`, `motor_failsafe_current_limit` | not set | Optional DCC1020 on-board loop settings, in motor RPM. Absent = board default, logged at configure. Values **TBD**. |
 | `max_rpm_motor_speed` / `gear_ratio` | `2800` / `23.3` | Clamp on the motor RPM target, and gearbox ratio. |
 | `encoder_resolution` | `1024` | Encoder resolution; also sets the board's rescale factor. |
 | `raw_current_to_amps_scale` | `0.01` | Current is reported in 10 mA units. |
 
 `motor_acceleration` and `motor_supply_voltage` (DCC1000 only) were removed; `on_init()` fails if the URDF still sets them.
-| `velocity_command_zero_tolerance` | `0.4` | Commanded wheel speed [rad/s] below which E-Stop reset is allowed. |
+| `velocity_command_zero_tolerance` | `0.01` | Commanded wheel speed [rad/s] below which E-Stop reset is allowed. |
 | `velocity_state_zero_tolerance` | `0.05` | Measured wheel speed [rad/s] below which E-Stop reset is allowed. |
 
 `isaacbot_amr_imu` parameters: `data_interval_ms` `8`, Madgwick `gain` `0.00304`, `zeta` `0.00151`,
@@ -136,7 +136,7 @@ More: [isaacbot_amr_hardware_interface README](https://github.com/isaacbotsrl/is
 
 ## Controllers
 
-`controller_manager` runs at `update_rate` 25 Hz. Its `/diagnostics` output is remapped to
+`controller_manager` runs at `update_rate` 50 Hz. Its `/diagnostics` output is remapped to
 `diagnostics`. The drive controller writes the wheel velocity interfaces of the hardware directly; the DCC1020s close the speed loop:
 
 ```mermaid
@@ -149,7 +149,7 @@ flowchart LR
 
 | Controller | Type | Rate |
 |------------|------|------|
-| `isaacbot_amr_drive_controller` | `diff_drive_controller/DiffDriveController` | 25 Hz |
+| `isaacbot_amr_drive_controller` | `diff_drive_controller/DiffDriveController` | 50 Hz |
 | `isaacbot_amr_joint_state_broadcaster` | `joint_state_broadcaster/JointStateBroadcaster` | 25 Hz |
 | `isaacbot_amr_imu_broadcaster` | `imu_sensor_broadcaster/IMUSensorBroadcaster` | 25 Hz |
 
@@ -168,21 +168,17 @@ flowchart LR
 | `wheel_separation` / `wheel_radius` | `0.617` m / `0.1651` m |
 | `wheel_separation_multiplier` | `1.659` |
 | `cmd_vel_timeout` | `0.5` s |
-| `linear.x.max_velocity` / `max_acceleration` | `0.95` m/s / `1.4` m/s² (measured with the DCC1000, re-measure **TBD**) |
-| `angular.z.max_velocity` / `max_acceleration` | `1.5` rad/s / `1.3` rad/s² (re-measure **TBD**) |
+| `linear.x.max_velocity` / `max_acceleration` | `1.2` m/s / `2.7` m/s² (acceleration: SWRS target, ASSUMPTION until confirmed on the ground) |
+| `angular.z.max_velocity` / `max_acceleration` | `1.5` rad/s / `3.74` rad/s² (ASSUMPTION, as above) |
+| `max_jerk` (both axes) | `.NAN` (no jerk limit) |
 | `odom_frame_id` / `base_frame_id` | `odom` / `base_footprint` |
 
-!!! warning "Source conflict"
-    The controller config `isaacbot_amr_controller/config/wheel_01_controller.yaml` uses
-    `wheel_separation_multiplier` `1.659`. Its comment says the multiplier was rescaled to a measured separation of `0.615` m, while
-    `wheel_separation` there and in `isaacbot_amr_description/config/wheel_01.yaml` is `0.617` m. This
-    page uses the configured values (`1.659`, `0.617` m).
-
-### Wheel PIDs (no longer spawned)
+### Wheel PIDs (removed)
 
 The four `pid_controller_<wheel>_wheel_base_to_<wheel>_wheel_joint` controllers
-(`isaacbot_amr_controller/SeededPidController`) and their `controller_state` topics are gone since the
-DCC1020 swap. See [Drive and control](drive-and-control.md#wheel-speed-loop).
+(`isaacbot_amr_controller/SeededPidController`) and their `controller_state` topics are gone: they were
+no longer spawned after the DCC1020 swap and were removed on 2026-10-27. See
+[Drive and control](drive-and-control.md#wheel-speed-loop).
 
 ### Broadcasters and robot state publisher
 
@@ -396,7 +392,7 @@ three come from `udp_bind_ip` / `udp_port` / `udp_source_ip` in the teleop confi
 | Parameter | Value |
 |-----------|-------|
 | `linear_x_channel` / `angular_z_channel` | `3` / `1` |
-| `linear_x_out_max` / `angular_z_out_max` | `0.95` m/s / `1.5` rad/s |
+| `linear_x_out_max` / `angular_z_out_max` | `1.2` m/s / `1.5` rad/s |
 | `e_stop_channel` / `e_stop_latch_reset_channel` | `5` / `4` |
 | `zero_burst_duration_ms` | `300` |
 | `channel_timeout_ms` / `link_stats_timeout_ms` | `200` / `1000` |

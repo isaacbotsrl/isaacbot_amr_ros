@@ -32,7 +32,7 @@ isaacbot's router would join the simulated nodes to the real isaacbot.
   - `include/spawn_robot.launch.py` spawns the URDF at `x`/`y`/`z`/`roll`/`pitch`/`yaw`
     (default `0, -2.0, 0.2`). The model is named after the namespace, else `ardennes`.
   - `isaacbot_amr_controller` with `use_sim:=True`, so `gz_ros2_control` owns the controller manager.
-    `config/sim_wheel_pid.yaml` is loaded after the real controller config. Since the DCC1020
+    `config/sim_wheel_radius.yaml` is loaded after the real controller config. Since the DCC1020
     swap there are no host wheel PIDs to detune (diff_drive drives `GazeboSimSystem`'s velocity
     joints directly, the same topology as the robot), so it only sets
     `isaacbot_amr_drive_controller`'s `wheel_radius` to 0.1699 m, the

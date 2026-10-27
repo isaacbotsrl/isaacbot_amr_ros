@@ -197,42 +197,6 @@ def test_spawner_sequence(controller_launch, monkeypatch, tmp_path, failed):
     assert len(controllers_active) == (1 if failed is None else 0)
 
 
-def test_chained_wheel_controllers(controller_launch, tmp_path):
-    bundled = (Path(get_package_share_directory('isaacbot_amr_controller')) /
-               'config/wheel_01_controller.yaml')
-    # The DCC1020s close the speed loop, so the bundled config chains through nothing.
-    assert controller_launch.chained_wheel_controllers(str(bundled)) == []
-    chained = tmp_path / 'chained.yaml'
-    chained.write_text(yaml.safe_dump({'/**': {'isaacbot_amr_drive_controller': {'ros__parameters': {
-        'left_wheel_names': ['pid_l/left_wheel_joint', 'pid_l/left_rear_wheel_joint'],
-        'right_wheel_names': ['pid_r/right_wheel_joint']}}}}))
-    assert controller_launch.chained_wheel_controllers(str(chained)) == ['pid_l', 'pid_r']
-
-
-def test_drive_spawner_activates_chained_controllers_as_group(controller_launch, monkeypatch):
-    nodes = []
-    original_node = controller_launch.Node
-
-    def capture_node(**kwargs):
-        nodes.append(kwargs)
-        return original_node(**kwargs)
-
-    monkeypatch.setattr(controller_launch, 'Node', capture_node)
-    context = LaunchContext()
-    context.launch_configurations.update(namespace='', use_sim='False', robot_model='ardennes')
-    for action in controller_launch.generate_launch_description().entities:
-        if isinstance(action, (DeclareLaunchArgument, SetLaunchConfiguration, OpaqueFunction)):
-            action.execute(context)
-    drive = next(args['arguments'] for args in nodes if args['executable'] == 'spawner' and
-                 args['arguments'][0] == 'isaacbot_amr_drive_controller')
-    chained = controller_launch.chained_wheel_controllers(
-        resolve(context, drive[drive.index('--param-file') + 1]))
-    # Spawned as one group only when diff_drive chains through other controllers; the bundled
-    # config drives the joints directly, so there is no group.
-    assert ('--activate-as-group' in drive) == bool(chained)
-    assert [a for a in drive[1:] if a in chained] == chained
-
-
 def test_real_controller_accepts_override(controller_launch, monkeypatch, tmp_path):
     """Activate diff_drive on GenericSystem and read back the namespaced override."""
     monkeypatch.setenv('RMW_IMPLEMENTATION', 'rmw_zenoh_cpp')

@@ -20,33 +20,24 @@ wheel joints' `velocity` command interfaces directly and reads their measured ve
 odometry. Each Phidget DCC1020 closes the loop on board (`MotorVelocityController`:
 trapezoidal profile + PID, in motor RPM); its gains are URDF parameters in
 `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro` (see
-`isaacbot_amr_hardware_interface/README.md`). `publish_limited_velocity` is `false`: `cmd_vel_out`
-was only read by the old PIDs' turn feed-forward. `test/test_wheel_geometry.py` checks that
-diff_drive drives the joints directly and that no `SeededPidController` is configured.
-
-### SeededPidController (built, not spawned)
+`isaacbot_amr_hardware_interface/README.md`). `publish_limited_velocity` is `false`: nothing
+reads `cmd_vel_out`. `test/test_wheel_geometry.py` checks that diff_drive drives the joints
+directly and that no `SeededPidController` is configured.
 
 Until the DCC1020 swap the motor controllers (DCC1000) only took a duty cycle and reported the
-encoders at 10 Hz, so the host closed the loop with four `isaacbot_amr_controller/SeededPidController`s
-chained under diff_drive (wheel names `<pid controller>/<joint>`). The controller is still built
-and tested, but no config spawns it. It is `pid_controller/PidController` with its exported state
-seeded on activation (so a chained diff_drive never reads NaN on its first cycle) and each
-wheel's command computed by `WheelSpeedLoop` (`stop_at_zero_reference`, a model-reference
-integral, `scale_integral_with_reference`, turn feed-forward). With every option off,
-`WheelSpeedLoop` gives exactly `control_toolbox::Pid`'s output (`test/test_wheel_speed_loop.cpp`).
-Its tuning history is in `docs/wheel_pid_tuning_notes.md` and in this README's git history.
+encoders at 10 Hz, so the host closed the loop with four `SeededPidController`s chained under
+diff_drive. That controller (and its `WheelSpeedLoop`) was removed on 2026-10-27; it is in git
+history, and its tuning history is in `docs/wheel_pid_tuning_notes.md`.
 
-The joint-state and IMU broadcasters are spawned as before.
-
-controller_manager runs at 25 Hz, and each controller at its own `update_rate`:
-`isaacbot_amr_drive_controller`, `isaacbot_amr_imu_broadcaster` and
-`isaacbot_amr_joint_state_broadcaster` all at the manager's 25 Hz (the EKF runs at 50 Hz).
-Every rate must divide the manager's (`test/test_wheel_geometry.py`). The manager used to run
-at 100 Hz, then at 50 Hz, where 22-24 % of the velocity commands were dropped because the
-DCC1000's asynchronous call took ~17 ms (median) to complete. The DCC1020 has no asynchronous
-setter: each wheel's command worker sends the newest target with a blocking call and coalesces
-newer ones (`dropped_pending` in the `command path` diagnostic). Re-measure that latency before
-raising the rate (see the comment above the rates in `config/wheel_01_controller.yaml`).
+controller_manager runs at 50 Hz, and each controller at its own `update_rate`:
+`isaacbot_amr_drive_controller` at 50 Hz (odometry every update, matching the EKF), and
+`isaacbot_amr_imu_broadcaster` and `isaacbot_amr_joint_state_broadcaster` at 25 Hz. Every rate
+must divide the manager's (`test/test_wheel_geometry.py`). The manager ran at 25 Hz for the
+DCC1000, which dropped 22-24 % of its asynchronous commands at 50 Hz (~17 ms median call). On the
+DCC1020, `write()` only posts the newest target into each wheel's mailbox and a command worker
+sends it with a blocking call, coalescing newer ones (`dropped_pending` in the `command path`
+diagnostic) - check that count on the rover (see the comment above the rates in
+`config/wheel_01_controller.yaml`).
 
 ## Drive-train tuning
 
@@ -56,9 +47,10 @@ print their plan and only move the isaacbot with `-p enable_motion:=true`. Resul
 to `~/isaacbot_amr_calibration/<tool>_<timestamp>/` (`summary.yaml`, raw samples).
 
 1. **Wheel-speed loop.** Tune the DCC1020 on-board loop (`velocity_kp/ki/kd`,
-   `velocity_deadband_rpm`, `motor_acceleration_rpm_s` in the URDF; all TBD, board defaults
-   until set). At configure the driver logs the values each board runs with ("Motor hub port N
-   (serial S): Kp=... (board default) ..."); start from those. Run the step-response tool with
+   `velocity_deadband_rpm`, `motor_acceleration_rpm_s` in the URDF). At configure the driver
+   logs the values each board runs with ("Motor hub port N (serial S): Kp=... ..."). The tool
+   steps the body command and compares each wheel's ideal speed with its `joint_states`
+   velocity, so it measures diff_drive's limiter and the board together. Run the step-response tool with
    the wheels off the ground first, then on the ground, until overshoot stays under 10 % and
    steady-state error under 3 %. `docs/wheel_pid_tuning_notes.md` is the history of the old
    host PIDs on the DCC1000 and does not apply to the on-board loop.
@@ -72,9 +64,10 @@ to `~/isaacbot_amr_calibration/<tool>_<timestamp>/` (`summary.yaml`, raw samples
    `a = margin * r * alpha`, `alpha_z = 2 * margin * r * alpha / (wheel_separation * multiplier)`.
    If the result equals the current `linear.x/angular.z` limits in this file, the
    controller ramp was the bottleneck, not the wheels. Relax those limits for one
-   measurement run and repeat. The current limits (1.4 m/s², 1.3 rad/s²) were
-   measured with the DCC1000 and are TBD for the DCC1020; the on-board profile
-   (`motor_acceleration_rpm_s`) adds lag of its own, so re-measure after changing it.
+   measurement run and repeat. The current limits (2.7 m/s², 3.74 rad/s²) are the SWRS
+   targets, an ASSUMPTION until confirmed on the ground (the DCC1000-era values were
+   1.4 m/s², 1.3 rad/s²). The on-board ramp (`motor_acceleration_rpm_s`) sits just above the
+   worst wheel demand at those limits; keep it there when you change them.
    Then set the limits from the inside out:
    `isaacbot_amr_drive_controller` >= Nav2 `velocity_smoother` `max_accel`/`max_decel`
    = MPPI `ax_max`/`ax_min`/`az_max` >= `behavior_server.rotational_acc_lim`.
@@ -112,10 +105,7 @@ robot description. `<namespace>/` placeholders in the file are replaced with
 the requested namespace prefix (or an empty string for the root namespace).
 
 Startup activates the joint-state broadcaster, drive controller, then IMU
-broadcaster. The drive controller's spawner also takes every controller named as
-`<controller>/<joint>` in its wheel names and activates them with it as one group
-(`--activate-as-group`), so controller_manager orders a chain; the current config has
-plain joint names, so it spawns no extra controllers. Each step requires the previous spawner to succeed. A mandatory
+broadcaster. Each step requires the previous spawner to succeed. A mandatory
 spawner failure reports its controller name and exit code and shuts down the
 launch; subsequent controllers are not started.
 

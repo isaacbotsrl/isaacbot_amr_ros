@@ -109,8 +109,8 @@
     # isaacbot_amr_controller/config/wheel_01_controller.yaml: anything above them is clipped per axis
     # by diff_drive, which bends the commanded arc.
     linear_x_channel: 3
-    linear_x_out_min: -0.95   # m/s
-    linear_x_out_max: 0.95    # m/s
+    linear_x_out_min: -1.2    # m/s
+    linear_x_out_max: 1.2     # m/s
     linear_x_invert: false
 
     angular_z_channel: 1
@@ -128,12 +128,14 @@
 
     # Outer-wheel rim speed budget. Stick commands with |v| + |w| * track / 2 above this are scaled
     # down as a whole (same factor on v and w), so the isaacbot drives the arc the sticks asked for,
-    # just slower. 1.7 m/s = 10.3 rad/s at r = 0.1651, under the 10.958 rad/s URDF wheel limit with
-    # room for the wheel PID's feedforward + I trim. 0.0 disables.
-    max_wheel_rim_speed: 1.7        # m/s
+    # just slower. 1.97 m/s = 11.93 rad/s at r = 0.1651, ~5 % under the DCC1020 target clamp
+    # (2800 RPM / gear 23.3 = 12.58 rad/s) - the same budget diff_drive's caps are sized to
+    # (1.2 + 1.5 * 0.5118 = 1.968), so with today's caps it only engages if they are raised.
+    # 0.0 disables.
+    max_wheel_rim_speed: 1.97       # m/s
     # wheel_separation * wheel_separation_multiplier from wheel_01_controller.yaml
-    # (0.62602 * 1.63). Update together with the multiplier.
-    effective_track_width: 1.0204   # m
+    # (0.617 * 1.659). Update together with either.
+    effective_track_width: 1.0236   # m
 
     # A stop (stick centred, link lost, calibration inhibit) publishes zeros for this long and then
     # goes silent, so twist_mux falls through to its next source. A burst rather than one message,

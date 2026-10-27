@@ -48,7 +48,9 @@
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
       <axis xyz="0.0 1.0 0.0" />
 
-      <limit effort="64.5" velocity="10.958" />
+      <!-- velocity: the DCC1020 target clamp, max_rpm_motor_speed 2800 * 2pi/60 / gear_ratio 23.3
+           = 12.58 rad/s at the wheel (ardennes_macro.urdf.xacro). -->
+      <limit effort="64.5" velocity="12.58" />
       <dynamics damping="0.01" friction="0.1" />
     </joint>
 

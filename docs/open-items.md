@@ -37,10 +37,10 @@ source file first, then the manual page, then remove the item here.
 | Item | Where it is needed |
 |---|---|
 | Wire each DCC1020 hardware E-Stop input into the safety chain. It is always enabled and still jumpered as shipped | [Safety](safety.md), [Components](hardware/components.md) |
-| Tune the on-board speed loop (`velocity_kp/ki/kd`, `velocity_deadband_rpm`, `motor_acceleration_rpm_s`, surge/stall/failsafe current) and record the source of each value; the boards run on their defaults until then | [Drive and control](software/drive-and-control.md#wheel-speed-loop), `ardennes_macro.urdf.xacro` |
-| Re-measure the `diff_drive` / Nav 2 acceleration limits (1.4 m/s², 1.3 rad/s², measured with the DCC1000) | Drive and control, `wheel_01_controller.yaml` |
+| Check the on-board speed loop under load on the ground (gains tuned 2026-10-25 with the wheels lifted) and set surge/stall/failsafe current, recording the source of each value | [Drive and control](software/drive-and-control.md#wheel-speed-loop), `ardennes_macro.urdf.xacro` |
+| Confirm on the ground that the raised acceleration limits (2.7 m/s², 3.74 rad/s², SWRS targets; board ramp 6300 RPM/s) are reached at `motor_current_limit` without slip or tipping, and that wheels-lifted steps at 0.05 m/s do not jump now that the jerk limit is off (`wheel_step_response`) | Drive and control, `wheel_01_controller.yaml` |
 | Bench-check that the Encoder channel opens next to the velocity controller (otherwise joint position is integrated from velocity) | Drive and control |
-| Measure the DCC1020 command latency (`command path` diagnostic) before raising the controller rate above 25 Hz | Drive and control |
+| Check the `command path` diagnostic's `dropped_pending` at the new 50 Hz controller rate on the rover | Drive and control |
 | Update each DCC1020 to firmware v104 or later with `phidget22admin` (fixes a data-interval change-event bug) | Components |
 | Re-check `motor_current_limit` (15 A, ASSUMPTION) on the bench | Components |
 | Fit a Power Guard (Phidgets recommends SAF2000 or SAF2020); part number **TBD** | [Power and battery](hardware/power-and-battery.md) |
@@ -66,7 +66,6 @@ The manual uses the value the code runs with. The other source should be correct
 | Topic | Value used by the code | Other value | Files |
 |---|---|---|---|
 | Track width | 0.617 m (CAD wheel joints; the tyre contact patches are 0.6136 m apart) | 0.615 m "measured" | `isaacbot_amr_description/config/wheel_01.yaml`, `isaacbot_amr_controller/config/wheel_01_controller.yaml` (comment) |
-| Effective track (track × multiplier) | 0.617 × 1.659 = 1.0236 m | 1.020 m (controller comment); 1.0204 m (`effective_track_width` in `isaacbot_amr_crsf_teleop/config/isaacbot_amr_crsf_teleop.yaml`) | `isaacbot_amr_controller/config/wheel_01_controller.yaml` |
 | `motor_current_limit` | 15.0 A (ASSUMPTION carried over from the DCC1000) | ~11.5 A (Phidgets: ~1.1× rated current, URDF comment); 10 A compiled-in default (`utils.hpp`) | `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro`, `isaacbot_amr_hardware_interface/include/isaacbot_amr_hardware_interface/utils.hpp` |
 | Maximum angular speed | 1.5 rad/s | "1.7 m/s2" (SYS-SR-004 answer; also a unit error) | `wheel_01_controller.yaml`, `rover_platform_mbse/system/*.xlsx` |
 | Battery voltage | 24 V (system voltage; `motor_supply_voltage` was removed with the DCC1000) | 41.4 V in the simulated battery | `ardennes_macro.urdf.xacro`, `isaacbot_amr_description/urdf/common/battery.urdf.xacro` |
@@ -80,9 +79,9 @@ The manual uses the value the code runs with. The other source should be correct
 
 These come from reading the code while writing the manual. They are not documentation errors.
 
-- `velocity_command_zero_tolerance` is still 0.4 rad/s. The reason for it (a frozen host PID
-  integral) is gone since the host wheel PIDs are no longer spawned, so it can come down toward
-  0.01 once that is verified on the isaacbot.
+- `velocity_command_zero_tolerance` came down from 0.4 to 0.01 rad/s on 2026-10-27 (the host
+  wheel PIDs' frozen integral it covered is gone). Confirm an E-Stop reset succeeds at rest on the
+  isaacbot.
 - The `E_STOP` LED animation follows only the hardware button. A software E-Stop, an RC E-Stop
   or a held latch leaves the LEDs on `READY`.
 - The software motor-driver-fault input (`COIL_3`) is only asserted during start-up; nothing

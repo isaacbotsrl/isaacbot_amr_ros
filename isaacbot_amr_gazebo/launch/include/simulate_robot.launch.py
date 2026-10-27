@@ -137,7 +137,7 @@ def generate_launch_description():
             "publish_robot_state": "True",
             "use_sim": "True",
             "extra_controller_config_path": PathJoinSubstitution(
-                [FindPackageShare("isaacbot_amr_gazebo"), "config", "sim_wheel_pid.yaml"]
+                [FindPackageShare("isaacbot_amr_gazebo"), "config", "sim_wheel_radius.yaml"]
             ),
         }.items(),
     )

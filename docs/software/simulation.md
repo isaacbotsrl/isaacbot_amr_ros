@@ -10,7 +10,7 @@ graph looks like the isaacbot's apart from `use_sim_time`.
 |------|-----------|--------|
 | World | `isaacbot_amr_world/world/isaacbot_amr_world.sdf`: 25 m x 25 m ground plane, perimeter walls at ±11 m, four boxes and three pillars around the spawn point. Physics step 0.001 s, real-time factor 1.0. | `isaacbot_amr_world/world/isaacbot_amr_world.sdf` |
 | Robot | URDF built with `use_sim:=true`, spawned at x `0.0`, y `-2.0`, z `0.2` (drop height). The model is named after the namespace. | `isaacbot_amr_gazebo/launch/include/simulate_robot.launch.py` |
-| ros2_control | `gz_ros2_control/GazeboSimSystem` owns the controller manager. Same controller config as hardware (`wheel_01_controller.yaml`), then `isaacbot_amr_gazebo/config/sim_wheel_pid.yaml` on top. | `isaacbot_amr_description/urdf/common/gazebo_system.urdf.xacro`, `isaacbot_amr_controller/launch/isaacbot_amr_controller.launch.py` |
+| ros2_control | `gz_ros2_control/GazeboSimSystem` owns the controller manager. Same controller config as hardware (`wheel_01_controller.yaml`), then `isaacbot_amr_gazebo/config/sim_wheel_radius.yaml` on top. | `isaacbot_amr_description/urdf/common/gazebo_system.urdf.xacro`, `isaacbot_amr_controller/launch/isaacbot_amr_controller.launch.py` |
 | Controllers | `isaacbot_amr_drive_controller` (writing the wheel joints' velocity directly, as on the isaacbot), `isaacbot_amr_joint_state_broadcaster`, `isaacbot_amr_imu_broadcaster`. | `isaacbot_amr_controller/config/wheel_01_controller.yaml` |
 | Localization | `isaacbot_amr_ekf_node`; with `use_gps` also `isaacbot_amr_gps_heading_node`, `isaacbot_amr_navsat_transform_node`, `isaacbot_amr_ekf_global_node`. | `isaacbot_amr_localization/launch/isaacbot_amr_localization.launch.py` |
 | Command path | `isaacbot_amr_twist_mux_node`, `isaacbot_amr_motion_lock_node`, `isaacbot_amr_command_freshness_node`, as on the isaacbot. | `isaacbot_amr_twist_mux/launch/isaacbot_amr_twist_mux.launch.py` |
@@ -163,7 +163,7 @@ Source: `isaacbot_amr_gazebo/scripts/sim_safety_plc.py`, `isaacbot_amr_gazebo/sc
 | Time | System clock | `use_sim_time`, `/clock` from Gazebo |
 | Middleware | Zenoh router in the isaacbot's router container | Local Zenoh router on `127.0.0.1:7447` |
 
-Source: `isaacbot_amr_gazebo/launch/include/simulate_robot.launch.py`, `isaacbot_amr_gazebo/config/sim_wheel_pid.yaml`,
+Source: `isaacbot_amr_gazebo/launch/include/simulate_robot.launch.py`, `isaacbot_amr_gazebo/config/sim_wheel_radius.yaml`,
 `isaacbot_amr_controller/config/wheel_01_controller.yaml`, `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro`,
 `isaacbot_amr_description/urdf/ardennes/base.urdf.xacro`, `isaacbot_amr_description/launch/isaacbot_amr_load_urdf.launch.py`,
 `isaacbot_amr_gazebo/config/gz_bridge.yaml`.

@@ -178,9 +178,9 @@ done
 check_body "$(cat "${CONTROL_LOOP_USE_CASE_FILE}")" "IsaacbotControlLoopUseCase"
 
 # Blocking calls matched by pattern rather than by fixed name - applied to the adapter bodies
-# below only. Any Phidget SDK setter (`Phidget*_set*(`) is a synchronous USB round-trip; the
-# `_async` variants (e.g. PhidgetDCMotor_setTargetVelocity_async) don't match, because [A-Za-z]*
-# can't span the `_` before `async`.
+# below only. Any Phidget SDK setter (`Phidget*_set*(`) is a synchronous USB round-trip; an
+# `_async` variant (`Phidget*_set*_async(`) would not match, because [A-Za-z]* can't span the `_`
+# before `async`.
 FORBIDDEN_ADAPTER_PATTERNS=(
     'Phidget[A-Za-z]*_set[A-Za-z]*[[:space:]]*\('
     'Phidget_open'

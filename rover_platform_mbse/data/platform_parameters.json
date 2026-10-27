@@ -4,30 +4,30 @@
     {
       "component": "rover_controller",
       "name": "cm_update_rate",
-      "value": 100,
+      "value": 50,
       "unit": "Hz",
-      "source": "rover_controller/config/wheel_01_controller.yaml:13"
+      "source": "isaacbot_amr_controller/config/wheel_01_controller.yaml:10"
     },
     {
       "component": "rover_controller",
       "name": "diff_drive_update_rate",
       "value": 50,
       "unit": "Hz",
-      "source": "rover_controller/config/wheel_01_controller.yaml:159"
+      "source": "isaacbot_amr_controller/config/wheel_01_controller.yaml:70"
     },
     {
       "component": "rover_controller",
       "name": "imu_broadcaster_rate",
-      "value": 50,
+      "value": 25,
       "unit": "Hz",
-      "source": "rover_controller/config/wheel_01_controller.yaml:150"
+      "source": "isaacbot_amr_controller/config/wheel_01_controller.yaml:61"
     },
     {
       "component": "rover_controller",
       "name": "joint_state_rate",
-      "value": 20,
+      "value": 25,
       "unit": "Hz",
-      "source": "rover_controller/config/wheel_01_controller.yaml:146"
+      "source": "isaacbot_amr_controller/config/wheel_01_controller.yaml:57"
     },
     {
       "component": "rover_controller",
@@ -60,30 +60,30 @@
     {
       "component": "rover_controller",
       "name": "max_linear_velocity",
-      "value": 0.95,
+      "value": 1.2,
       "unit": "m/s",
-      "source": "rover_controller/config/wheel_01_controller.yaml:207"
+      "source": "isaacbot_amr_controller/config/wheel_01_controller.yaml:125"
     },
     {
       "component": "rover_controller",
       "name": "max_linear_acceleration",
       "value": 2.7,
       "unit": "m/s^2",
-      "source": "rover_controller/config/wheel_01_controller.yaml:209"
+      "source": "isaacbot_amr_controller/config/wheel_01_controller.yaml:127"
     },
     {
       "component": "rover_controller",
       "name": "max_angular_velocity",
       "value": 1.5,
       "unit": "rad/s",
-      "source": "rover_controller/config/wheel_01_controller.yaml:218"
+      "source": "isaacbot_amr_controller/config/wheel_01_controller.yaml:136"
     },
     {
       "component": "rover_controller",
       "name": "max_angular_acceleration",
       "value": 3.74,
       "unit": "rad/s^2",
-      "source": "rover_controller/config/wheel_01_controller.yaml:220"
+      "source": "isaacbot_amr_controller/config/wheel_01_controller.yaml:138"
     },
     {
       "component": "rover_description",
@@ -137,9 +137,9 @@
     {
       "component": "rover_description",
       "name": "wheel_joint_velocity_limit",
-      "value": 10.958,
+      "value": 12.58,
       "unit": "rad/s",
-      "source": "rover_description/urdf/common/wheel.urdf.xacro:47"
+      "source": "isaacbot_amr_description/urdf/common/wheel.urdf.xacro:53"
     },
     {
       "component": "rover_hardware_interface",
@@ -207,9 +207,9 @@
     {
       "component": "rover_hardware_interface",
       "name": "velocity_command_zero_tolerance",
-      "value": 0.4,
+      "value": 0.01,
       "unit": "rad/s",
-      "source": "rover_description/urdf/ardennes/ardennes_macro.urdf.xacro:275"
+      "source": "isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro:336"
     },
     {
       "component": "rover_hardware_interface",

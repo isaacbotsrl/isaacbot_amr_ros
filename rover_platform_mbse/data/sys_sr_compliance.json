@@ -51,7 +51,7 @@
       "id": "SYS-SR-004",
       "allocation": "SW",
       "verdict": "Compliant",
-      "summary": "diff_drive limits 0.95 m/s / 1.5 rad/s apply after arbitration, so to every source; model test passes. CRSF node defaults (2.0 / 5.0) exceed the limit but the shipped YAML does not (SWR-CRSF-008). Open Questions answer '1.7 m/s2' read as 1.7 rad/s."
+      "summary": "diff_drive limits 1.2 m/s / 1.5 rad/s (isaacbot_amr_controller/config/wheel_01_controller.yaml:125, :136) apply after arbitration, so to every source; SYS-SR-004 raised to 1.2 m/s on 2026-10-27 (xlsx Revision History). Model test to re-run after build_all. CRSF node defaults (2.0 / 5.0) exceed the limit but the shipped YAML does not (SWR-CRSF-008). Open Questions answer '1.7 m/s2' read as 1.7 rad/s."
     },
     {
       "id": "SYS-SR-005",
@@ -111,7 +111,7 @@
       "id": "SYS-SR-014",
       "allocation": "HW+SW",
       "verdict": "Blocked (TBD)",
-      "summary": "Stopping distance depends on the PLC/contactor stop (category TBD) and the drive train. For software-commanded stops the 2.7 m/s^2 limit gives 0.95^2/(2*2.7) = 0.17 m plus latency. Limit TBD. No SWR derived."
+      "summary": "Stopping distance depends on the PLC/contactor stop (category TBD) and the drive train. For software-commanded stops the 2.7 m/s^2 limit gives 1.0^2/(2*2.7) = 0.19 m from the SYS-SR-014 speed (1.2^2/(2*2.7) = 0.27 m from the 1.2 m/s top speed) plus latency; 2.7 m/s^2 is not yet confirmed on the ground. Limit TBD. No SWR derived."
     },
     {
       "id": "SYS-SR-015",
@@ -141,7 +141,7 @@
       "id": "SYS-SR-019",
       "allocation": "SW",
       "verdict": "Not Met",
-      "summary": "The Phidget IMU samples at 125 Hz but imu_sensor_broadcaster publishes imu/data at 50 Hz (wheel_01_controller.yaml:150); the simulated IMU is 50 Hz too. Model test fails (KnownDeviation)."
+      "summary": "The Phidget IMU samples at 125 Hz but imu_sensor_broadcaster publishes imu/data at 25 Hz (isaacbot_amr_controller/config/wheel_01_controller.yaml:61); the simulated IMU is 50 Hz too. Model test fails (KnownDeviation)."
     },
     {
       "id": "SYS-SR-020",
