@@ -538,6 +538,7 @@ TEST_F(IsaacbotSystemWriteTest, SafetyLinkDiagnosticSummarisesAHealthyLinkAsOk)
         {"Contactor fault latched", "False"},
         {"Contactor failed open", "False"},
         {"Wheel runaway latched", "False"},
+        {"Wheel stall latched", "False"},
     };
 
     ASSERT_EQ(status.values.size(), expected.size());

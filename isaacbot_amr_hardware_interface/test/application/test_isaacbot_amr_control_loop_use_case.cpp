@@ -464,4 +464,66 @@ TEST_F(WheelRunawayTest, ResetRunawayFaultClearsTheLatch)
     EXPECT_FALSE(use_case.isHardwareFaultLatched());
 }
 
+// --- Wheel stall ------------------------------------------------------------------------------
+//
+// A blocked wheel obeys a zero command, so a latched stall must inhibit motion but leave motor
+// power on: the contactor would also take the braking away from the other three wheels.
+
+class WheelStallTest : public ::testing::Test
+{
+protected:
+    std::shared_ptr<FakeIsaacbotDriver> driver = std::make_shared<FakeIsaacbotDriver>();
+    std::shared_ptr<FakeEmergencyStop> e_stop = std::make_shared<FakeEmergencyStop>();
+    IsaacbotErrorFilter error_filter{1, 1, 1, 1, 1};
+    IsaacbotControlLoopUseCase use_case{driver, e_stop, error_filter};
+
+    std::chrono::steady_clock::time_point t0 {};
+
+    const std::vector<float> targets {3.0f, 0.0f, 0.0f, 0.0f};
+    const std::vector<double> blocked {0.0, 0.0, 0.0, 0.0};
+    const std::vector<double> currents {13.4, 0.0, 0.0, 0.0};
+
+    // Feeds a blocked front left wheel every 20 ms over [from, to]; returns whether any cycle latched.
+    bool feed(const int from_ms, const int to_ms)
+    {
+        bool latched = false;
+        for (int t = from_ms; t <= to_ms; t += 20) {
+            latched = use_case.updateWheelStall(
+                targets, blocked, currents, t0 + std::chrono::milliseconds(t)) || latched;
+        }
+        return latched;
+    }
+};
+
+TEST_F(WheelStallTest, LatchedStallInhibitsMotionWithoutCuttingPower)
+{
+    ASSERT_TRUE(feed(0, 1100));
+
+    EXPECT_TRUE(use_case.isStallFaultLatched());
+    EXPECT_TRUE(use_case.isHardwareFaultLatched());
+    EXPECT_EQ(use_case.stallMonitor().latchedWheel(), 0);
+    EXPECT_EQ(
+        IsaacbotControlLoopUseCase::decideWriteCommand(true, false, false, use_case.isHardwareFaultLatched()),
+        WriteCommandMode::kCommandZero);
+    EXPECT_EQ(e_stop->request_motor_driver_fault_calls, 0u);
+}
+
+TEST_F(WheelStallTest, NotEvaluatedWhileTheContactorIsOpen)
+{
+    e_stop->contactor_engaged = false;
+
+    EXPECT_FALSE(feed(0, 3000));
+    EXPECT_FALSE(use_case.isStallFaultLatched());
+}
+
+TEST_F(WheelStallTest, ResetStallFaultClearsTheLatch)
+{
+    ASSERT_TRUE(feed(0, 1100));
+
+    use_case.resetStallFault();
+
+    EXPECT_FALSE(use_case.isStallFaultLatched());
+    EXPECT_FALSE(use_case.isHardwareFaultLatched());
+}
+
 }  // namespace isaacbot_amr_hardware_interface

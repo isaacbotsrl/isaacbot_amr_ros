@@ -14,9 +14,8 @@ The DCC1020's `MotorVelocityController` (trapezoidal profile + PID) is rescaled 
 motor RPM. Its settings are optional `<param>`s of `isaacbot_amr_system_node` in
 `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro`: `velocity_kp`, `velocity_ki`,
 `velocity_kd`, `velocity_deadband_rpm`, `motor_acceleration_rpm_s`, `motor_surge_current_limit`,
-`motor_stall_velocity_rpm`, `motor_failsafe_current_limit`, `motor_inductance`. Gains, dead band,
-ramp and inductance are set (the URDF comments give their source); the current limits are TBD:
-absent, the board keeps its own default. At configure the driver logs what each board runs with:
+`motor_stall_velocity_rpm`, `motor_failsafe_current_limit`, `motor_inductance`. All are set (the URDF
+comments give their source) except the failsafe current limit: absent, the board keeps its own default. At configure the driver logs what each board runs with:
 
 ```text
 Motor hub port N (serial S): Kp=... (board default) Ki=... (board default) Kd=... (board default) dead band=... RPM, acceleration=... RPM/s, ...

@@ -515,7 +515,8 @@ void PhidgetMotorDriver::configureMotorChannel()
     // Log what the board actually runs with - for the unset gains these are its defaults, the
     // starting point for tuning.
     double kp = 0.0, ki = 0.0, kd = 0.0, dead_band = 0.0, acceleration = 0.0;
-    double current_limit = 0.0, surge_current_limit = 0.0, stall_velocity = 0.0, inductance = 0.0;
+    double current_limit = 0.0, surge_current_limit = 0.0, failsafe_current_limit = 0.0;
+    double stall_velocity = 0.0, inductance = 0.0;
     (void)PhidgetMotorVelocityController_getKp(motor_handle_, &kp);
     (void)PhidgetMotorVelocityController_getKi(motor_handle_, &ki);
     (void)PhidgetMotorVelocityController_getKd(motor_handle_, &kd);
@@ -523,18 +524,19 @@ void PhidgetMotorDriver::configureMotorChannel()
     (void)PhidgetMotorVelocityController_getAcceleration(motor_handle_, &acceleration);
     (void)PhidgetMotorVelocityController_getCurrentLimit(motor_handle_, &current_limit);
     (void)PhidgetMotorVelocityController_getSurgeCurrentLimit(motor_handle_, &surge_current_limit);
+    (void)PhidgetMotorVelocityController_getFailsafeCurrentLimit(motor_handle_, &failsafe_current_limit);
     (void)PhidgetMotorVelocityController_getStallVelocity(motor_handle_, &stall_velocity);
     (void)PhidgetMotorVelocityController_getInductance(motor_handle_, &inductance);
 
     RCLCPP_INFO(
         logger_,
         "Motor hub port %d (serial %d): Kp=%g%s Ki=%g%s Kd=%g%s dead band=%g RPM, acceleration=%g RPM/s, "
-        "current limit=%g A, surge=%g A, stall velocity=%g RPM, inductance=%g, data interval=%u ms, "
+        "current limit=%g A, surge=%g A, failsafe=%g A, stall velocity=%g RPM, inductance=%g, data interval=%u ms, "
         "rescale=%g, failsafe braking=%s",
         channel_, serial_number_, kp, settings_.velocity_kp ? "" : " (board default)", ki,
         settings_.velocity_ki ? "" : " (board default)", kd, settings_.velocity_kd ? "" : " (board default)",
-        dead_band, acceleration, current_limit, surge_current_limit, stall_velocity, inductance, actual_interval,
-        rescale_factor, settings_.motor_failsafe_braking_enabled ? "on" : "off");
+        dead_band, acceleration, current_limit, surge_current_limit, failsafe_current_limit, stall_velocity,
+        inductance, actual_interval, rescale_factor, settings_.motor_failsafe_braking_enabled ? "on" : "off");
 }
 
 void PhidgetMotorDriver::reopenMotorChannel()

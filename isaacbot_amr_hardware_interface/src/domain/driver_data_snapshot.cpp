@@ -109,6 +109,8 @@ MotorStateReading::MotorStateReading(const DrivetrainSettings & drivetrain_setti
                                              drivetrain_settings.motor_torque_constant *
                                              drivetrain_settings.gear_ratio *
                                              drivetrain_settings.gearbox_efficiency;
+
+    raw_current_feedback_to_amps_ = drivetrain_settings.raw_current_to_amps_scale;
 }
 
 void MotorStateReading::setData(const MotorDriverState & motor_state)
@@ -129,6 +131,11 @@ float MotorStateReading::getVelocity() const
 float MotorStateReading::getTorque() const
 {
     return static_cast<float>(motor_state_.current) * raw_current_feedback_to_newton_meters_;
+}
+
+float MotorStateReading::getCurrent() const
+{
+    return static_cast<float>(motor_state_.current) * raw_current_feedback_to_amps_;
 }
 
 DriverDataSnapshot::DriverDataSnapshot(const DrivetrainSettings & drivetrain_settings)

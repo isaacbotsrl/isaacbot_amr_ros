@@ -110,11 +110,13 @@ last look, and the age of the last message and of the last valid message.
 | `motor_failsafe_timeout_ms` | `500` | DCC1020 board watchdog: disengages the motor if `write()` stalls. |
 | `motor_failsafe_enabled` | `true` | Optional. `false` never arms that watchdog (instrumented builds only): a stalled `write()` then leaves each wheel at its last velocity target. Anything but `true`/`false`/`1`/`0` fails `on_init()`. |
 | `motor_failsafe_braking_enabled` | `true` | Optional. Brake (`true`) or coast on a failsafe trip. |
-| `motor_current_limit` | `15.0` | DCC1020 current limit [A] (ASSUMPTION carried over from the DCC1000). |
+| `motor_current_limit` | `13.4` | DCC1020 continuous current limit [A]. Rated current from the seller listing (ASSUMPTION). |
 | `velocity_kp` / `velocity_ki` / `velocity_kd`, `velocity_deadband_rpm` | 0.0017 / 0.0341 / 0 / 5 | Tuned DCC1020 on-board loop gains, motor RPM units |
 | `motor_inductance` | 0.000575 | Motor inductance in H, set at attach to skip the characterization at open |
 | `motor_acceleration_rpm_s` | 6300 | DCC1020 on-board ramp in motor RPM/s, just above the worst wheel demand at diff_drive's limits (4.61 m/s²) |
-| `motor_surge_current_limit`, `motor_stall_velocity_rpm`, `motor_failsafe_current_limit` | not set | Optional DCC1020 on-board loop settings, in motor RPM. Absent = board default, logged at configure. Values **TBD**. |
+| `motor_surge_current_limit` | `15.0` | Current allowed briefly above `motor_current_limit` [A]. |
+| `motor_stall_velocity_rpm` | `30` | Board stall protection threshold, motor RPM; 0 disables it (ASSUMPTION until confirmed on the ground). |
+| `motor_failsafe_current_limit` | not set | Current while the failsafe state brakes [A]. Absent = board default, logged at configure. Value **TBD**. |
 | `max_rpm_motor_speed` / `gear_ratio` | `2800` / `23.3` | Clamp on the motor RPM target, and gearbox ratio. |
 | `encoder_resolution` | `1024` | Encoder resolution; also sets the board's rescale factor. |
 | `raw_current_to_amps_scale` | `0.01` | Current is reported in 10 mA units. |

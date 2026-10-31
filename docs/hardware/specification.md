@@ -70,10 +70,10 @@ Sources: `isaacbot_amr_description/config/wheel_01.yaml`, `isaacbot_amr_descript
 | Maximum wheel speed | 12.58 rad/s | DCC1020 target clamp = URDF joint limit; 2.08 m/s at the rim (**derived**, × 0.1651 m) |
 | Motors | 4 × DOBTIAN 250 W, 24 V brushed DC gear motor with MT6835 encoder | One per wheel; 120 RPM at the output shaft (2800 rpm ÷ 23.3). Seller listing: "250w low speed brush motor" (Dobtian); identifier 254324557 (from the owner). See [Components](components.md) |
 | Motor rated speed | 2800 rpm | |
-| Motor rated voltage / current | 24 V / 13.4 A | Seller listing, not a datasheet. The 15 A driver limit is 112 % of the rated current. Four motors at rated current would draw about 54 A (about 1.3 kW) |
+| Motor rated voltage / current | 24 V / 13.4 A | Seller listing, not a datasheet. The driver limits sit at 100 % (continuous) and 112 % (surge) of the rated current. Four motors at rated current would draw about 54 A (about 1.3 kW) |
 | Gear ratio | 23.3 : 1 | Gearbox efficiency 0.70 |
 | Motor torque constant | 0.11 N·m/A | |
-| Motor current limit | 15 A | Per motor controller; see the open items |
+| Motor current limit | 13.4 A continuous, 15 A surge | Per motor controller; see the open items |
 | Encoder resolution | 1024 counts | Per motor revolution |
 | Motor controllers | 4 × Phidget DCC1020 (8–30 V, 50 A continuous, 75 A peak, on-board speed loop) | See [Components](components.md) |
 | Drive control rate | 50 Hz | `controller_manager` update rate |

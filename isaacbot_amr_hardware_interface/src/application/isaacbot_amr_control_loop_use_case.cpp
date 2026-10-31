@@ -113,9 +113,25 @@ bool IsaacbotControlLoopUseCase::isRunawayFaultLatched() const
     return runaway_monitor_.isLatched();
 }
 
+bool IsaacbotControlLoopUseCase::updateWheelStall(
+    const std::vector<float> & targets, const std::vector<double> & measured,
+    const std::vector<double> & currents, const std::chrono::steady_clock::time_point now)
+{
+    // Same power reading as updateWheelRunaway().
+    const bool motors_powered = !e_stop_ || e_stop_->readContactorEngagedState();
+
+    return stall_monitor_.update(targets, measured, currents, motors_powered, now);
+}
+
+bool IsaacbotControlLoopUseCase::isStallFaultLatched() const
+{
+    return stall_monitor_.isLatched();
+}
+
 bool IsaacbotControlLoopUseCase::isHardwareFaultLatched() const
 {
-    return isMotorFailsafeLatched() || isContactorFaultLatched() || isRunawayFaultLatched();
+    return isMotorFailsafeLatched() || isContactorFaultLatched() || isRunawayFaultLatched() ||
+           isStallFaultLatched();
 }
 
 void IsaacbotControlLoopUseCase::resetContactorFault()
@@ -136,6 +152,16 @@ void IsaacbotControlLoopUseCase::resetRunawayFault()
 const WheelRunawayMonitor & IsaacbotControlLoopUseCase::runawayMonitor() const
 {
     return runaway_monitor_;
+}
+
+void IsaacbotControlLoopUseCase::resetStallFault()
+{
+    stall_monitor_.reset();
+}
+
+const WheelStallMonitor & IsaacbotControlLoopUseCase::stallMonitor() const
+{
+    return stall_monitor_;
 }
 
 bool IsaacbotControlLoopUseCase::updateEStopActiveState()

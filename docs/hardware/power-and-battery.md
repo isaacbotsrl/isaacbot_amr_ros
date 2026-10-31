@@ -31,7 +31,7 @@ The pack feeds the BMS, which feeds the power board. The power board supplies 24
 |------|-------|--------|
 | Motor supply voltage | 24 V (system voltage) | comment on `motor_current_limit` in `ardennes_macro.urdf.xacro` |
 | DCC1020 supply range | 8–30 V; 50 A continuous, 75 A peak per board | [Phidgets DCC1020 product page](https://www.phidgets.com/?prodid=1333) |
-| Motor current limit (per DCC1020) | 15 A (ASSUMPTION carried over from the DCC1000; Phidgets suggests ~1.1× rated ≈ 11.5 A) | `ardennes_macro.urdf.xacro` (`motor_current_limit`) |
+| Motor current limit (per DCC1020) | 13.4 A continuous, 15 A surge (rated current from the seller listing, ASSUMPTION) | `ardennes_macro.urdf.xacro` (`motor_current_limit`, `motor_surge_current_limit`) |
 | Motor stall current | 16 A at 24 V | comment on `motor_current_limit` in `ardennes_macro.urdf.xacro` |
 | Power board, Power Guard, fuses | **TBD**. Phidgets recommends a Power Guard SAF2000 or SAF2020 in front of the DCC1020 | none |
 

@@ -160,7 +160,7 @@ Source: `isaacbot_amr_controller/config/wheel_01_controller.yaml`, `isaacbot_amr
 
 | Parameter | Value | Meaning |
 |---|---|---|
-| `motor_current_limit` | 15.0 A | Per motor. ASSUMPTION carried over from the DCC1000; Phidgets suggests ~1.1× rated ≈ 11.5 A |
+| `motor_current_limit` | 13.4 A | Per motor, continuous. The rated current from the seller listing, an ASSUMPTION until checked on the bench |
 | `max_rpm_motor_speed` | 2800 rpm | Clamp on the motor RPM target |
 | `gear_ratio` | 23.3 | |
 | `encoder_resolution` | 1024 | Also sets the board's rescale factor |
@@ -170,7 +170,9 @@ Source: `isaacbot_amr_controller/config/wheel_01_controller.yaml`, `isaacbot_amr
 | `velocity_kp` / `velocity_ki` / `velocity_kd`, `velocity_deadband_rpm` | 0.0017 / 0.0341 / 0 / 5 RPM | Tuned 2026-10-25, wheels lifted (see the URDF comment for the step results); not yet checked under load |
 | `motor_inductance` | 0.000575 H | Measured by the boards, mean of hub ports 0, 1, 5. `motor_inductance` is set when the channel attaches, which skips the motor characterization (the beeps) at every open. Without it the board characterizes the motor at open, which fails with a latched `motor_setup_fault` (error 0x1011) while the motor contactor is open; `sw_e_stop_latch_reset` then re-opens the channel |
 | `motor_acceleration_rpm_s` | 6300 RPM/s | Per-wheel backstop just above the worst wheel demand at diff_drive's limits (4.61 m/s² = 6213 RPM/s); smooths diff_drive's 20 ms command steps. Whether the motors reach it at `motor_current_limit` is **TBD** on the ground |
-| `motor_surge_current_limit`, `motor_stall_velocity_rpm`, `motor_failsafe_current_limit` | not set (**TBD**) | Optional on-board loop settings. Absent = board default, logged at configure. |
+| `motor_surge_current_limit` | 15 A | Allowed briefly above `motor_current_limit`. Keeps what the isaacbot accelerated with on the ground (2026-10-31) |
+| `motor_stall_velocity_rpm` | 30 RPM | Board stall protection; below the slowest measured motion (0.05 m/s = 67 RPM). ASSUMPTION until confirmed on the ground |
+| `motor_failsafe_current_limit` | not set | Board default, logged at configure as `failsafe=`. **TBD** after measuring a watchdog stop |
 | `driver_comm_timeout_ms` | 300 ms | Telemetry age that counts as a communication error |
 
 `motor_acceleration` (DCC1000 duty/s) and `motor_supply_voltage` (DCC1000 current-regulator gain) were removed. `on_init()` rejects a URDF that still sets them.
@@ -190,7 +192,11 @@ Source: `isaacbot_amr_controller/config/wheel_01_controller.yaml`, `isaacbot_amr
 | `motor_stall` | Dangerous stall | yes |
 | `bad_power` | Bad supply | no |
 
-Transient flags clear on the board's "Error Cleared" event. A tripped watchdog, an E-Stop, a stall or an energy dump is latched and is cleared only by `hardware_interface/sw_e_stop_latch_reset`, which re-opens the channel. The `isaacbot_amr_msgs/FaultFlag` message still carries only `emergency_stop` and `motor_setup_fault`; the new bits are visible in diagnostics only.
+Transient flags clear on the board's "Error Cleared" event. A tripped watchdog, an E-Stop, a stall or an energy dump is latched and is cleared only by `hardware_interface/sw_e_stop_latch_reset`, which re-opens the channel. 
+
+**Stall protection.** Two independent checks. The board's `motor_stall_velocity_rpm` disengages a wheel on its own dangerous-stall model and raises `motor_stall`. `WheelStallMonitor` runs on the host in `read()`: a wheel commanded at 0.2 rad/s or more, turning slower than 0.3 rad/s while drawing 8 A or more for 1 s, latches a fault. Either one makes `write()` command zero on all wheels. Motor power stays on, so the other wheels keep braking, and `sw_e_stop_latch_reset` clears it. A real obstruction re-latches one hold time after motion is commanded again.
+
+The `isaacbot_amr_msgs/FaultFlag` message still carries only `emergency_stop` and `motor_setup_fault`; the new bits are visible in diagnostics only.
 
 Source: `isaacbot_amr_description/urdf/ardennes/ardennes_macro.urdf.xacro`, `isaacbot_amr_hardware_interface/README.md`.
 

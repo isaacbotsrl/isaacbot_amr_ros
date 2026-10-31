@@ -254,22 +254,39 @@
           <!-- DCC1020 motor current limit in A (checked against the board's range at configure).
                The motor stalls at 16 A on 24 V, and a direction reversal can briefly reach ~2x
                stall as back-EMF adds to the supply, so the limit is what protects motor, driver
-               and gearbox. Phidgets recommends ~1.1x the motor's rated current (250 W / 24 V
-               = ~10.4 A, i.e. ~11.5 A); 15.0 is the value carried over from the DCC1000 setup -
-               ASSUMPTION, re-check on the bench. Optional - omitting it keeps the compiled-in
+               and gearbox. 13.4 A is the motor's rated current (seller listing, not a datasheet:
+               docs/hardware/components.md), which fits 250 W of output at ~78 % efficiency. It is
+               a continuous limit, so the motor may run at it indefinitely. ASSUMPTION until the
+               rating is checked on the bench. Optional - omitting it keeps the compiled-in
                kDefaultMotorCurrentLimit (10.0). -->
-          <param name="motor_current_limit">15.0</param>
+          <param name="motor_current_limit">13.4</param>
 
           <!-- DCC1020 on-board velocity loop (MotorVelocityController). The controller is
                rescaled to motor-shaft RPM, so velocities are motor RPM and accelerations RPM/s.
                Every one of these is optional: omitted, the board keeps its own default and the
                driver logs the value it runs with at configure ("Motor hub port N ... Kp=..."),
-               which is the starting point for tuning. The tuned gains and the acceleration
-               ramp are set below this block; the rest are still TBD.
-               Current allowed above motor_current_limit for ~1 s (>= motor_current_limit):
-          <param name="motor_surge_current_limit">TBD</param>
-               Dangerous-stall threshold; 0 disables stall protection:
-          <param name="motor_stall_velocity_rpm">TBD</param>
+               which is the starting point for tuning. -->
+
+          <!-- Current allowed briefly above motor_current_limit before the board scales down to it
+               (must be >= motor_current_limit). Keeps the 15 A the isaacbot accelerated with on
+               the ground on 2026-10-31: straight ramps averaged 5-9 A with peaks at 15 A, and the
+               worst case (0.8 m/s + 1.5 rad/s step) averaged up to 14.6 A on an outer wheel for
+               the 0.4 s ramp. Stays under the 16 A stall current. -->
+          <param name="motor_surge_current_limit">15.0</param>
+
+          <!-- Dangerous-stall threshold, motor RPM; 0 disables stall protection. Phidgets: set it to
+               the lowest speed the motor is expected to run at; a higher value trips sooner. The
+               slowest motion measured on the ground is 0.05 m/s = 67 RPM. 30 RPM (0.02 m/s) sits
+               below that. ASSUMPTION until confirmed on the ground: no fault_flag.motor_stall on
+               hard starts and in-place turns, and a trip with a wheel held. A trip disengages that
+               wheel and latches until hardware_interface/sw_e_stop_latch_reset. WheelStallMonitor
+               in the hardware interface checks for the same fault independently. -->
+          <param name="motor_stall_velocity_rpm">30</param>
+
+          <!-- motor_failsafe_current_limit (A, current while the failsafe state brakes) stays at
+               the board default: lowering it could lengthen a watchdog stop, and failsafe braking
+               has not been measured. The driver logs the default at configure ("failsafe=").
+               TBD: set it after measuring a watchdog stop.
           <param name="motor_failsafe_current_limit">TBD</param>
           -->
 

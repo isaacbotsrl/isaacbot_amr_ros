@@ -185,6 +185,8 @@ public:
     float getPosition() const;
     float getVelocity() const;
     float getTorque() const;
+    // Motor current in A, either sign.
+    float getCurrent() const;
 
 private:
 
@@ -194,6 +196,7 @@ private:
     float raw_pos_feedback_to_radians_;
     float raw_vel_feedback_to_radians_per_second_;
     float raw_current_feedback_to_newton_meters_;
+    float raw_current_feedback_to_amps_;
 
     MotorDriverState motor_state_ = {0, 0, 0, 0.0};
 };

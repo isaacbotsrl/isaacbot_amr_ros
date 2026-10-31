@@ -176,6 +176,11 @@ void ArdennesSystem::updateHwStates(const rclcpp::Time & time)
     hw_states_efforts_[1] = front_right.getTorque();
     hw_states_efforts_[2] = rear_left.getTorque();
     hw_states_efforts_[3] = rear_right.getTorque();
+
+    hw_states_currents_[0] = front_left.getCurrent();
+    hw_states_currents_[1] = front_right.getCurrent();
+    hw_states_currents_[2] = rear_left.getCurrent();
+    hw_states_currents_[3] = rear_right.getCurrent();
 }
 
 void ArdennesSystem::updateDriverStateMsg()

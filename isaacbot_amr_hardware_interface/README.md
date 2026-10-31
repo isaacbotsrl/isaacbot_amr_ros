@@ -65,6 +65,10 @@ Each runs the wheel speed loop on board (`MotorVelocityController`: trapezoidal 
   Transient bits clear on the board's "Error Cleared" event. Latched trips (failsafe, E-Stop, stall,
   energy dump) are cleared by `hardware_interface/sw_e_stop_latch_reset`, which re-opens the
   channel. The `FaultFlag` message still has only `emergency_stop` and `motor_setup_fault`.
+- **Stall protection.** The board's `motor_stall_velocity_rpm` disengages a wheel and raises
+  `motor_stall`. `WheelStallMonitor` checks independently on the host: a commanded wheel turning
+  slower than 0.3 rad/s at 8 A or more for 1 s latches a fault. Either one makes `write()` send zeros
+  with motor power left on, until `hardware_interface/sw_e_stop_latch_reset`.
 - **Parameters.** On-board loop settings are optional URDF `<param>`s (`velocity_kp/ki/kd`,
   `velocity_deadband_rpm`, `motor_acceleration_rpm_s`, `motor_surge_current_limit`,
   `motor_stall_velocity_rpm`, `motor_failsafe_current_limit`, `motor_inductance`,

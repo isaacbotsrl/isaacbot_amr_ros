@@ -82,6 +82,7 @@ add_library(
     src/domain/velocity_command_guard.cpp
     src/domain/contactor_monitor.cpp
     src/domain/wheel_runaway_monitor.cpp
+    src/domain/wheel_stall_monitor.cpp
     src/domain/safety_link_diagnosis.cpp
     src/application/isaacbot_amr_control_loop_use_case.cpp
     src/utils.cpp
@@ -254,6 +255,10 @@ if(BUILD_TESTING)
   # Overspeed / wrong-direction latch that cuts motor power on a runaway DCC1020 loop.
   ament_add_gtest(test_wheel_runaway_monitor test/domain/test_wheel_runaway_monitor.cpp)
   target_link_libraries(test_wheel_runaway_monitor ${PROJECT_NAME}_core)
+
+  # High current on a commanded wheel that is not turning: stops commanding the wheels.
+  ament_add_gtest(test_wheel_stall_monitor test/domain/test_wheel_stall_monitor.cpp)
+  target_link_libraries(test_wheel_stall_monitor ${PROJECT_NAME}_core)
 
   # Severity/summary of the "safety plc link" diagnostic, extracted from
   # IsaacbotSystem::diagnoseSafetyLink() so its priority order is pinned without ROS.

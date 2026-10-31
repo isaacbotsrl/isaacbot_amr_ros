@@ -169,6 +169,10 @@ protected:
     // (speed_cmd_buffer_) and the measured velocities; logs once when it latches.
     void updateWheelRunaway();
 
+    // Feeds IsaacbotControlLoopUseCase's wheel-stall check with the commanded and measured
+    // velocities and the motor currents (hw_states_currents_); logs once when it latches.
+    void updateWheelStall();
+
     double readPositiveToleranceParam(
         const std::string & key, const double default_value) const;
 
@@ -223,6 +227,9 @@ protected:
     std::vector<double> hw_states_positions_;
     std::vector<double> hw_states_velocities_;
     std::vector<double> hw_states_efforts_;
+    // Motor current per wheel, A. Not an exported state interface: only the stall check reads it.
+    // Left NaN by a variant that doesn't fill it, which the check treats as no evidence.
+    std::vector<double> hw_states_currents_;
 
     // Reused across write() cycles by getSpeedCmd() to avoid allocating on the RT thread.
     // Sized once in setInitialValues().

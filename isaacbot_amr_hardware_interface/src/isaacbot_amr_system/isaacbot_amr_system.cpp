@@ -194,6 +194,7 @@ CallbackReturn IsaacbotSystem::on_configure(const rclcpp_lifecycle::State &)
         std::fill(hw_states_positions_.begin(), hw_states_positions_.end(), 0.0);
         std::fill(hw_states_velocities_.begin(), hw_states_velocities_.end(), 0.0);
         std::fill(hw_states_efforts_.begin(), hw_states_efforts_.end(), 0.0);
+        std::fill(hw_states_currents_.begin(), hw_states_currents_.end(), 0.0);
 
         // Force read() to re-seed next_driver_state_update_time_ from the first `time` it
         // receives after this (re)configure, rather than comparing against a value seeded under
@@ -432,6 +433,7 @@ return_type IsaacbotSystem::read(const rclcpp::Time & time, const rclcpp::Durati
     updateEStopState();
     updateContactorPlausibility();
     updateWheelRunaway();
+    updateWheelStall();
 
     return return_type::OK;
 }
@@ -521,6 +523,7 @@ void IsaacbotSystem::setInitialValues()
     hw_states_positions_.resize(joint_size_, std::numeric_limits<double>::quiet_NaN());
     hw_states_velocities_.resize(joint_size_, std::numeric_limits<double>::quiet_NaN());
     hw_states_efforts_.resize(joint_size_, std::numeric_limits<double>::quiet_NaN());
+    hw_states_currents_.resize(joint_size_, std::numeric_limits<double>::quiet_NaN());
 
     speed_cmd_buffer_.resize(joint_size_, 0.0f);
 }
@@ -833,6 +836,10 @@ void IsaacbotSystem::resetEStopLatch()
     // motor-driver-fault input it asserted was already released by e_stop_->resetEStopLatch().
     control_loop_use_case_->resetRunawayFault();
 
+    // And the stall latch: zero commands remove its signature, so nothing else can clear it. A
+    // wheel that is still blocked re-latches one hold time after motion is commanded again.
+    control_loop_use_case_->resetStallFault();
+
     // This service callback runs on a non-RT, MutuallyExclusive callback-group thread (never the
     // RT read()/write() path - see check_rt_path_purity.sh), so the blocking Phidget SDK calls
     // inside resetFailsafe() are safe here. A single sw_e_stop_latch_reset call both clears the
@@ -1133,6 +1140,23 @@ void IsaacbotSystem::diagnoseSafetyLink(diagnostic_updater::DiagnosticStatusWrap
         return;
     }
 
+    const auto & stall = control_loop_use_case_->stallMonitor();
+    status.add("Wheel stall latched", stall.isLatched());
+
+    if (stall.isLatched()) {
+        const int wheel = stall.latchedWheel();
+        const std::string wheel_name =
+            (wheel >= 0 && static_cast<std::size_t>(wheel) < joint_order_.size()) ? joint_order_[wheel] : "?";
+        status.add("Stalled wheel", wheel_name);
+        status.add("Stall target (rad/s)", stall.latchedTarget());
+        status.add("Stall measured (rad/s)", stall.latchedMeasured());
+        status.add("Stall current (A)", stall.latchedCurrent());
+        status.summary(
+            diagnostic_msgs::msg::DiagnosticStatus::ERROR,
+            "Wheel stall on " + wheel_name + " - motion stopped, reset the E-Stop latch to clear");
+        return;
+    }
+
     const auto d = evaluateSafetyLinkHealth(health, contactor_fault, contactor_failed_open);
     status.summary(toDiagnosticLevel(d.severity), d.message);
 }
@@ -1185,6 +1209,28 @@ void IsaacbotSystem::updateWheelRunaway()
         "Motor-driver-fault E-Stop asserted - the contactor opens. Check that wheel's motor and "
         "encoder polarity, then call hardware_interface/sw_e_stop_latch_reset.",
         wheel_name, runaway.latchedMeasured(), runaway.latchedTarget());
+}
+
+// Same clock and same once-only logging as updateWheelRunaway().
+void IsaacbotSystem::updateWheelStall()
+{
+    if (!control_loop_use_case_->updateWheelStall(
+            speed_cmd_buffer_, hw_states_velocities_, hw_states_currents_, std::chrono::steady_clock::now()))
+    {
+        return;
+    }
+
+    const auto & stall = control_loop_use_case_->stallMonitor();
+    const int wheel = stall.latchedWheel();
+    const char * wheel_name =
+        (wheel >= 0 && static_cast<std::size_t>(wheel) < joint_order_.size()) ? joint_order_[wheel].c_str() : "?";
+
+    RCLCPP_ERROR(
+        logger_,
+        "Wheel stall on %s: %.1f A at %.2f rad/s against a commanded %.2f rad/s. All wheels are "
+        "commanded to zero and motor power stays on. Clear the obstruction, then call "
+        "hardware_interface/sw_e_stop_latch_reset.",
+        wheel_name, stall.latchedCurrent(), stall.latchedMeasured(), stall.latchedTarget());
 }
 
 void IsaacbotSystem::handleIsaacbotDriverWriteOperation(std::function<void()> write_operation)

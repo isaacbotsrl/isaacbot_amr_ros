@@ -122,6 +122,22 @@ protected:
     DriverDataSnapshot snapshot_;
 };
 
+TEST(MotorStateReadingTest, CurrentScalesRawUnitsToAmpsKeepingTheSign)
+{
+    auto settings = makeDrivetrainSettings();
+    settings.raw_current_to_amps_scale = 0.01f;
+    MotorStateReading reading(settings);
+
+    MotorDriverState state {};
+    state.current = 1340;
+    reading.setData(state);
+    EXPECT_NEAR(reading.getCurrent(), 13.4f, 1e-4f);
+
+    state.current = -1340;
+    reading.setData(state);
+    EXPECT_NEAR(reading.getCurrent(), -13.4f, 1e-4f);
+}
+
 TEST_F(DriverDataSnapshotTest, StartsWithoutErrorOrTimeout)
 {
     EXPECT_FALSE(snapshot_.isError());

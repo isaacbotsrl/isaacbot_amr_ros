@@ -51,7 +51,7 @@ The A1 is a four-wheel-drive skid-steer platform. Each wheel has its own motor, 
 | Motor torque constant | 0.11 N·m/A | `ardennes_macro.urdf.xacro` (`motor_torque_constant`) |
 | Motor stall current | 16 A at 24 V | comment on `motor_current_limit` in `ardennes_macro.urdf.xacro` |
 | DCC1020 rating | 8–30 V supply, 50 A continuous, 75 A peak | Phidgets DCC1020 product page |
-| DCC1020 current limit | 15 A (ASSUMPTION carried over from the DCC1000; Phidgets suggests ~1.1× rated ≈ 11.5 A) | `ardennes_macro.urdf.xacro` (`motor_current_limit`) |
+| DCC1020 current limit | 13.4 A continuous, 15 A surge (rated current from the seller listing, ASSUMPTION; surge from the 2026-10-31 ground runs) | `ardennes_macro.urdf.xacro` (`motor_current_limit`, `motor_surge_current_limit`) |
 | DCC1020 speed loop gains and acceleration | **TBD** (board defaults until tuned; logged at configure) | `ardennes_macro.urdf.xacro` (`velocity_kp/ki/kd`, `motor_acceleration_rpm_s`) |
 | DCC1020 failsafe timeout | 500 ms, brake on trip | `ardennes_macro.urdf.xacro` (`motor_failsafe_timeout_ms`, `motor_failsafe_braking_enabled`) |
 

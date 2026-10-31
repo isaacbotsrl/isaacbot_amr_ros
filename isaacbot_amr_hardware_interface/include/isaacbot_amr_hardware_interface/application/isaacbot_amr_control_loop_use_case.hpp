@@ -30,6 +30,7 @@
 #include "isaacbot_amr_hardware_interface/domain/isaacbot_amr_driver.hpp"
 #include "isaacbot_amr_hardware_interface/domain/isaacbot_amr_error_filter.hpp"
 #include "isaacbot_amr_hardware_interface/domain/wheel_runaway_monitor.hpp"
+#include "isaacbot_amr_hardware_interface/domain/wheel_stall_monitor.hpp"
 
 namespace isaacbot_amr_hardware_interface
 {
@@ -151,6 +152,18 @@ public:
     // Whether a wheel runaway has been latched. Same shape as isContactorFaultLatched().
     bool isRunawayFaultLatched() const;
 
+    // Feeds the wheel-stall monitor with what write() last sent to each wheel (`targets`), the
+    // velocities read back (`measured`) and the motor currents (`currents`, A), and returns true on
+    // the cycle a stall latches. Unlike a runaway this asks for no contactor stop: a stalled wheel
+    // obeys the zeros write() now sends, and motor power is what keeps the other wheels braking.
+    // Evaluated only while the contactor reports engaged. Call every read() cycle; RT-safe.
+    bool updateWheelStall(
+        const std::vector<float> & targets, const std::vector<double> & measured,
+        const std::vector<double> & currents, const std::chrono::steady_clock::time_point now);
+
+    // Whether a wheel stall has been latched. Same shape as isRunawayFaultLatched().
+    bool isStallFaultLatched() const;
+
     // Every latched hardware fault that must inhibit motion, OR-ed. This is what write() passes
     // to decideWriteCommand().
     bool isHardwareFaultLatched() const;
@@ -165,6 +178,11 @@ public:
     void resetRunawayFault();
 
     const WheelRunawayMonitor & runawayMonitor() const;
+
+    // Clears the latched stall. Wired to the latch-reset service, like resetRunawayFault().
+    void resetStallFault();
+
+    const WheelStallMonitor & stallMonitor() const;
 
     // Recomputes and returns whether the E-Stop (user-triggered or latched) is currently active.
     // Fail-safe: returns true when no EmergencyStopInterface was configured.
@@ -224,6 +242,8 @@ private:
     ContactorMonitor contactor_monitor_;
 
     WheelRunawayMonitor runaway_monitor_;
+
+    WheelStallMonitor stall_monitor_;
 
     // Serializes calls to performWriteOperation() - the same single mutex write() (speed command)
     // and updateFaultFlagStatus() (error-flag reset) shared before this extraction, so the two
